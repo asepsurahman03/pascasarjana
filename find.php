@@ -1,0 +1,1 @@
+<?php header('Content-Type: text/plain'); $dir = new RecursiveDirectoryIterator('C:/xampp/htdocs/webdummy'); foreach (new RecursiveIteratorIterator($dir) as $filename => $filename . "\\n"; } } ?>

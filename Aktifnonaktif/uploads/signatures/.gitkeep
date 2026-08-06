@@ -1,0 +1,7 @@
+<?php
+/**
+ * Placeholder: signatures directory
+ * Digital signature PNG files will be saved here automatically
+ */
+// This file intentionally left as placeholder
+// Signatures are saved by saveSignatureImage() in includes/functions.php

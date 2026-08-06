@@ -1,0 +1,386 @@
+/* 
+ * Sistem Pengunduran Diri Mahasiswa - Universitas Nusa Putra
+ * Custom CSS: Dark Mode Variables, Glassmorphism, Animations
+ */
+
+/* ============================================================
+   ROOT VARIABLES
+   ============================================================ */
+:root {
+  --nusa:        #C1121F;
+  --nusa-dark:   #8B0000;
+  --nusa-light:  #E63946;
+  --nusa-faint:  rgba(193,18,31,0.08);
+
+  --bg-light:    #F8FAFC;
+  --bg-dark:     #0F172A;
+  --card-light:  #FFFFFF;
+  --card-dark:   #1E293B;
+  --border-light:#E2E8F0;
+  --border-dark: #334155;
+  --text-light:  #1E293B;
+  --text-dark:   #F1F5F9;
+  --text-muted:  #64748B;
+
+  --radius-xl:   1rem;
+  --radius-2xl:  1.25rem;
+  --shadow-sm:   0 1px 3px 0 rgba(0,0,0,.06), 0 1px 2px -1px rgba(0,0,0,.06);
+  --shadow-md:   0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.07);
+  --shadow-lg:   0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.08);
+  --shadow-nusa: 0 4px 14px rgba(193,18,31,0.25);
+}
+
+/* ============================================================
+   DARK MODE OVERRIDES
+   ============================================================ */
+.dark body { background-color: var(--bg-dark); color: var(--text-dark); }
+
+/* ============================================================
+   GLASSMORPHISM
+   ============================================================ */
+.glass {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.glass-dark {
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ============================================================
+   SKELETON LOADING
+   ============================================================ */
+.skeleton {
+  background: linear-gradient(90deg, #f0f4f8 25%, #e2e8f0 50%, #f0f4f8 75%);
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.6s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+.dark .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+@keyframes skeleton-wave {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(193,18,31,0.4); }
+  70%  { transform: scale(1);    box-shadow: 0 0 0 12px rgba(193,18,31,0);  }
+  100% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(193,18,31,0);    }
+}
+@keyframes float {
+  0%,100% { transform: translateY(0);    }
+  50%      { transform: translateY(-8px); }
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+@keyframes bounce-in {
+  0%   { transform: scale(0.3); opacity: 0; }
+  50%  { transform: scale(1.05); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.animate-fadeInUp   { animation: fadeInUp 0.6s ease both; }
+.animate-fadeInLeft { animation: fadeInLeft 0.5s ease both; }
+.animate-fadeIn     { animation: fadeIn 0.4s ease both; }
+.animate-float      { animation: float 5s ease-in-out infinite; }
+.animate-spin-slow  { animation: spin-slow 8s linear infinite; }
+.animate-bounce-in  { animation: bounce-in 0.6s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+.animate-pulse-ring { animation: pulse-ring 2s cubic-bezier(0.455,0.03,0.515,0.955) infinite; }
+
+.delay-100  { animation-delay: 0.1s; }
+.delay-200  { animation-delay: 0.2s; }
+.delay-300  { animation-delay: 0.3s; }
+.delay-400  { animation-delay: 0.4s; }
+.delay-500  { animation-delay: 0.5s; }
+
+/* ============================================================
+   GRADIENT TEXT
+   ============================================================ */
+.text-gradient {
+  background: linear-gradient(135deg, var(--nusa), var(--nusa-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-shimmer {
+  background: linear-gradient(90deg, var(--nusa), #ff6b6b, var(--nusa));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ============================================================
+   CUSTOM SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #C1121F44; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #C1121F88; }
+
+/* ============================================================
+   FOCUS RING
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--nusa);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   CARD HOVER EFFECTS
+   ============================================================ */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ============================================================
+   BUTTON STYLES
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 0.5rem; padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-xl); font-weight: 600; font-size: 0.875rem;
+  cursor: pointer; border: none; transition: all 0.2s ease;
+  text-decoration: none;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--nusa), var(--nusa-dark));
+  color: #fff;
+  box-shadow: var(--shadow-nusa);
+}
+.btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(193,18,31,0.4);
+  filter: brightness(1.05);
+}
+
+.btn-secondary {
+  background: #F1F5F9; color: #475569; border: 1px solid #E2E8F0;
+}
+.dark .btn-secondary { background: #334155; color: #CBD5E1; border-color: #475569; }
+.btn-secondary:hover { background: #E2E8F0; }
+.dark .btn-secondary:hover { background: #475569; }
+
+.btn-success  { background: #16A34A; color: #fff; }
+.btn-danger   { background: var(--nusa); color: #fff; }
+.btn-warning  { background: #D97706; color: #fff; }
+.btn-info     { background: #2563EB; color: #fff; }
+
+/* ============================================================
+   BADGE
+   ============================================================ */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 0.2rem 0.65rem; border-radius: 9999px;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.badge-dot::before {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: currentColor;
+  display: inline-block; margin-right: 5px;
+  animation: pulse 2s infinite;
+}
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+.form-group { margin-bottom: 1.25rem; }
+.form-label {
+  display: block; margin-bottom: 0.4rem;
+  font-size: 0.875rem; font-weight: 600;
+  color: #374151;
+}
+.dark .form-label { color: #D1D5DB; }
+
+.form-control {
+  width: 100%; padding: 0.7rem 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  background: #fff; color: #1E293B;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+.dark .form-control {
+  background: #1E293B; color: #F1F5F9;
+  border-color: var(--border-dark);
+}
+.form-control:focus {
+  border-color: var(--nusa);
+  box-shadow: 0 0 0 3px rgba(193,18,31,0.15);
+}
+.form-control.is-invalid {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+}
+.invalid-feedback { font-size: 0.75rem; color: #EF4444; margin-top: 0.25rem; }
+
+/* ============================================================
+   PROGRESS BAR
+   ============================================================ */
+.progress { background: #E2E8F0; border-radius: 9999px; overflow: hidden; }
+.dark .progress { background: #334155; }
+.progress-bar {
+  height: 100%; background: linear-gradient(90deg, var(--nusa), var(--nusa-light));
+  border-radius: 9999px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  position: relative; overflow: hidden;
+}
+.progress-bar::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+/* ============================================================
+   STATUS TIMELINE
+   ============================================================ */
+.timeline { position: relative; padding-left: 1.5rem; }
+.timeline::before {
+  content: ''; position: absolute; left: 0.5rem; top: 0; bottom: 0;
+  width: 2px; background: #E2E8F0;
+}
+.dark .timeline::before { background: #334155; }
+.timeline-item { position: relative; padding-bottom: 1.25rem; }
+.timeline-item::before {
+  content: ''; position: absolute; left: -1.1rem; top: 0.25rem;
+  width: 0.75rem; height: 0.75rem; border-radius: 50%;
+  background: #CBD5E1; border: 2px solid #fff;
+}
+.timeline-item.active::before {
+  background: var(--nusa);
+  box-shadow: 0 0 0 3px rgba(193,18,31,0.2);
+}
+
+/* ============================================================
+   TOAST (supplemental - SweetAlert2 handles main toasts)
+   ============================================================ */
+.toast-container {
+  position: fixed; top: 1rem; right: 1rem; z-index: 9999;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  max-width: 360px;
+}
+.toast-item {
+  padding: 0.875rem 1.125rem; border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg); color: #fff;
+  animation: fadeInUp 0.35s ease;
+  display: flex; align-items: center; gap: 0.625rem;
+}
+
+/* ============================================================
+   SIGNATURE CANVAS WRAPPER
+   ============================================================ */
+.signature-wrapper {
+  border: 2px dashed #CBD5E1; border-radius: var(--radius-xl);
+  background: #FAFAFA; position: relative; overflow: hidden;
+  cursor: crosshair; transition: border-color 0.2s;
+}
+.signature-wrapper.has-sig {
+  border-style: solid; border-color: var(--nusa);
+  background: #FFF;
+}
+.dark .signature-wrapper { background: #F8FAFC; }
+
+/* ============================================================
+   PRINT UTILITIES
+   ============================================================ */
+@media print {
+  .no-print, .sidebar, header, footer, nav { display: none !important; }
+  body { background: #fff !important; }
+  .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+}
+
+/* ============================================================
+   RESPONSIVE TABLE
+   ============================================================ */
+@media (max-width: 640px) {
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-responsive table { min-width: 600px; }
+}
+
+/* ============================================================
+   LOADING SPINNER
+   ============================================================ */
+.spinner {
+  width: 1.25rem; height: 1.25rem;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin-slow 0.7s linear infinite;
+}
+.spinner-dark {
+  border-color: rgba(193,18,31,0.2);
+  border-top-color: var(--nusa);
+}
+
+/* ============================================================
+   STAT CARD GRADIENT VARIANTS
+   ============================================================ */
+.stat-card-blue   { background: linear-gradient(135deg, #2563EB, #1D4ED8); }
+.stat-card-purple { background: linear-gradient(135deg, #7C3AED, #6D28D9); }
+.stat-card-green  { background: linear-gradient(135deg, #16A34A, #15803D); }
+.stat-card-orange { background: linear-gradient(135deg, #EA580C, #C2410C); }
+.stat-card-red    { background: linear-gradient(135deg, #C1121F, #8B0000); }
+
+/* ============================================================
+   HOVER UNDERLINE LINK
+   ============================================================ */
+.link-hover {
+  position: relative; color: var(--nusa);
+  text-decoration: none; font-weight: 500;
+}
+.link-hover::after {
+  content: ''; position: absolute; left: 0; bottom: -1px;
+  width: 0; height: 1px; background: var(--nusa);
+  transition: width 0.3s ease;
+}
+.link-hover:hover::after { width: 100%; }
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 4rem 2rem;
+  text-align: center;
+}
+.empty-state-icon {
+  width: 5rem; height: 5rem; border-radius: 50%;
+  background: #F1F5F9; display: flex;
+  align-items: center; justify-content: center;
+  margin-bottom: 1.25rem;
+}
+.dark .empty-state-icon { background: #334155; }

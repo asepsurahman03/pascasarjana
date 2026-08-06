@@ -1,0 +1,10 @@
+/vendor/
+/scratch/
+/uploads/
+/exports/
+/TTD Dosen/
+/temp_docx/
+/temp_docx_lamp1/
+.env
+*.log
+Login Google

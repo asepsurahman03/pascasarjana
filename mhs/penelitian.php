@@ -1,0 +1,912 @@
+<?php
+$pageTitle = 'Repository Publikasi Ilmiah';
+$hidePageHeader = true;
+require_once 'header.php';
+require_once __DIR__ . '/../includes/functions.php';
+
+$mhsId    = $mhs['id'];
+$prodiId  = $mhsRow['prodi_id'] ?? null;
+
+// Ambil dosen aktif dari prodi yang sama dengan mahasiswa
+$dosenProdi = $prodiId
+    ? dbQuery("SELECT id, nama FROM dosen WHERE prodi_id = ? AND status = 'Aktif' ORDER BY nama ASC", [$prodiId])
+    : [];
+
+$myPubs = dbQuery(
+    "SELECT * FROM mahasiswa_publikasi WHERE mahasiswa_id=? ORDER BY created_at DESC",
+    [$mhsId]
+);
+
+$total   = count($myPubs);
+$publish = 0; $acc = 0; $review = 0;
+foreach ($myPubs as $p) {
+    $s = strtolower($p['status_publikasi']);
+    if (str_contains($s,'publish')) $publish++;
+    elseif (str_contains($s,'acc')) $acc++;
+    else $review++;
+}
+
+// Collect unique years for filter
+$years = [];
+foreach ($myPubs as $p) { if ($p['tahun_terbit']) $years[$p['tahun_terbit']] = true; }
+krsort($years);
+
+$filterStatus = $_GET['status'] ?? '';
+$filterYear   = $_GET['year']   ?? '';
+$searchQ      = $_GET['q']      ?? '';
+
+// Apply PHP-side filter (for non-JS fallback)
+$filtered = array_filter($myPubs, function($p) use ($filterStatus, $filterYear, $searchQ) {
+    $s = strtolower($p['status_publikasi']);
+    if ($filterStatus === 'publish' && !str_contains($s,'publish')) return false;
+    if ($filterStatus === 'acc'     && !str_contains($s,'acc'))     return false;
+    if ($filterStatus === 'review'  && !str_contains($s,'review'))  return false;
+    if ($filterYear && $p['tahun_terbit'] != $filterYear) return false;
+    if ($searchQ) {
+        $hay = strtolower(($p['judul_artikel']??'').' '.($p['nama_jurnal']??'').' '.($p['kata_kunci']??'').' '.($p['abstrak']??''));
+        if (!str_contains($hay, strtolower($searchQ))) return false;
+    }
+    return true;
+});
+
+$flash = getFlash();
+?>
+
+<?php // Override page padding to be full-width ?>
+<style>
+  /* Make this page full-width within the main wrapper and offset top padding */
+  .sd-page { margin: -2rem -1rem 0; }
+  @media(min-width:640px)  { .sd-page { margin: -2.5rem -1.5rem 0; } }
+  @media(min-width:768px)  { .sd-page { margin: -3rem -1.5rem 0; } }
+  @media(min-width:1024px) { .sd-page { margin: -3.5rem -2rem 0; } }
+
+  /* ScienceDirect-style article list */
+  .sd-article:not(:last-child) { border-bottom: 1px solid #e2e8f0; }
+  .dark .sd-article:not(:last-child) { border-bottom-color: #334155; }
+  .sd-title-link { transition: color .15s; }
+  .sd-title-link:hover { color: #8c0c4c !important; text-decoration: underline; }
+  .dark .sd-title-link:hover { color: #f06ea4 !important; }
+  
+  /* Chip filter */
+  .sd-filter-btn { padding:.35rem .85rem; border-radius:.5rem; font-size:.75rem; font-weight:700; cursor:pointer; transition:all .15s; border:1px solid transparent; }
+  .sd-filter-btn:not(.active) { background:#f8fafc; color:#475569; border-color:#e2e8f0; }
+  .sd-filter-btn.active { background:#8c0c4c; color:#fff; border-color:#8c0c4c; }
+  .dark .sd-filter-btn:not(.active) { background:#1e293b; color:#94a3b8; border-color:#334155; }
+  .dark .sd-filter-btn.active { background:#8c0c4c; color:#fff; }
+
+  /* Sidebar checkbox */
+  .sd-check { accent-color:#8c0c4c; }
+</style>
+
+<div class="sd-page">
+
+<!-- ═══════════════════════════════════
+     TOP SEARCH HEADER  (ScienceDirect style)
+════════════════════════════════════════ -->
+<div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <?php if ($flash): ?>
+    <div class="mb-6 p-4 rounded-xl text-sm font-bold flex items-center gap-3 shadow-sm <?= $flash['type'] === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' ?>">
+        <span><?= $flash['type'] === 'error' ? '❌' : '✅' ?></span>
+        <?= htmlspecialchars($flash['message']) ?>
+    </div>
+    <?php endif; ?>
+
+    <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-end justify-between">
+      <div>
+        <h1 class="text-2xl font-display font-extrabold text-slate-900 dark:text-white mb-1">Repository Publikasi Ilmiah</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Portofolio karya ilmiah, artikel, dan penelitian — Pascasarjana Universitas Nusa Putra</p>
+      </div>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')"
+              class="shrink-0 inline-flex items-center gap-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+        Tambah Publikasi
+      </button>
+    </div>
+
+    <!-- Search Bar (ScienceDirect style) -->
+    <form method="GET" class="mt-5 flex gap-0 shadow-md rounded-xl overflow-hidden border border-slate-300 dark:border-slate-600 focus-within:border-[#8c0c4c] focus-within:ring-2 focus-within:ring-[#8c0c4c]/20 transition-all">
+      <input type="text" name="q" value="<?= htmlspecialchars($searchQ) ?>"
+             placeholder="Cari judul artikel, nama jurnal, kata kunci, penulis..."
+             class="flex-1 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm px-5 py-3.5 outline-none placeholder-slate-400">
+      <?php if($filterStatus): ?><input type="hidden" name="status" value="<?= htmlspecialchars($filterStatus) ?>"><?php endif; ?>
+      <?php if($filterYear):   ?><input type="hidden" name="year"   value="<?= htmlspecialchars($filterYear)   ?>"><?php endif; ?>
+      <button type="submit" class="bg-[#8c0c4c] hover:bg-[#a3155b] text-white px-6 font-bold text-sm transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+        Cari
+      </button>
+    </form>
+
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     TWO-COLUMN LAYOUT
+════════════════════════════════════════ -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex gap-7 items-start">
+
+  <!-- ── LEFT SIDEBAR ── -->
+  <aside class="hidden lg:block w-60 shrink-0 sticky top-4">
+
+    <!-- Refine Results -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm mb-5">
+      <div class="bg-[#8c0c4c] px-4 py-3">
+        <h3 class="text-white text-sm font-bold uppercase tracking-wide">Saring Hasil</h3>
+      </div>
+
+      <!-- By Status -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-700">
+        <h4 class="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Status Publikasi</h4>
+        <div class="space-y-2">
+          <?php
+          $statuses = [
+            ['val'=>'',        'label'=>'Semua',          'count'=> $total,   'col'=>'text-slate-600'],
+            ['val'=>'publish', 'label'=>'Sudah Publish',  'count'=> $publish, 'col'=>'text-emerald-600'],
+            ['val'=>'acc',     'label'=>'ACC / Diterima', 'count'=> $acc,     'col'=>'text-blue-600'],
+            ['val'=>'review',  'label'=>'Sedang Review',  'count'=> $review,  'col'=>'text-amber-600'],
+          ];
+          foreach ($statuses as $st):
+            $active = ($filterStatus === $st['val']);
+            $href   = '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'status'=>$st['val']]));
+          ?>
+          <a href="<?= $href ?>" class="flex items-center justify-between group rounded-lg px-2.5 py-2 <?= $active ? 'bg-[#8c0c4c]/8 dark:bg-[#f06ea4]/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700' ?> transition-colors">
+            <span class="text-sm <?= $active ? 'font-bold text-[#8c0c4c] dark:text-[#f06ea4]' : 'text-slate-600 dark:text-slate-400' ?>"><?= $st['label'] ?></span>
+            <span class="text-xs font-bold <?= $active ? 'text-[#8c0c4c] dark:text-[#f06ea4]' : $st['col'].' dark:text-slate-400' ?> bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full"><?= $st['count'] ?></span>
+          </a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
+      <!-- By Year -->
+      <?php if (!empty($years)): ?>
+      <div class="p-4">
+        <h4 class="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Tahun Terbit</h4>
+        <div class="space-y-1.5">
+          <?php
+          $allHref = '?'.http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus]));
+          ?>
+          <a href="<?= $allHref ?>" class="flex items-center justify-between px-2.5 py-1.5 rounded-lg <?= !$filterYear ? 'text-[#8c0c4c] dark:text-[#f06ea4] font-bold bg-[#8c0c4c]/8' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700' ?> transition-colors text-sm">
+            <span>Semua Tahun</span>
+          </a>
+          <?php foreach (array_keys($years) as $yr):
+            $yHref = '?'.http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus,'year'=>$yr]));
+            $isY = ($filterYear == $yr);
+          ?>
+          <a href="<?= $yHref ?>" class="flex items-center justify-between px-2.5 py-1.5 rounded-lg <?= $isY ? 'text-[#8c0c4c] dark:text-[#f06ea4] font-bold bg-[#8c0c4c]/8' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700' ?> transition-colors text-sm">
+            <span><?= $yr ?></span>
+            <?php $yCount = count(array_filter($myPubs, fn($p) => $p['tahun_terbit'] == $yr)); ?>
+            <span class="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full text-slate-500 dark:text-slate-400 font-bold"><?= $yCount ?></span>
+          </a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Quick Info Box -->
+    <div class="bg-gradient-to-br from-[#8c0c4c]/5 to-[#c41e73]/5 dark:from-[#8c0c4c]/10 dark:to-[#c41e73]/5 border border-[#8c0c4c]/15 rounded-xl p-4">
+      <p class="text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-wide mb-2">Penulis</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-[#8c0c4c] text-white flex items-center justify-center font-bold text-base flex-shrink-0">
+          <?= strtoupper(substr($mhs['nama']??'M',0,1)) ?>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight"><?= htmlspecialchars($mhs['nama']) ?></p>
+          <p class="text-[11px] text-slate-500 font-mono"><?= htmlspecialchars($mhs['nim']) ?></p>
+          <p class="text-[10px] text-slate-400"><?= htmlspecialchars($mhs['prodi']) ?></p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="flex-1 min-w-0">
+
+    <!-- Active filter chips -->
+    <?php if ($filterStatus || $filterYear || $searchQ): ?>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <span class="text-xs text-slate-500 dark:text-slate-400 self-center font-semibold">Filter aktif:</span>
+      <?php if($searchQ):   ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Kata: "<?= htmlspecialchars($searchQ) ?>" <a href="?<?= http_build_query(array_filter(['status'=>$filterStatus,'year'=>$filterYear])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
+      <?php if($filterStatus): ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Status: <?= ucfirst($filterStatus) ?> <a href="?<?= http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
+      <?php if($filterYear):   ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Tahun: <?= $filterYear ?> <a href="?<?= http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- Results header -->
+    <div class="flex items-center justify-between mb-4">
+      <p class="text-sm text-slate-600 dark:text-slate-400">
+        Menampilkan <strong class="text-slate-800 dark:text-white"><?= count($filtered) ?></strong> dari <strong><?= $total ?></strong> artikel
+      </p>
+    </div>
+
+    <!-- ── ARTICLE LIST ── -->
+    <?php if (empty($myPubs)): ?>
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 p-14 text-center">
+      <div class="w-20 h-20 bg-[#8c0c4c]/5 rounded-full flex items-center justify-center mx-auto mb-5">
+        <svg class="w-10 h-10 text-[#8c0c4c]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      </div>
+      <h3 class="text-lg font-bold text-slate-700 dark:text-slate-300 mb-2">Belum Ada Publikasi</h3>
+      <p class="text-sm text-slate-400 max-w-xs mx-auto mb-6">Mulai tambahkan karya ilmiah Anda ke dalam repository ini.</p>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')"
+              class="bg-[#8c0c4c] text-white font-bold text-sm px-6 py-3 rounded-xl shadow hover:-translate-y-0.5 transition-all">
+        + Tambah Artikel Pertama
+      </button>
+    </div>
+
+    <?php elseif (empty($filtered)): ?>
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-10 text-center">
+      <p class="text-slate-500 dark:text-slate-400">Tidak ada artikel yang cocok dengan filter yang dipilih.</p>
+      <a href="penelitian" class="mt-4 inline-block text-[#8c0c4c] dark:text-[#f06ea4] text-sm font-bold hover:underline">Hapus semua filter</a>
+    </div>
+
+    <?php else: ?>
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
+
+      <?php foreach ($filtered as $pub):
+        $ps   = strtolower($pub['status_publikasi']);
+        $badgeCls = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
+        $dotCls   = 'bg-slate-400';
+        if (str_contains($ps,'publish')) { $badgeCls='bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'; $dotCls='bg-emerald-500'; }
+        if (str_contains($ps,'acc'))     { $badgeCls='bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';           $dotCls='bg-blue-500'; }
+        if (str_contains($ps,'review'))  { $badgeCls='bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';       $dotCls='bg-amber-500'; }
+
+        $kws = $pub['kata_kunci'] ? array_map('trim', explode(',', $pub['kata_kunci'])) : [];
+        $doi = $pub['doi'] ?? null;
+      ?>
+      <article class="sd-article relative px-6 py-6 hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors group cursor-pointer">
+
+        <!-- Row 1: Journal source + badge -->
+        <div class="flex flex-wrap items-center gap-3 mb-2">
+          <?php if ($pub['nama_jurnal']): ?>
+          <span class="text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-wide"><?= htmlspecialchars($pub['nama_jurnal']) ?></span>
+          <?php if ($pub['tahun_terbit']): ?>
+          <span class="text-xs text-slate-400">&bull; <?= $pub['tahun_terbit'] ?></span>
+          <?php endif; ?>
+          <?php endif; ?>
+
+          <!-- Status badge right -->
+          <span class="ml-auto inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-md <?= $badgeCls ?>">
+            <span class="w-1.5 h-1.5 rounded-full <?= $dotCls ?>"></span>
+            <?= htmlspecialchars($pub['status_publikasi']) ?>
+          </span>
+        </div>
+
+        <!-- Row 2: Title -->
+        <h2 class="mb-2">
+          <a href="detail_publikasi?id=<?= $pub['id'] ?>"
+             class="sd-title-link before:absolute before:inset-0 text-lg font-bold text-slate-800 dark:text-slate-100 leading-snug">
+            <?= htmlspecialchars($pub['judul_artikel']) ?>
+          </a>
+        </h2>
+
+        <!-- Row 3: Authors -->
+        <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">
+          <?php
+            $allAuthors = [];
+            if (!empty($pub['rekan_penulis'])) {
+                $allAuthors = array_map('trim', explode(',', $pub['rekan_penulis']));
+            } else {
+                $allAuthors = [htmlspecialchars($mhs['nama'])];
+            }
+            // Append dosen pendamping ONLY if not already in the list
+            if ($pub['dosen_pendamping']) {
+                $dosenFound = false;
+                foreach ($allAuthors as $a) {
+                    if (strcasecmp($a, $pub['dosen_pendamping']) === 0) {
+                        $dosenFound = true;
+                        break;
+                    }
+                }
+                if (!$dosenFound) {
+                    $allAuthors[] = htmlspecialchars($pub['dosen_pendamping']);
+                }
+            }
+          ?>
+          <?php foreach ($allAuthors as $idx => $author): ?>
+            <?php if ($idx > 0): ?><span class="text-slate-400 mx-1">,</span><?php endif; ?>
+            <span class="<?= $idx === 0 ? 'font-semibold text-slate-800 dark:text-slate-300' : '' ?>"><?= htmlspecialchars($author) ?></span>
+          <?php endforeach; ?>
+        </p>
+
+        <!-- Row 4: DOI -->
+        <?php if ($doi): ?>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-1.5 font-mono relative z-10">
+          <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          <a href="https://doi.org/<?= htmlspecialchars($doi) ?>" target="_blank" class="hover:text-[#8c0c4c] dark:hover:text-[#f06ea4] transition-colors">
+            https://doi.org/<?= htmlspecialchars($doi) ?>
+          </a>
+        </p>
+        <?php endif; ?>
+
+        <!-- Row 5: Abstract snippet -->
+        <?php if ($pub['abstrak']): ?>
+        <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-4 line-clamp-2">
+          <?= htmlspecialchars(mb_strimwidth($pub['abstrak'], 0, 280, '...')) ?>
+        </p>
+        <?php endif; ?>
+
+        <!-- Row 6: Keywords -->
+        <?php if (!empty($kws)): ?>
+        <div class="flex flex-wrap gap-1.5 mb-4">
+          <?php foreach (array_slice($kws, 0, 5) as $kw): ?>
+          <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/60 px-2.5 py-0.5 rounded border border-slate-200 dark:border-slate-600"><?= htmlspecialchars($kw) ?></span>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <!-- Row 7: Action buttons (ScienceDirect-style) -->
+        <div class="flex flex-wrap items-center gap-2 relative z-10">
+          <a href="detail_publikasi?id=<?= $pub['id'] ?>"
+             class="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#8c0c4c] hover:bg-[#a3155b] px-4 py-2 rounded-lg transition-colors shadow-sm">
+            Lihat Abstrak & Detail
+          </a>
+          <?php if ($pub['file_jurnal']): ?>
+          <a href="../<?= htmlspecialchars($pub['file_jurnal']) ?>" target="_blank"
+             class="inline-flex items-center gap-1.5 text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4] border border-[#8c0c4c]/30 dark:border-[#f06ea4]/30 hover:bg-[#8c0c4c]/5 px-4 py-2 rounded-lg transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Download PDF
+          </a>
+          <?php endif; ?>
+          <?php if ($pub['link_artikel']): ?>
+          <a href="<?= htmlspecialchars($pub['link_artikel']) ?>" target="_blank"
+             class="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#8c0c4c] dark:hover:text-[#f06ea4] px-3 py-2 rounded-lg transition-colors">
+            Kunjungi Jurnal ↗
+          </a>
+          <?php endif; ?>
+
+          <!-- Date added -->
+          <span class="ml-auto text-[11px] text-slate-400 dark:text-slate-500">
+            Ditambahkan <?= date('d M Y', strtotime($pub['created_at'])) ?>
+          </span>
+
+          <!-- Hapus -->
+          <form action="aksi_publikasi" method="POST" onsubmit="return confirm('Yakin ingin menghapus publikasi ini? Tindakan tidak dapat dibatalkan.')" class="inline">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" value="<?= $pub['id'] ?>">
+            <input type="hidden" name="mahasiswa_id" value="<?= $mhsId ?>">
+            <button type="submit" class="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400 hover:text-white hover:bg-red-500 dark:hover:bg-red-600 border border-red-200 dark:border-red-800/60 hover:border-red-500 px-3 py-1.5 rounded-lg transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              Hapus
+            </button>
+          </form>
+        </div>
+      </article>
+      <?php endforeach; ?>
+
+    </div>
+    <?php endif; ?>
+  </div><!-- end main content -->
+</div><!-- end two-col -->
+</div><!-- end sd-page -->
+
+<!-- ═══════════════════════════════════
+     ADD PUBLICATION MODAL
+════════════════════════════════════════ -->
+<div id="addModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="document.getElementById('addModal').classList.add('hidden')"></div>
+  <div class="flex min-h-full items-start justify-center p-4 pt-8">
+    <div class="relative w-full max-w-3xl bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+
+      <!-- Modal header -->
+      <div class="bg-gradient-to-r from-[#6b0a3a] via-[#8c0c4c] to-[#c41e73] px-7 py-5 relative overflow-hidden">
+        <div class="absolute inset-0 opacity-[.07]" style="background-image:radial-gradient(circle at 2px 2px,white 1px,transparent 0);background-size:18px 18px;"></div>
+        <div class="relative flex justify-between items-start">
+          <div>
+            <h3 class="text-xl font-bold text-white">Tambah Karya Ilmiah Baru</h3>
+            <p class="text-pink-100/75 text-xs mt-1">Lengkapi data artikel sesuai standar metadata jurnal akademik</p>
+          </div>
+          <button onclick="document.getElementById('addModal').classList.add('hidden')" class="text-white/70 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all ml-4">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal body -->
+      <form action="aksi_publikasi" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="insert">
+        <input type="hidden" name="mahasiswa_id" value="<?= $mhsId ?>">
+
+        <!-- ✨ DOI Quick-Fill Banner --> 
+        <div class="px-7 sm:px-8 pt-5 pb-0">
+          <div class="bg-gradient-to-r from-[#8c0c4c]/8 to-purple-500/5 dark:from-[#8c0c4c]/20 dark:to-purple-900/10 border border-[#8c0c4c]/20 dark:border-[#8c0c4c]/30 rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-6 h-6 rounded-full bg-gradient-to-br from-[#8c0c4c] to-[#c41e73] flex items-center justify-center flex-shrink-0">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </div>
+              <p class="text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4]">Isi Otomatis via DOI</p>
+              <span class="ml-auto text-[10px] text-slate-400 dark:text-slate-500 font-medium">Opsional — lewati jika tidak punya DOI</span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 pl-8">Tempel DOI artikel lalu klik <strong>Tarik Data</strong>. Judul, jurnal, penulis, tahun, abstrak, dan referensi akan terisi otomatis.</p>
+            <div class="flex gap-2 pl-8">
+              <input type="text" id="doi_input" name="doi" placeholder="Contoh: 10.1016/j.jbusres.2023.114132" 
+                class="flex-1 bg-white dark:bg-slate-800 border border-[#8c0c4c]/25 dark:border-[#8c0c4c]/40 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:border-[#8c0c4c] focus:ring-2 focus:ring-[#8c0c4c]/15 transition-all">
+              <button type="button" id="btnFetchDoi" class="px-5 py-2.5 bg-gradient-to-r from-[#8c0c4c] to-[#c41e73] hover:from-[#a3155b] hover:to-[#d4217f] text-white rounded-xl text-xs font-bold transition-all flex-shrink-0 flex items-center gap-1.5 shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Tarik Data
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-7 sm:p-8 space-y-6 max-h-[60vh] overflow-y-auto">
+
+          <?php
+          $sections = [
+            'Identitas Artikel' => [
+              ['name'=>'judul_artikel',  'label'=>'Judul Artikel',            'type'=>'text',     'req'=>true,  'placeholder'=>'Judul lengkap artikel atau penelitian...', 'full'=>true],
+              ['name'=>'nama_jurnal',    'label'=>'Nama Jurnal / Prosiding',   'type'=>'text',     'req'=>false, 'placeholder'=>'Misal: Jurnal Ilmu Komputer SINTA 2', 'full'=>false],
+              ['name'=>'kata_kunci',     'label'=>'Kata Kunci',                'type'=>'text',     'req'=>false, 'placeholder'=>'Pisahkan dengan koma', 'full'=>false],
+              ['name'=>'link_artikel',   'label'=>'URL / Link Artikel',        'type'=>'url',      'req'=>false, 'placeholder'=>'https://...', 'full'=>false],
+              ['name'=>'status_publikasi','label'=>'Status Publikasi',         'type'=>'select',   'req'=>true,  'options'=>['Publish'=>'✅ Sudah Publish','ACC / Diterima'=>'🟦 ACC / Diterima','Sedang Review'=>'⏳ Sedang Review'], 'full'=>false],
+            ],
+            'Bibliografi' => [
+              ['name'=>'tahun_terbit','label'=>'Tahun Terbit',     'type'=>'number','req'=>false,'placeholder'=>date('Y'), 'full'=>false],
+            ],
+            'Penulis' => [
+              ['name'=>'dosen_pendamping','label'=>'Dosen Pembimbing (opsional)','type'=>'dosen_select','req'=>false, 'placeholder'=>'Nama dosen pembimbing', 'full'=>true],
+              ['name'=>'rekan_penulis',  'label'=>'Daftar Penulis',   'type'=>'dynamic_authors','req'=>false,'placeholder'=>'', 'full'=>false],
+            ],
+          ];
+
+          $inputCls = 'w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:border-[#8c0c4c] focus:ring-2 focus:ring-[#8c0c4c]/15 transition-all';
+
+          foreach ($sections as $sectionTitle => $fields):
+          ?>
+          <div>
+            <p class="text-[10px] font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span class="flex-1 h-px bg-[#8c0c4c]/20"></span> <?= $sectionTitle ?> <span class="flex-1 h-px bg-[#8c0c4c]/20"></span>
+            </p>
+            <div class="grid grid-cols-2 gap-4">
+              <?php foreach ($fields as $f): ?>
+              <div class="<?= ($f['full'] ?? false) ? 'col-span-2' : '' ?>">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                  <?= $f['label'] ?> <?= ($f['req']??false) ? '<span class="text-red-500 normal-case font-normal">*</span>' : '' ?>
+                </label>
+                <?php if ($f['type'] === 'select'): ?>
+                <div class="relative">
+                  <select name="<?= $f['name'] ?>" <?= ($f['req']??false)?'required':'' ?> class="<?= $inputCls ?> appearance-none pr-10 cursor-pointer">
+                    <?php foreach ($f['options'] as $val => $lbl): ?><option value="<?= $val ?>"><?= $lbl ?></option><?php endforeach; ?>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center"><svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div>
+                </div>
+                <?php elseif ($f['type'] === 'dosen_select'): ?>
+                <div x-data="{ mode: 'select' }" class="space-y-2">
+                  <!-- Toggle -->  
+                  <div class="flex gap-2 text-[11px] font-bold">
+                    <button type="button" @click="mode='select'" :class="mode==='select' ? 'text-[#8c0c4c] dark:text-[#f06ea4] underline' : 'text-slate-400 hover:text-slate-600'">Pilih dari Dosen Prodi</button>
+                    <span class="text-slate-300">|</span>
+                    <button type="button" @click="mode='manual'" :class="mode==='manual' ? 'text-[#8c0c4c] dark:text-[#f06ea4] underline' : 'text-slate-400 hover:text-slate-600'">Isi Manual</button>
+                  </div>
+                  <!-- Dropdown dosen seprodi -->
+                  <div x-show="mode==='select'">
+                    <select name="dosen_id" class="<?= $inputCls ?> appearance-none">
+                      <option value="">-- Pilih Dosen Pembimbing --</option>
+                      <?php foreach($dosenProdi as $d): ?>
+                      <option value="<?= $d['id'] ?>" data-nama="<?= htmlspecialchars($d['nama']) ?>"><?= htmlspecialchars($d['nama']) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                    <input type="hidden" name="<?= $f['name'] ?>" x-bind:disabled="mode!=='select'">
+                  </div>
+                  <!-- Manual input -->
+                  <div x-show="mode==='manual'">
+                    <input type="text" name="dosen_pendamping_manual" placeholder="Nama dosen pembimbing (manual)" class="<?= $inputCls ?>">
+                    <input type="hidden" name="dosen_id" value="">
+                  </div>
+                </div>
+                <?php elseif ($f['type'] === 'dynamic_authors'): ?>
+                <div x-data="{ authors: [''] }" @set-authors.window="authors = $event.detail.length ? $event.detail : ['']">
+                  <template x-for="(author, index) in authors" :key="index">
+                    <div class="flex gap-2 mb-2">
+                      <input type="text" x-model="authors[index]" placeholder="Nama penulis (termasuk nama Anda jika perlu)" class="<?= $inputCls ?>">
+                      <button type="button" @click="authors.splice(index, 1)" x-show="authors.length > 1" class="px-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors font-bold flex-shrink-0">✕</button>
+                    </div>
+                  </template>
+                  <button type="button" @click="authors.push('')" class="text-[11px] font-bold text-[#8c0c4c] dark:text-[#f06ea4] hover:underline flex items-center gap-1 mt-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg> Tambah Penulis
+                  </button>
+                  <input type="hidden" name="<?= $f['name'] ?>" :value="authors.filter(a => a.trim() !== '').join(', ')">
+                </div>
+                <?php elseif ($f['name'] === 'doi'): ?>
+                <div class="flex gap-2">
+                  <input type="<?= $f['type'] ?>" id="doi_input" name="<?= $f['name'] ?>" <?= ($f['req']??false)?'required':'' ?>
+                         placeholder="<?= $f['placeholder'] ?>" class="<?= $inputCls ?> flex-1">
+                  <button type="button" id="btnFetchDoi" class="px-4 bg-[#8c0c4c] text-white rounded-xl text-xs font-bold hover:bg-[#a3155b] transition-colors flex-shrink-0 flex items-center gap-1 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> Tarik Data
+                  </button>
+                </div>
+                <?php else: ?>
+                <input type="<?= $f['type'] ?>" name="<?= $f['name'] ?>" <?= ($f['req']??false)?'required':'' ?>
+                       placeholder="<?= $f['placeholder'] ?>" <?= isset($f['min']) ? 'min="'.$f['min'].'"' : '' ?> <?= isset($f['max']) ? 'max="'.$f['max'].'"' : '' ?>
+                       class="<?= $inputCls ?>">
+                <?php endif; ?>
+              </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <?php endforeach; ?>
+
+          <!-- Abstrak -->
+          <div>
+            <p class="text-[10px] font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span class="flex-1 h-px bg-[#8c0c4c]/20"></span> Abstrak <span class="flex-1 h-px bg-[#8c0c4c]/20"></span>
+            </p>
+            <textarea name="abstrak" rows="5" placeholder="Tuliskan ringkasan/abstrak artikel (150–300 kata)..." class="<?= $inputCls ?> resize-none leading-relaxed"></textarea>
+          </div>
+
+          <!-- Referensi -->
+          <div>
+            <p class="text-[10px] font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-widest mb-2 flex items-center gap-2">
+              <span class="flex-1 h-px bg-[#8c0c4c]/20"></span> Referensi / Daftar Pustaka <span class="flex-1 h-px bg-[#8c0c4c]/20"></span>
+            </p>
+            <p class="text-[11px] text-slate-400 mb-3">Satu referensi per baris (format APA / IEEE / dll.)</p>
+            <textarea name="referensi" rows="5" placeholder="[1] Author, A. (2023). Judul. Jurnal, Vol(No), Hal.&#10;[2] ..." class="<?= $inputCls ?> resize-none font-mono text-xs leading-relaxed"></textarea>
+          </div>
+
+          <!-- Upload -->
+          <div>
+            <p class="text-[10px] font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span class="flex-1 h-px bg-[#8c0c4c]/20"></span> Dokumen <span class="flex-1 h-px bg-[#8c0c4c]/20"></span>
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-gradient-to-br from-[#8c0c4c]/5 to-[#8c0c4c]/10 border border-[#8c0c4c]/20 rounded-2xl p-5">
+                <label class="text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-wide">File Jurnal / PDF</label>
+                <p class="text-[11px] text-slate-400 my-2">PDF, DOC, DOCX — maks 10MB</p>
+                <input type="file" name="file_jurnal" accept=".pdf,.doc,.docx" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#8c0c4c] file:text-white hover:file:bg-[#a3155b] file:cursor-pointer file:transition-colors">
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded-2xl p-5">
+                <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Bukti / LoA <span class="font-normal normal-case">(opsional)</span></label>
+                <p class="text-[11px] text-slate-400 my-2">PDF, JPG, PNG</p>
+                <input type="file" name="file_bukti" accept=".pdf,.jpg,.jpeg,.png" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-200 file:text-slate-700 dark:file:bg-slate-700 dark:file:text-slate-300 hover:file:bg-slate-300 file:cursor-pointer file:transition-colors">
+              </div>
+            </div>
+          </div>
+        </div><!-- end scroll body -->
+
+        <!-- Modal footer -->
+        <div class="px-7 sm:px-8 py-5 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row-reverse gap-3">
+          <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8c0c4c] to-[#c41e73] hover:from-[#a3155b] hover:to-[#d4217f] px-8 py-3 text-sm font-bold text-white shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            Simpan ke Portofolio
+          </button>
+          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="inline-flex items-center justify-center rounded-xl bg-white dark:bg-slate-700 px-6 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
+            Batal
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnFetch = document.getElementById('btnFetchDoi');
+    const doiInput = document.getElementById('doi_input');
+    
+    if (btnFetch && doiInput) {
+        btnFetch.addEventListener('click', async function() {
+            let doi = doiInput.value.trim();
+            if (!doi) {
+                alert('Silakan masukkan DOI terlebih dahulu!');
+                return;
+            }
+            
+            // Bersihkan format DOI (hapus spasi, https://doi.org/, atau prefix doi:)
+            doi = doi.trim()
+                .replace(/^(https?:\/\/)?(dx\.)?doi\.org\//i, '')
+                .replace(/^doi:\s*/i, '')
+                .trim();
+            
+            // UI state loading
+            const originalHtml = btnFetch.innerHTML;
+            btnFetch.innerHTML = '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Mencari...';
+            btnFetch.disabled = true;
+            
+            try {
+                // Fetch 5 sumber secara PARALEL: Crossref, OpenAlex, Semantic Scholar, DataCite, + DOI Content Negotiation
+                // DOI Content Negotiation (doi.org) = universal fallback untuk semua DOI terdaftar apapun registrar-nya
+                const [crossrefRes, openAlexRes, s2Res, dataciteRes, doiCnRes] = await Promise.allSettled([
+                    fetch(`https://api.crossref.org/works/${encodeURIComponent(doi)}`),
+                    fetch(`https://api.openalex.org/works/doi:${encodeURIComponent(doi)}?select=title,authorships,publication_year,primary_location,biblio,doi,abstract_inverted_index,keywords,concepts,referenced_works`),
+                    fetch(`https://api.semanticscholar.org/graph/v1/paper/DOI:${encodeURIComponent(doi)}?fields=title,authors,year,publicationVenue,abstract,externalIds,references,references.title,references.authors,references.year,references.venue,references.externalIds`),
+                    fetch(`https://api.datacite.org/dois/${encodeURIComponent(doi)}`),
+                    fetch(`https://doi.org/${encodeURIComponent(doi)}`, { headers: { Accept: 'application/vnd.citationstyles.csl+json' } })
+                ]);
+
+                const cr   = crossrefRes.status === 'fulfilled' && crossrefRes.value.ok ? await crossrefRes.value.json() : null;
+                const oaw  = openAlexRes.status  === 'fulfilled' && openAlexRes.value.ok ? await openAlexRes.value.json() : null;
+                const s2   = s2Res.status        === 'fulfilled' && s2Res.value.ok       ? await s2Res.value.json()       : null;
+                const dc   = dataciteRes.status  === 'fulfilled' && dataciteRes.value.ok ? await dataciteRes.value.json() : null;
+                const csl  = doiCnRes.status     === 'fulfilled' && doiCnRes.value.ok    ? await doiCnRes.value.json()    : null;
+                const item   = cr?.message;
+                const dcAttr = dc?.data?.attributes;
+
+                // Jika tidak ada satupun yang berhasil, tampilkan pesan ramah + prefill URL
+                if (!item && !oaw && !s2 && !dcAttr && !csl) {
+                    const elLink = document.querySelector('input[name="link_artikel"]');
+                    if (elLink) elLink.value = `https://doi.org/${doi}`;
+                    alert('⚠️ Data artikel tidak ditemukan di database publik manapun.\n\nKemungkinan jurnal ini belum mendaftarkan metadata ke Crossref/DataCite.\n\nSilakan isi data secara manual. Link artikel telah diisi otomatis.');
+                    return;
+                }
+
+
+
+                // ── JUDUL ──────────────────────────────────────────────────
+                const judul = item?.title?.[0]
+                           || oaw?.title
+                           || s2?.title
+                           || dcAttr?.titles?.[0]?.title
+                           || (Array.isArray(csl?.title) ? csl.title[0] : csl?.title)
+                           || '';
+                if (judul) {
+                    const el = document.querySelector('input[name="judul_artikel"]');
+                    if (el) el.value = judul;
+                }
+
+                // ── NAMA JURNAL + VOLUME ───────────────────────────────────
+                const jurnalBase = item?.['container-title']?.[0]
+                                || oaw?.primary_location?.source?.display_name
+                                || s2?.publicationVenue?.name
+                                || dcAttr?.container?.title
+                                || csl?.['container-title']
+                                || '';
+                if (jurnalBase) {
+                    const vol   = item?.volume   || oaw?.biblio?.volume  || dcAttr?.container?.volume || csl?.volume || '';
+                    const issue = item?.issue    || oaw?.biblio?.issue   || dcAttr?.container?.issue  || csl?.issue  || '';
+                    let jurnal  = jurnalBase;
+                    if (vol)   jurnal += `, Vol. ${vol}`;
+                    if (issue) jurnal += `, No. ${issue}`;
+                    const el = document.querySelector('input[name="nama_jurnal"]');
+                    if (el) el.value = jurnal;
+                }
+
+                // ── TAHUN ──────────────────────────────────────────────────
+                const tahun = item?.published?.['date-parts']?.[0]?.[0]
+                           || item?.issued?.['date-parts']?.[0]?.[0]
+                           || oaw?.publication_year
+                           || s2?.year
+                           || dcAttr?.publicationYear
+                           || csl?.issued?.['date-parts']?.[0]?.[0]
+                           || '';
+                if (tahun) {
+                    const el = document.querySelector('input[name="tahun_terbit"]');
+                    if (el) el.value = tahun;
+                }
+
+                // ── URL ────────────────────────────────────────────────────
+                const url = item?.URL
+                          || (oaw?.doi ? (oaw.doi.startsWith('http') ? oaw.doi : `https://doi.org/${oaw.doi}`) : '')
+                          || csl?.URL
+                          || (dcAttr || csl ? `https://doi.org/${doi}` : '');
+                if (url) {
+                    const el = document.querySelector('input[name="link_artikel"]');
+                    if (el) el.value = url;
+                }
+
+                // ── PENULIS (Authors) ──────────────────────────────────────
+                let parsedAuthors = [];
+                if (item?.author?.length) {
+                    parsedAuthors = item.author.map(a => [a.given, a.family].filter(Boolean).join(' ')).filter(Boolean);
+                } else if (oaw?.authorships?.length) {
+                    parsedAuthors = oaw.authorships.map(a => a.author?.display_name || '').filter(Boolean);
+                } else if (s2?.authors?.length) {
+                    parsedAuthors = s2.authors.map(a => a.name || '').filter(Boolean);
+                } else if (dcAttr?.creators?.length) {
+                    parsedAuthors = dcAttr.creators.map(c => {
+                        if (c.givenName && c.familyName) return `${c.givenName} ${c.familyName}`;
+                        return c.name || '';
+                    }).filter(Boolean);
+                } else if (csl?.author?.length) {
+                    parsedAuthors = csl.author.map(a => [a.given, a.family].filter(Boolean).join(' ')).filter(Boolean);
+                }
+                if (parsedAuthors.length) {
+                    window.dispatchEvent(new CustomEvent('set-authors', { detail: parsedAuthors }));
+                }
+
+                // ── ABSTRAK ────────────────────────────────────────────────
+                let abstrak = '';
+                if (item?.abstract) {
+                    abstrak = item.abstract.replace(/<[^>]*>?/gm, '').trim();
+                } else if (oaw?.abstract_inverted_index) {
+                    const inv = oaw.abstract_inverted_index;
+                    const maxPos = Math.max(...Object.values(inv).flat());
+                    const words = new Array(maxPos + 1).fill('');
+                    for (const [word, positions] of Object.entries(inv)) {
+                        positions.forEach(pos => { words[pos] = word; });
+                    }
+                    abstrak = words.join(' ').trim();
+                } else if (s2?.abstract) {
+                    abstrak = s2.abstract;
+                } else if (dcAttr?.descriptions?.length) {
+                    const desc = dcAttr.descriptions.find(d => d.descriptionType === 'Abstract' || d.descriptionType === 'Description');
+                    if (desc?.description) abstrak = desc.description.replace(/<[^>]*>?/gm, '').trim();
+                } else if (csl?.abstract) {
+                    abstrak = csl.abstract.replace(/<[^>]*>?/gm, '').trim();
+                }
+                if (abstrak) {
+                    const el = document.querySelector('textarea[name="abstrak"]');
+                    if (el) el.value = abstrak;
+                }
+
+                // ── KATA KUNCI ─────────────────────────────────────────────
+                let kataKunci = '';
+                if (item?.subject?.length) {
+                    kataKunci = item.subject.join(', ');
+                } else if (oaw?.keywords?.length) {
+                    kataKunci = oaw.keywords.map(k => k.keyword || k.display_name || k).filter(Boolean).slice(0, 10).join(', ');
+                } else if (oaw?.concepts?.length) {
+                    kataKunci = oaw.concepts.filter(c => c.score > 0.3).slice(0, 8).map(c => c.display_name).join(', ');
+                } else if (dcAttr?.subjects?.length) {
+                    kataKunci = dcAttr.subjects.map(s => s.subject || s).filter(s => typeof s === 'string').slice(0, 10).join(', ');
+                }
+                if (kataKunci) {
+                    const el = document.querySelector('input[name="kata_kunci"]');
+                    if (el) el.value = kataKunci;
+                }
+
+                // ── REFERENSI ──────────────────────────────────────────────
+                const rawRefs = item?.reference?.length ? item.reference : [];
+                const oaRefUrls = oaw?.referenced_works?.length ? oaw.referenced_works : [];
+                const s2Refs = s2?.references?.length ? s2.references : [];
+                const elReferensi = document.querySelector('textarea[name="referensi"]');
+                
+                if (elReferensi) {
+                    // Bersihkan DOI dari berbagai format yang mungkin kotor
+                    function cleanDoi(raw) {
+                        if (!raw) return null;
+                        return raw.trim()
+                            .replace(/^(https?:\/\/)?(dx\.)?doi\.org\//i, '')
+                            .replace(/^doi:\s*/i, '')
+                            .trim();
+                    }
+
+                    // Rekonstruksi APA dari OpenAlex work object
+                    function openAlexToApa(w) {
+                        const parts = [];
+                        if (w.authorships?.length) {
+                            const names = w.authorships.slice(0, 5).map(a => a.author?.display_name || '').filter(Boolean);
+                            if (names.length) parts.push(names.join(', ') + (w.authorships.length > 5 ? ', et al.' : '') + '.');
+                        }
+                        if (w.publication_year) parts.push(`(${w.publication_year}).`);
+                        if (w.title) parts.push(w.title + '.');
+                        const src = w.primary_location?.source?.display_name;
+                        if (src) {
+                            let j = src;
+                            if (w.biblio?.volume) j += `, ${w.biblio.volume}`;
+                            if (w.biblio?.issue)  j += `(${w.biblio.issue})`;
+                            if (w.biblio?.first_page) {
+                                const pg = (w.biblio.last_page && w.biblio.last_page !== w.biblio.first_page)
+                                    ? `${w.biblio.first_page}–${w.biblio.last_page}` : w.biblio.first_page;
+                                j += `, ${pg}`;
+                            }
+                            parts.push(j + '.');
+                        }
+                        if (w.doi) parts.push(w.doi.startsWith('http') ? w.doi : `https://doi.org/${w.doi}`);
+                        return parts.length >= 2 ? parts.join(' ') : null;
+                    }
+
+                    // Fetch batch dari OpenAlex via ids.openalex (filter syntax yang benar)
+                    async function fetchOpenAlexBatch(oaIds) {
+                        if (!oaIds.length) return [];
+                        try {
+                            const url = `https://api.openalex.org/works?filter=ids.openalex:${oaIds.join('|')}&select=id,title,authorships,publication_year,primary_location,biblio,doi&per-page=50`;
+                            const r = await fetch(url);
+                            if (!r.ok) return [];
+                            const d = await r.json();
+                            return d.results || [];
+                        } catch (_) { return []; }
+                    }
+
+                    if (rawRefs.length > 0 || oaRefUrls.length > 0 || s2Refs.length > 0) {
+                        (async () => {
+                            const lines = [];
+                            
+                            if (rawRefs.length > 0) {
+                                // PATH A: Crossref punya list referensi — proses + enrich via OpenAlex per-DOI
+                                const refs = rawRefs.slice(0, 40);
+                                elReferensi.value = `Sedang memuat ${refs.length} referensi...`;
+
+                                function buildFromInline(ref) {
+                                    if (ref.unstructured?.trim()) return ref.unstructured.replace(/<[^>]+>/g, '').trim();
+                                    const p = [];
+                                    if (ref.author) p.push(ref.author + '.');
+                                    if (ref.year) p.push(`(${ref.year}).`);
+                                    if (ref['article-title']) p.push(ref['article-title'] + '.');
+                                    if (ref['journal-title']) p.push(ref['journal-title']);
+                                    if (ref.volume) p.push(`, ${ref.volume}`);
+                                    if (ref['first-page']) p.push(`, ${ref['first-page']}`);
+                                    if (ref.DOI && p.length > 0) p.push(`. https://doi.org/${ref.DOI}`);
+                                    return p.length > 1 ? p.join('') : null;
+                                }
+
+                                async function fetchRefOpenAlex(rawDoi) {
+                                    const doi = cleanDoi(rawDoi);
+                                    if (!doi) return null;
+                                    try {
+                                        const r = await fetch(`https://api.openalex.org/works/doi:${encodeURIComponent(doi)}?select=title,authorships,publication_year,primary_location,biblio,doi`);
+                                        if (!r.ok) return null;
+                                        return openAlexToApa(await r.json());
+                                    } catch (_) { return null; }
+                                }
+
+                                const BATCH = 8;
+                                for (let b = 0; b < refs.length; b += BATCH) {
+                                    const batch = refs.slice(b, b + BATCH);
+                                    const results = await Promise.all(batch.map(async ref => {
+                                        let text = buildFromInline(ref);
+                                        if (!text && ref.DOI) text = await fetchRefOpenAlex(ref.DOI);
+                                        // Jika tetap tidak ada, tunjukkan DOI bersih saja
+                                        if (!text && ref.DOI) text = `https://doi.org/${cleanDoi(ref.DOI)}`;
+                                        return text?.trim() || null;
+                                    }));
+                                    results.forEach(t => { if (t) lines.push(`[${lines.length + 1}] ${t}`); });
+                                    elReferensi.value = `Memuat referensi... (${Math.min(b + BATCH, refs.length)}/${refs.length})`;
+                                }
+
+                            } else if (oaRefUrls.length > 0) {
+                                // PATH B: Crossref tidak punya list, gunakan OpenAlex referenced_works secara batch
+                                const oaRefIds = oaRefUrls
+                                    .map(url => url.split('/').pop())
+                                    .filter(id => /^W\d+$/.test(id)) // pastikan valid Wxxxxxx
+                                    .slice(0, 50);
+                                
+                                elReferensi.value = `Sedang memuat ${oaRefIds.length} referensi (via OpenAlex)...`;
+                                
+                                const BATCH = 25;
+                                for (let b = 0; b < oaRefIds.length; b += BATCH) {
+                                    const batchIds = oaRefIds.slice(b, b + BATCH);
+                                    const works = await fetchOpenAlexBatch(batchIds);
+                                    works.forEach(w => {
+                                        const text = openAlexToApa(w);
+                                        if (text) lines.push(`[${lines.length + 1}] ${text}`);
+                                    });
+                                    elReferensi.value = `Memuat referensi... (${Math.min(b + BATCH, oaRefIds.length)}/${oaRefIds.length})`;
+                                }
+                            } else if (s2Refs.length > 0) {
+                                // PATH C: Fallback ke Semantic Scholar references
+                                const refs = s2Refs.slice(0, 40);
+                                elReferensi.value = `Sedang memuat ${refs.length} referensi (via Semantic Scholar)...`;
+                                
+                                refs.forEach(ref => {
+                                    const p = [];
+                                    if (ref.authors?.length) {
+                                        const names = ref.authors.slice(0, 5).map(a => a.name).filter(Boolean);
+                                        if (names.length) p.push(names.join(', ') + (ref.authors.length > 5 ? ', et al.' : '') + '.');
+                                    }
+                                    if (ref.year) p.push(`(${ref.year}).`);
+                                    if (ref.title) p.push(ref.title + '.');
+                                    if (ref.venue) p.push(ref.venue + '.');
+                                    const refDoi = ref.externalIds?.DOI;
+                                    if (refDoi) p.push(`https://doi.org/${refDoi}`);
+                                    
+                                    if (p.length > 1) {
+                                        lines.push(`[${lines.length + 1}] ${p.join(' ')}`);
+                                    }
+                                });
+                            }
+
+                            elReferensi.value = lines.join('\n') || '(Metadata referensi tidak disediakan oleh penerbit di database publik manapun. Anda mungkin perlu mengisinya secara manual)';
+                        })();
+                    } else {
+                        elReferensi.value = '';
+                    }
+                }
+
+                // Notifikasi sukses
+                alert('✅ Data berhasil ditarik! (Referensi masih dimuat di latar belakang)');
+
+            } catch (err) {
+                alert('❌ Gagal mengambil data: ' + err.message);
+            } finally {
+                btnFetch.innerHTML = originalHtml;
+                btnFetch.disabled = false;
+            }
+        });
+    }
+});
+
+
+</script>
+
+<?php require_once 'footer.php'; ?>

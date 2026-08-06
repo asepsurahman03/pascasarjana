@@ -1,0 +1,36 @@
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /Pascasarjana/
+
+  # If the request is for a directory, don't rewrite
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # If the request has .php extension, redirect to extensionless (optional, but good for SEO/clean URLs)
+  # Uncomment if you want to force redirect:
+  # RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /Pascasarjana/(.*)\.php[\ ?]
+  # RewriteRule ^(.*)\.php$ $1 [R=301,L]
+
+  # If the requested file without .php exists, use it
+  RewriteCond %{REQUEST_FILENAME}\.php -f
+  RewriteRule ^(.*)$ $1.php [L]
+  
+  # Also handle /pages/ explicitly if needed, but the above rule handles any path.
+</IfModule>
+
+# Security headers (sesuai Aktiftidakaktif)
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options nosniff
+  Header always set X-Frame-Options SAMEORIGIN
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# PHP settings (sesuai Aktiftidakaktif)
+<IfModule mod_php.c>
+  php_flag session.cookie_httponly on
+  php_flag session.use_strict_mode on
+</IfModule>

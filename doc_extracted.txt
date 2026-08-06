@@ -1,0 +1,131 @@
+Form Penilaian & Revisi Sidang Proposal – Ketua Pembimbing
+Nama Mahasiswa / 
+Student Name
+:
+Asep Surahman Sulaeman
+NIM / 
+Student ID
+:
+20250130001
+Program Studi / 
+Study Program
+:
+Magister Informatika
+Judul Tesis / 
+Thesis Title
+:
+Kerangka Kerja Business Intelligence untuk Prediksi Cryptocurrency: Studi Komparatif LSTM, GRU, dan Ensemble Baseline Menggunakan Big Data Analytics dengan Integrasi Deep Learning
+Ketua Pembimbing / 
+Principal Supervisor
+:
+Prof. Ts. Deden Witarsyah, S.T., M.Eng., Ph.D.
+Hari dan Tanggal / 
+Day and Date
+:
+Rabu, 13 Mei 2026 
+Tabel 1. 
+Penilaian Seminar Proposal
+Aspek Penilaian /
+ Assessment Criteria
+Bobot
+Skor (1–5)
+Nilai
+Catatan Perbaikan
+Signifikansi Latar Belakang Riset dan/atau Fokus Riset, dan Rumusan Masalah
+• Relevansi dan urgensi permasalahan yang diteliti
+• Ketajaman rumusan masalah / pertanyaan penelitian.
+• Keselarasan antara latar belakang dan rumusan masalah
+15%
+4
+12
+……………………
+Relevansi dan Kemutakhiran Tinjauan Pustaka
+• Cakupan dan kemutakhiran sumber referensi
+• Relevansi teori dan penelitian terdahulu
+• Posisi penelitian terhadap state of the art
+25%
+5
+25
+……………………
+Ketepatan Formulasi Kerangka Pemikiran dan Proposisi Riset / Hipotesis
+• Koherensi kerangka konseptual/teoritis
+• Ketepatan formulasi hipotesis atau proposisi
+10%
+5
+10
+……………………
+Kesesuaian Metode Riset
+• Kesesuaian pendekatan/metode dengan tujuan penelitian
+• Kelayakan rancangan dan prosedur penelitian
+10%
+5
+10
+……………………
+Kemampuan Penulisan Ilmiah
+• Sistematika dan kejelasan penyajian
+• Kebenaran tata bahasa dan ejaan
+• Konsistensi sitasi dan daftar pustaka
+20%
+5
+20
+……………………
+Kemampuan Komunikasi dalam Ujian Lisan
+• Kejelasan dan ketepatan presentasi
+• Kemampuan menjawab pertanyaan pembahas
+20%
+5
+20
+……………………
+Total Nilai
+= 97
+Cara mengisi Skor: 
+Berikan skor 1–5 pada kolom Skor untuk setiap aspek.
+Cara menghitung Nilai: 
+Contoh 
+Skor 4, Bobot 25% 
+→
+ (4÷5)×25 = Nilai 20
+Catatan Revisi Tambahan:
+Sudah cukup baik
+Tabel 2.
+ Kriteria Penilaian Skor
+Keterangan Skor
+Skor 1
+Sangat Kurang
+Skor 2
+Kurang
+Skor 3
+Cukup
+Skor 4
+Baik
+Skor 5
+Sangat Baik
+Tabel 3. 
+Nilai dan Huruf Mutu
+Konfersi Huruf Mutu
+Huruf
+Rentang
+Bobot
+Keterangan
+A
+90–100
+4
+Lulus
+A-
+85–89,99
+3,67
+Lulus
+B+
+80–84,99
+3,33
+Lulus
+B
+75–79,99
+3
+Lulus
+B-
+70–74,99
+2,67
+Tidak Lulus
+ Ketua Pembimbing,
+Prof. Ts. Deden Witarsyah, S.T., M.Eng., Ph.D.

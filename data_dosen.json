@@ -1,0 +1,306 @@
+[
+    {
+        "prodi_id": 4,
+        "nidn": "0427118201",
+        "nama": "Dr. Dyah Lyesmaya, S.S., M.Pd.",
+        "kualifikasi": "Doktor",
+        "email": "\tdyah.lyesmaya@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 4,
+        "nidn": "0008046702",
+        "nama": "Assoc. Prof. Dr. Entit Puspita, S.Pd., M.Si.",
+        "kualifikasi": "Doktor",
+        "email": "entit.pustpita@nusaputra.ac.id",
+        "jabatan": "Lektor Kepala"
+    },
+    {
+        "prodi_id": 4,
+        "nidn": "0415087009",
+        "nama": "Assoc. Prof. Dr. Ayi Abdurahman, M.Pd., M.M.",
+        "kualifikasi": "Doktor",
+        "email": "ayi.abdurahman@nusaputra.ac.id",
+        "jabatan": "Lektor Kepala"
+    },
+    {
+        "prodi_id": 4,
+        "nidn": "0429087304",
+        "nama": "Dr. Agus Hendriyanto, M.Pd.",
+        "kualifikasi": "Doktor",
+        "email": "agus.hendriyanto@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 4,
+        "nidn": "8915420021",
+        "nama": "Dr. H. Ujang Syarip Hidayat, M.Pd.",
+        "kualifikasi": "Doktor",
+        "email": "ujang.syarif@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 4,
+        "nidn": "401056501",
+        "nama": "Dr. Hj. Wiwin Winarni M., M.Pd.",
+        "kualifikasi": "Doktor",
+        "email": "wiwin.winarni@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 4,
+        "nidn": "8906160022",
+        "nama": "Prof. Muhibbin Syah, M.Ed.",
+        "kualifikasi": "Profesor",
+        "email": "-",
+        "jabatan": "Guru Besar"
+    },
+    {
+        "prodi_id": 4,
+        "nidn": "0403048803",
+        "nama": "Assoc. Prof. Dr. Samsul Pahmi, S.Pd., M.Pd.",
+        "kualifikasi": "Doktor",
+        "email": "samsul.pahmi@nusaputra.ac.id ",
+        "jabatan": "Lektor Kepala"
+    },
+    {
+        "prodi_id": 4,
+        "nidn": "0206077202",
+        "nama": "Prof. Deden Witarsyah, S.T., M.Eng., Ph.D.",
+        "kualifikasi": "Profesor",
+        "email": "deden.witarsyah@nusaputra.ac.id",
+        "jabatan": "Guru Besar"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "0405058002",
+        "nama": "Prof. Dr. RR. Dewi Anggraeni, S.H., M.H.",
+        "kualifikasi": "Profesor",
+        "email": "rrdewianggraeni@nusaputra.ac.id",
+        "jabatan": "Guru Besar"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "0426069302",
+        "nama": "Dr. Armansyah, S.H., M.H.",
+        "kualifikasi": "Doktor",
+        "email": "armansyah@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "0414058705",
+        "nama": "CSA Teddy Lesmana, S.H., M.H.",
+        "kualifikasi": "Magister",
+        "email": "teddy.lesmana@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "0407016701",
+        "nama": "Dr. dr. Heri Heriyanto, M.M.",
+        "kualifikasi": "Doktor",
+        "email": "heri.heriyanto@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "0415098002",
+        "nama": "Dr. (Cand). Rida Ista Sitepu, S.H., M.H.",
+        "kualifikasi": "Magister",
+        "email": "rida@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "0420057201",
+        "nama": "Dr. Bram Bachrum Baan, M.P.H.",
+        "kualifikasi": "Doktor",
+        "email": "bram.bbaan@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "041703870",
+        "nama": "Dr. M. Roken Fadly, M.K., M.H.",
+        "kualifikasi": "Doktor",
+        "email": "-",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "0402048801",
+        "nama": "Dr. (Cand). Nuchraha Alhuda Hasnda, S.H., M.H.",
+        "kualifikasi": "Magister",
+        "email": "nuchraha.alhuda@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "0401067608",
+        "nama": "Dr. Padlilah, S.H., M.H.",
+        "kualifikasi": "Doktor",
+        "email": "Padlilah@nusaputra.ac.id\n",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 3,
+        "nidn": "0120240047",
+        "nama": "Prof. MARCO MARCHETTI, Ph.D",
+        "kualifikasi": "Profesor",
+        "email": "-",
+        "jabatan": "Guru Besar"
+    },
+    {
+        "prodi_id": 1,
+        "nidn": "0303037304",
+        "nama": "Assoc. Prof. Dr. Adhi Kusnadi, S.T., M.Si.",
+        "kualifikasi": "Doktor",
+        "email": "adhi.kusnadi@nusaputra.ac.id",
+        "jabatan": "Lektor Kepala"
+    },
+    {
+        "prodi_id": 1,
+        "nidn": "0206077202",
+        "nama": "Prof. Deden Witarsyah, S.T., M.Eng., Ph.D.",
+        "kualifikasi": "Profesor",
+        "email": "deden.witarsyah@nusaputra.ac.id",
+        "jabatan": "Guru Besar"
+    },
+    {
+        "prodi_id": 1,
+        "nidn": "0418038201",
+        "nama": "Risnandar, Ph.D.",
+        "kualifikasi": "Doktor",
+        "email": "risnandar@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 1,
+        "nidn": "4.26018003E8",
+        "nama": "Assoc. Prof. Dr. Aswan Supriyadi Sunge, S.E., M.Kom., CDS.",
+        "kualifikasi": "Doktor",
+        "email": "aswan.supriyadi@nusaputra.ac.id",
+        "jabatan": "Lektor Kepala"
+    },
+    {
+        "prodi_id": 1,
+        "nidn": "2.0058305E7",
+        "nama": "Assoc. Prof. Dr. Chaerur Rozikin, S.Kom., M.Kom.",
+        "kualifikasi": "Doktor",
+        "email": "chaerur.rozikin@nusaputra.ac.id",
+        "jabatan": "Lektor Kepala"
+    },
+    {
+        "prodi_id": 1,
+        "nidn": "4.10107806E8",
+        "nama": "Zeldi Suryady, S.T., M.Sc., Ph.D.",
+        "kualifikasi": "Doktor",
+        "email": "zeldi.suryady@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 1,
+        "nidn": "0428118903",
+        "nama": "Dr. Eng. Agustami Sitorus, S.TP., M.Si.",
+        "kualifikasi": "Doktor",
+        "email": "agustami@nusaputra.ac.id",
+        "jabatan": "Asisten Ahli"
+    },
+    {
+        "prodi_id": 1,
+        "nidn": "0413038701",
+        "nama": "Dr. Indra Hermawan, S.Kom., M.Kom.",
+        "kualifikasi": "Doktor",
+        "email": "indra.hermawan@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 2,
+        "nidn": "0415029304'",
+        "nama": "Dr. Yusuf Iskandar, S.Si., M.M.",
+        "kualifikasi": "Doktor",
+        "email": "yusuf.iskandar@nusaputra.ac.id",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 2,
+        "nidn": "0307028902",
+        "nama": "Dr. Slamet Sutrisno, S.T., M.M.",
+        "kualifikasi": "Doktor",
+        "email": "-",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 2,
+        "nidn": "0401017601",
+        "nama": "Dr. Hari Muharam, S.E., M.M.",
+        "kualifikasi": "Doktor",
+        "email": "-",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 2,
+        "nidn": "0407036606",
+        "nama": "Assoc. Prof. Hesri Mintawati, S.Pd., M.M., Ph.D.",
+        "kualifikasi": "Doktor",
+        "email": "hesri.mintawati@nusaputra.ac.id",
+        "jabatan": "Lektor Kepala"
+    },
+    {
+        "prodi_id": 2,
+        "nidn": "0416107003",
+        "nama": "Dr. Sitti Hikmawatty, S.ST., M.Pd.",
+        "kualifikasi": "Doktor",
+        "email": "hikmahibu20@gmail.com",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 2,
+        "nidn": "0429087304",
+        "nama": "Dr. Nur Hasan Kurniawan, S.E., M.M.",
+        "kualifikasi": "Doktor",
+        "email": "-",
+        "jabatan": "Lektor"
+    },
+    {
+        "prodi_id": 2,
+        "nidn": "-",
+        "nama": "Prof. Angel Esmeralda, Ph.D.",
+        "kualifikasi": "Profesor",
+        "email": "-",
+        "jabatan": "Guru Besar"
+    },
+    {
+        "prodi_id": 5,
+        "nidn": "0404128502",
+        "nama": "Assoc. Prof. Nunik Destria Arianti, Ph.D.",
+        "kualifikasi": "Doktor",
+        "email": "nunikdestriaarianti@gmail.com",
+        "jabatan": "Lektor Kepala"
+    },
+    {
+        "prodi_id": 5,
+        "nidn": "0403048301",
+        "nama": "Prof. Ir. April Lia Hananto, Ph.D.",
+        "kualifikasi": "Profesor",
+        "email": "aprilliahananto39@gmail.com",
+        "jabatan": "Guru Besar"
+    },
+    {
+        "prodi_id": 5,
+        "nidn": "0303037304",
+        "nama": "Assoc. Prof. Dr. Adhi Kusnadi, S.T., M.Si.",
+        "kualifikasi": "Doktor",
+        "email": "adhi.kusnadi@nusaputra.ac.id",
+        "jabatan": "Lektor Kepala"
+    },
+    {
+        "prodi_id": 5,
+        "nidn": "0206077202",
+        "nama": "Prof. Deden Witarsyah, S.T., M.Eng., Ph.D.",
+        "kualifikasi": "Profesor",
+        "email": "deden.witarsyah@nusaputra.ac.id",
+        "jabatan": "Guru Besar"
+    }
+]
