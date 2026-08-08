@@ -182,10 +182,10 @@ require_once __DIR__ . '/../includes/header.php';
   .footer-left  { flex: 0 0 45%; font-size: 9pt; display: flex; flex-direction: column; align-items: center; }
   .footer-left .upm, .footer-left .univ { text-align: center; font-size: 9pt; }
   .footer-right { flex: 1; font-size: 9pt; }
-  .footer-left .ttd-wrap { margin-top: 10px; width: 220px; display: flex; flex-direction: column; align-items: flex-start; }
-  .footer-left .ttd-wrap img { height: 60px; object-fit: contain; margin-bottom: 2px; margin-left: -30px; }
+  .footer-left .ttd-wrap { margin-top: 10px; width: 220px; display: flex; flex-direction: column; align-items: center; }
+  .footer-left .ttd-wrap img { height: 60px; object-fit: contain; margin-bottom: 2px; }
   .footer-left .ttd-name { font-weight: bold; font-size: 9.5pt; border-top: 1.5px solid #000;
-                            padding-top: 3px; display: block; width: 100%; text-align: left; }
+                            padding-top: 3px; display: block; width: 100%; text-align: center; }
   .footer-right .kr-hd { font-size: 9pt; margin-bottom: 2px; }
   .tbl-kr { border-collapse: collapse; width: 100%; font-size: 9pt; }
   .tbl-kr th { border: 1px solid #000; padding: 0px 2px; font-weight: bold; text-align: center; font-size: 9pt; }
