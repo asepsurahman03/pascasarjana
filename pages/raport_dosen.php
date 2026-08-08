@@ -161,8 +161,8 @@ require_once __DIR__ . '/../includes/header.php';
 
   /* B. REKAPITULASI */
   .tbl-rekap { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 4px; }
-  .tbl-rekap th { border: 1px solid #000; padding: 3px 5px; font-weight: bold; text-align: center; font-size: 9pt; }
-  .tbl-rekap td { border: 1px solid #000; padding: 2px 5px; font-size: 9pt; vertical-align: middle; }
+  .tbl-rekap th { border: 1px solid #000; padding: 1px 3px; font-weight: bold; text-align: center; font-size: 9pt; }
+  .tbl-rekap td { border: 1px solid #000; padding: 1px 3px; font-size: 9pt; vertical-align: middle; }
   .tbl-rekap td.nilai { text-align: right; width: 13%; }
   .tbl-rekap td.ket   { width: 42%; }
   .tbl-rekap td.ind   { width: 45%; }
@@ -188,8 +188,8 @@ require_once __DIR__ . '/../includes/header.php';
                             padding-top: 2px; display: inline-block; width: 100%; text-align: left; }
   .footer-right .kr-hd { font-size: 9pt; margin-bottom: 2px; }
   .tbl-kr { border-collapse: collapse; width: 100%; font-size: 9pt; }
-  .tbl-kr th { border: 1px solid #000; padding: 2px 5px; font-weight: bold; text-align: center; font-size: 9pt; }
-  .tbl-kr td { border: 1px solid #000; padding: 2px 5px; font-size: 9pt; }
+  .tbl-kr th { border: 1px solid #000; padding: 1px 3px; font-weight: bold; text-align: center; font-size: 9pt; }
+  .tbl-kr td { border: 1px solid #000; padding: 1px 3px; font-size: 9pt; }
   .tbl-kr td.skor { text-align: right; width: 22%; }
   .tbl-kr td.sd   { text-align: left; width: 33%; }
   .tbl-kr td.ket  { text-align: left; }
