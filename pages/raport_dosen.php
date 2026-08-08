@@ -363,7 +363,7 @@ foreach ($printDosen as $d):
       <div class="upm">UNIT PENJAMINAN MUTU</div>
       <div class="univ">UNIVERSITAS NUSA PUTRA</div>
       <div class="ttd-wrap">
-        <img src="../assets/img/ttd_samsulpahmi.png" style="height:55px; object-fit:contain; margin-bottom:5px; margin-left:-20px;" alt="TTD">
+        <img src="../TTD Dosen/ttd_pak_pahmi.png" style="height:55px; object-fit:contain; margin-bottom:5px; margin-left:-20px;" alt="TTD">
         <div class="ttd-name">Dr. SAMSUL PAHMI, M.Pd.</div>
       </div>
     </div>
