@@ -119,52 +119,60 @@ require_once __DIR__ . '/../includes/header.php';
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Times New Roman',Times,serif; font-size:11pt; color:#000; background:#fff; }
-  .page { width:210mm; min-height:297mm; padding:18mm 20mm 18mm 25mm; margin:0 auto; page-break-after:always; }
+  .page { width:210mm; min-height:297mm; padding:20mm 20mm 20mm 25mm; margin:0 auto; page-break-after:always; }
   .page:last-child { page-break-after:avoid; }
-  /* Kop */
-  .kop { display:flex; align-items:center; border-bottom:3px double #000; padding-bottom:8px; margin-bottom:0; }
-  .kop-logo-ph { width:75px; height:75px; border:1px solid #ccc; display:flex; align-items:center; justify-content:center; font-size:7pt; text-align:center; flex-shrink:0; margin-right:14px; color:#888; }
-  .kop-logo img { width:75px; height:75px; object-fit:contain; margin-right:14px; flex-shrink:0; }
-  .kop-text { flex:1; text-align:center; }
-  .kop-text .inst { font-size:16pt; font-weight:bold; text-transform:uppercase; line-height:1.2; }
-  .kop-text .unit { font-size:11pt; }
-  .kop-text .alamat { font-size:8.5pt; margin-top:2px; }
-  /* Judul */
-  .judul-box { text-align:center; margin:10px 0 12px; }
-  .judul-box .j1 { font-size:12pt; font-weight:bold; text-transform:uppercase; }
-  .judul-box .j2 { font-size:11pt; font-weight:bold; }
-  .judul-box .j3 { font-size:11pt; }
-  /* Sections */
-  .sec { font-weight:bold; font-size:11pt; margin:12px 0 5px; text-transform:uppercase; }
-  .subsec { font-weight:bold; font-size:11pt; margin:8px 0 5px; }
-  /* Identitas */
-  .tbl-id { width:100%; border-collapse:collapse; font-size:11pt; margin-bottom:10px; }
-  .tbl-id td { padding:2px 5px; vertical-align:top; }
-  .tbl-id td:first-child { width:185px; font-weight:bold; }
-  .tbl-id td:nth-child(2) { width:10px; }
-  /* Rekap - 3 kolom sesuai Excel */
+
+  /* ===== HEADER: 4 baris teks centered (sesuai Excel R5-R8) ===== */
+  .hdr { text-align:center; margin-bottom:14px; border-bottom:3px double #000; padding-bottom:8px; }
+  .hdr .h-title  { font-size:13pt; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; }
+  .hdr .h-period { font-size:12pt; font-weight:bold; }
+  .hdr .h-univ   { font-size:11pt; font-weight:bold; }
+  .hdr .h-addr   { font-size:9pt; margin-top:2px; }
+
+  /* ===== Section headers (A. B. C. D.) ===== */
+  .sec  { font-weight:bold; font-size:11pt; margin:12px 0 4px; text-transform:uppercase; }
+  .subsec { font-weight:bold; font-size:11pt; margin:6px 0 4px; }
+
+  /* ===== A. IDENTITAS: tabel 2-kolom (label | value), tanpa border, tanpa ":" ===== */
+  .tbl-id { width:100%; border-collapse:collapse; font-size:11pt; margin-bottom:8px; }
+  .tbl-id tr td { padding:2px 6px; vertical-align:top; }
+  .tbl-id tr td:first-child { width:220px; font-weight:bold; text-transform:uppercase; }
+
+  /* ===== B. REKAPITULASI: 3 kolom sesuai Excel B17-D22 ===== */
   .tbl-rekap { width:100%; border-collapse:collapse; font-size:11pt; margin-bottom:10px; }
-  .tbl-rekap th { border:1px solid #000; padding:5px 8px; background:#e8e8e8; font-weight:bold; text-align:center; }
+  .tbl-rekap th { border:1px solid #000; padding:5px 8px; background:#e0e0e0; font-weight:bold; text-align:center; }
   .tbl-rekap td { border:1px solid #000; padding:4px 8px; }
   .tbl-rekap td.c { text-align:center; }
-  /* C1. Rekomendasi - tanpa tabel, hanya baris bernomor */
-  .aspek-row { display:flex; gap:8px; padding:4px 0; font-size:11pt; border-bottom:1px solid #ccc; min-height:26px; }
-  .aspek-row .no { width:22px; text-align:center; flex-shrink:0; }
-  .aspek-row .isi { flex:1; }
-  /* D. Catatan */
-  .cat-row { display:flex; gap:8px; padding:4px 0; font-size:11pt; border-bottom:1px solid #ccc; min-height:26px; }
-  .cat-row .dash { width:18px; flex-shrink:0; }
-  .cat-row .isi { flex:1; }
-  /* Footer */
-  .footer-wrap { margin-top:18px; display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
-  .footer-left .instansi { font-weight:bold; font-size:10pt; }
-  .footer-left .nama-ttd { display:inline-block; min-width:200px; font-weight:bold; border-top:1px solid #000; padding-top:3px; margin-top:55px; font-size:11pt; }
+
+  /* ===== C. ASPEK: 5 baris bernomor (kolom A=no, kolom B=isi) sesuai R26-R30 ===== */
+  .aspek-row { display:flex; gap:0; font-size:11pt; border-bottom:1px solid #ccc; min-height:24px; align-items:center; }
+  .aspek-row .no  { width:28px; text-align:center; flex-shrink:0; padding:3px 0; }
+  .aspek-row .isi { flex:1; padding:3px 6px; }
+
+  /* ===== D. CATATAN: 4 baris (kolom A="-", kolom B=isi) sesuai R33-R36 ===== */
+  .cat-row { display:flex; gap:0; font-size:11pt; border-bottom:1px solid #ccc; min-height:24px; align-items:center; }
+  .cat-row .dash { width:28px; text-align:center; flex-shrink:0; padding:3px 0; }
+  .cat-row .isi  { flex:1; padding:3px 6px; }
+
+  /* ===== FOOTER: sesuai Excel R39-R46 ===== */
+  /* B39: UNIT PENJAMINAN MUTU, B40: UNIVERSITAS NUSA PUTRA, B46: Dr. SAMSUL PAHMI */
+  /* C40: CATATAN: KRITERIA PENSKORAN, C41-E45: tabel kriteria */
+  .footer-wrap { margin-top:20px; display:flex; align-items:flex-start; gap:0; }
+  .footer-left { flex:0 0 45%; }
+  .footer-left .upm  { font-weight:bold; font-size:11pt; text-transform:uppercase; }
+  .footer-left .univ { font-weight:bold; font-size:11pt; text-transform:uppercase; }
+  .footer-left .ttd-name { font-weight:bold; font-size:11pt; display:inline-block;
+                            border-top:1px solid #000; padding-top:3px; margin-top:50px;
+                            min-width:200px; text-transform:uppercase; }
   .footer-right { flex:1; }
-  .footer-right .kr-title { font-weight:bold; font-size:9.5pt; margin-bottom:3px; }
-  .tbl-kr { border-collapse:collapse; width:100%; font-size:9.5pt; }
-  .tbl-kr th, .tbl-kr td { border:1px solid #000; padding:3px 8px; }
-  .tbl-kr th { background:#e8e8e8; font-weight:bold; }
-  @media print { .no-print{display:none!important;} body{background:white;} }
+  .footer-right .kr-hd { font-weight:bold; font-size:10pt; text-transform:uppercase; margin-bottom:4px; }
+  .tbl-kr { border-collapse:collapse; width:100%; font-size:10pt; }
+  .tbl-kr th, .tbl-kr td { border:1px solid #000; padding:3px 7px; }
+  .tbl-kr th { background:#e0e0e0; font-weight:bold; text-align:center; }
+  .tbl-kr td { text-align:center; }
+  .tbl-kr td:last-child { text-align:left; }
+
+  @media print { .no-print{display:none!important;} body{background:white;} .page{margin:0;} }
 </style>
 </head>
 <body>
@@ -172,26 +180,27 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="no-print" style="background:#1e293b;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;font-family:sans-serif;">
   <button onclick="window.print()" style="background:#8c0c4c;color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">&#128424; Cetak / Print PDF</button>
   <span style="font-size:13px;">Raport Laporan Dosen &ndash; <?= RAPORT_PERIODE ?> | <?= count($selectedDosen) ?> dosen</span>
-  <a href="raport_dosen.php" style="color:#94a3b8;font-size:13px;text-decoration:none;margin-left:auto;">&larr; Kembali ke Daftar</a>
+  <a href="raport_dosen.php?periode=<?= RAPORT_PERIODE_KEY ?>" style="color:#94a3b8;font-size:13px;text-decoration:none;margin-left:auto;">&larr; Kembali ke Daftar</a>
 </div>
 
+
 <?php
-// Fungsi keterangan sesuai label Excel sheet Rapot
+// Fungsi keterangan sesuai label Excel sheet Rapot (kolom D18-D22)
 function getKetKuis(float $s): string {
-    if ($s == 0)    return 'Belum Memenuhi';
+    if ($s == 0)    return '';
     if ($s >= 4.58) return 'Sangat Baik';
     if ($s >= 4.12) return 'Baik';
     if ($s >= 3.66) return 'Cukup';
     return 'Kurang Baik';
 }
 function getKetHadir(float $h): string {
-    if ($h == 0)  return 'Belum Memenuhi';
+    if ($h == 0)  return '';
     if ($h >= 16) return 'Memenuhi';
     if ($h >= 14) return 'Cukup';
     return 'Belum Memenuhi';
 }
 function getKetKonten(float $k): string {
-    if ($k == 0)   return 'Kurang';
+    if ($k == 0)   return '';
     if ($k >= 4.58) return 'Sangat Baik';
     if ($k >= 4.12) return 'Baik';
     if ($k >= 3.66) return 'Cukup';
@@ -204,77 +213,75 @@ if (empty($printDosen)) $printDosen = $filteredDosen;
 foreach ($printDosen as $d):
     $nama     = $d['Nama'] ?? '-';
     $prodi    = $d['Prodi'] ?? '-';
-    $jmlMK    = $d['Jumlah Matkul'] ?? '';
-    $jmlKelas = $d['Jumlah Kelas'] ?? '';
-    $jmlResp  = $d['Jumlah Responden'] ?? '';
+    $jmlMK    = $d['Jumlah Matkul'] ?? 0;
+    $jmlKelas = $d['Jumlah Kelas'] ?? 0;
+    $jmlResp  = $d['Jumlah Responden'] ?? 0;
     $sKuis    = (float)($d['Nilai Kuesioner'] ?? 0);
     $sHadir   = (float)($d['Jumlah Kehadiran'] ?? 0);
     $sKonten  = (float)($d['Konten'] ?? 0);
     $jPenel   = (int)($d['Jumlah Penelitian'] ?? 0);
     $jPengab  = (int)($d['Jumlah Pengabdian'] ?? 0);
 
-    $vKuis   = $sKuis   > 0 ? number_format($sKuis, 2)   : '0';
-    $vHadir  = $sHadir  > 0 ? (string)$sHadir             : '0';
+    // Nilai kolom C (sesuai Excel: angka numerik)
+    $vKuis   = $sKuis  > 0 ? number_format($sKuis, 2)   : '0';
+    $vHadir  = $sHadir > 0 ? (int)$sHadir               : '0';
     $vKonten = $sKonten > 0 ? number_format($sKonten, 2) : '0';
-    $vPenel  = (string)$jPenel;
-    $vPengab = (string)$jPengab;
+    $vPenel  = $jPenel;
+    $vPengab = $jPengab;
 
+    // Keterangan kolom D (sesuai Excel formula)
     $kKuis   = getKetKuis($sKuis);
     $kHadir  = getKetHadir($sHadir);
     $kKonten = getKetKonten($sKonten);
     $kPenel  = $jPenel  >= 1 ? 'Memenuhi' : 'Belum Memenuhi';
     $kPengab = $jPengab >= 1 ? 'Memenuhi' : 'Belum Memenuhi';
 
+    // C1. Rekomendasi (P1-P5 dari Excel)
     $perbaikan = [];
     foreach (['P1','P2','P3','P4','P5'] as $pk) {
         $v = trim($d[$pk] ?? '');
-        if ($v !== '' && $v !== '0') $perbaikan[] = $v;
+        $perbaikan[] = ($v !== '' && $v !== '0') ? $v : '';
     }
+    // Pastikan selalu 5 slot
+    while (count($perbaikan) < 5) $perbaikan[] = '';
+
+    // D. Catatan (K1-K4 dari Excel)
     $catatan = [];
     foreach (['K1','K2','K3','K4'] as $kk) {
         $v = trim($d[$kk] ?? '');
-        if ($v !== '' && $v !== '0') $catatan[] = $v;
+        $catatan[] = ($v !== '' && $v !== '0') ? $v : '';
     }
+    while (count($catatan) < 4) $catatan[] = '';
 ?>
 <div class="page">
 
-  <!-- KOP SURAT -->
-  <div class="kop">
-    <div class="kop-logo-ph">LOGO<br>NPU</div>
-    <div class="kop-text">
-      <div class="inst">Universitas Nusa Putra</div>
-      <div class="unit">Unit Penjaminan Mutu</div>
-      <div class="alamat">Jl. Raya Cibolang No. 21, Cibolang Kaler, Cisaat, Sukabumi, Jawa Barat 43152. Telp. (0266) 210594</div>
-    </div>
+  <!-- ROW 5-8: HEADER (tanpa logo, sesuai Excel sheet Rapot) -->
+  <div class="hdr">
+    <div class="h-title">LAPORAN EVALUASI TRIDHARMA DOSEN</div>
+    <div class="h-period"><?= htmlspecialchars(RAPORT_PERIODE) ?></div>
+    <div class="h-univ">NUSA PUTRA UNIVERSITY</div>
+    <div class="h-addr">Jl. Raya Cibolang No. 21, Cibolang Kaler, Cisaat, Cibolang Kaler, Cisaat, Sukabumi, Jawa Barat 43152</div>
   </div>
 
-
-  <!-- JUDUL (3 baris sesuai Excel: LAPORAN EVALUASI | GASAL 2025-2026 | NUSA PUTRA UNIVERSITY) -->
-  <div class="judul-box">
-    <div class="j1">Laporan Evaluasi Tridharma Dosen</div>
-    <div class="j2"><?= htmlspecialchars(RAPORT_PERIODE) ?></div>
-    <div class="j3">Nusa Putra University</div>
-  </div>
-
-  <!-- A. IDENTITAS DOSEN -->
-  <div class="sec">A. Identitas Dosen</div>
+  <!-- ROW 10: A. IDENTITAS DOSEN -->
+  <div class="sec">A. IDENTITAS DOSEN</div>
+  <!-- ROW 11-15: label tanpa ":" (sesuai Excel col B) -->
   <table class="tbl-id">
-    <tr><td>Nama Dosen</td><td>:</td><td><?= htmlspecialchars($nama) ?></td></tr>
-    <tr><td>Program Studi</td><td>:</td><td><?= htmlspecialchars($prodi) ?></td></tr>
-    <tr><td>Jumlah Mata Kuliah</td><td>:</td><td><?= htmlspecialchars($jmlMK ?: '0') ?></td></tr>
-    <tr><td>Jumlah Kelas</td><td>:</td><td><?= htmlspecialchars($jmlKelas ?: '0') ?></td></tr>
-    <tr><td>Jumlah Responden</td><td>:</td><td><?= htmlspecialchars($jmlResp ?: '0') ?></td></tr>
+    <tr><td>NAMA DOSEN</td><td><?= htmlspecialchars($nama) ?></td></tr>
+    <tr><td>PROGRAM STUDI</td><td><?= htmlspecialchars($prodi) ?></td></tr>
+    <tr><td>JUMLAH MATA KULIAH</td><td><?= htmlspecialchars((string)$jmlMK) ?></td></tr>
+    <tr><td>JUMLAH KELAS</td><td><?= htmlspecialchars((string)$jmlKelas) ?></td></tr>
+    <tr><td>JUMLAH RESPONDEN</td><td><?= htmlspecialchars((string)$jmlResp) ?></td></tr>
   </table>
 
-
-  <!-- B. REKAPITULASI PENILAIAN (3 kolom sesuai Excel: Indikator | Nilai | Keterangan) -->
-  <div class="sec">B. Rekapitulasi Penilaian</div>
+  <!-- ROW 16-22: B. REKAPITULASI PENILAIAN -->
+  <div class="sec">B. REKAPITULASI PENILAIAN</div>
   <table class="tbl-rekap">
     <thead>
       <tr>
-        <th style="width:45%">Indikator Penilaian</th>
+        <th style="width:50%">Indikator Penilaian</th>
         <th style="width:15%">Nilai</th>
-        <th style="width:40%">Keterangan</th>
+        <th style="width:35%">Keterangan</th>
       </tr>
     </thead>
     <tbody>
@@ -286,37 +293,46 @@ foreach ($printDosen as $d):
     </tbody>
   </table>
 
-
-  <!-- C. ASPEK PEMBELAJARAN (sesuai Excel: C. ASPEK PEMBELAJARAN > C1. REKOMENDASI PERBAIKAN > baris 1-5) -->
-  <div class="sec">C. Aspek Pembelajaran</div>
-  <div class="subsec">C1. Rekomendasi Perbaikan</div>
-  <?php for ($i = 1; $i <= 5; $i++): ?>
+  <!-- ROW 24: C. ASPEK PEMBELAJARAN -->
+  <div class="sec">C. ASPEK PEMBELAJARAN</div>
+  <!-- ROW 25: C1. REKOMENDASI PERBAIKAN -->
+  <div class="subsec">C1. REKOMENDASI PERBAIKAN</div>
+  <!-- ROW 26-30: 1-5 | data (kolom A=angka, kolom B=isi) -->
+  <?php for ($i = 0; $i < 5; $i++): ?>
   <div class="aspek-row">
-    <span class="no"><?= $i ?></span>
-    <span class="isi"><?= htmlspecialchars($perbaikan[$i-1] ?? '') ?></span>
+    <span class="no"><?= $i + 1 ?></span>
+    <span class="isi"><?= htmlspecialchars($perbaikan[$i]) ?></span>
   </div>
   <?php endfor; ?>
 
-  <!-- D. CATATAN (sesuai Excel: 4 baris dengan tanda "-") -->
-  <div class="sec" style="margin-top:12px;">D. Catatan</div>
-  <?php for ($i = 1; $i <= 4; $i++): ?>
+  <!-- ROW 32: D. CATATAN -->
+  <div class="sec" style="margin-top:10px;">D. CATATAN</div>
+  <!-- ROW 33-36: "-" | data (kolom A="-", kolom B=isi) -->
+  <?php for ($i = 0; $i < 4; $i++): ?>
   <div class="cat-row">
     <span class="dash">-</span>
-    <span class="isi"><?= htmlspecialchars($catatan[$i-1] ?? '') ?></span>
+    <span class="isi"><?= htmlspecialchars($catatan[$i]) ?></span>
   </div>
   <?php endfor; ?>
 
-  <!-- FOOTER: Unit Penjaminan Mutu (kiri) + Kriteria Penskoran (kanan) sesuai Excel -->
+  <!-- ROW 39-46: FOOTER sesuai Excel -->
   <div class="footer-wrap">
+    <!-- Kiri (kolom B Excel) -->
     <div class="footer-left">
-      <div class="instansi">Unit Penjaminan Mutu</div>
-      <div class="instansi">Universitas Nusa Putra</div>
-      <div class="nama-ttd">Dr. SAMSUL PAHMI, M.Pd.</div>
+      <div class="upm">UNIT PENJAMINAN MUTU</div>
+      <div class="univ">UNIVERSITAS NUSA PUTRA</div>
+      <div class="ttd-name">Dr. SAMSUL PAHMI, M.Pd.</div>
     </div>
+    <!-- Kanan (kolom C-E Excel) -->
     <div class="footer-right">
-      <div class="kr-title">Catatan: Kriteria Penskoran</div>
+      <div class="kr-hd">CATATAN: KRITERIA PENSKORAN</div>
       <table class="tbl-kr">
-        <thead><tr><th colspan="2">Rentang Skor</th><th>Kriteria</th></tr></thead>
+        <thead>
+          <tr>
+            <th colspan="2">RENTANG SKOR</th>
+            <th>KRITERIA</th>
+          </tr>
+        </thead>
         <tbody>
           <tr><td>3.2</td><td>s/d 3.65</td><td>Kurang Baik</td></tr>
           <tr><td>3.66</td><td>s/d 4.11</td><td>Cukup</td></tr>
@@ -326,6 +342,7 @@ foreach ($printDosen as $d):
       </table>
     </div>
   </div>
+
 </div>
 <?php endforeach; ?>
 
