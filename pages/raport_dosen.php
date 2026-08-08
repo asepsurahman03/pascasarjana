@@ -179,12 +179,13 @@ require_once __DIR__ . '/../includes/header.php';
 
   /* FOOTER */
   .footer-wrap { margin-top: 4px; display: flex; align-items: flex-start; }
-  .footer-left  { flex: 0 0 42%; font-size: 9pt; }
+  .footer-left  { flex: 0 0 45%; font-size: 9pt; display: flex; flex-direction: column; align-items: center; }
+  .footer-left .upm, .footer-left .univ { text-align: center; font-size: 9pt; }
   .footer-right { flex: 1; font-size: 9pt; }
-  .footer-left .upm, .footer-left .univ { font-size: 9pt; }
-  .footer-left .ttd-wrap { margin-top: 5px; width: 220px; }
-  .footer-left .ttd-name { font-weight: bold; font-size: 9pt; border-top: 1.5pt solid #000;
-                            padding-top: 3px; display: inline-block; width: 100%; text-align: left; }
+  .footer-left .ttd-wrap { margin-top: 10px; width: 220px; display: flex; flex-direction: column; align-items: flex-start; }
+  .footer-left .ttd-wrap img { height: 60px; object-fit: contain; margin-bottom: 2px; margin-left: -30px; }
+  .footer-left .ttd-name { font-weight: bold; font-size: 9.5pt; border-top: 1.5px solid #000;
+                            padding-top: 3px; display: block; width: 100%; text-align: left; }
   .footer-right .kr-hd { font-size: 9pt; margin-bottom: 2px; }
   .tbl-kr { border-collapse: collapse; width: 100%; font-size: 9pt; }
   .tbl-kr th { border: 1px solid #000; padding: 0px 2px; font-weight: bold; text-align: center; font-size: 9pt; }
@@ -361,12 +362,10 @@ foreach ($printDosen as $d):
   <div class="footer-wrap">
     <!-- Kiri (col B): B39=UPM, B40=UNIVERSITAS, B46=nama TTD -->
     <div class="footer-left">
-      <div style="width: 230px; text-align: center;">
-        <div class="upm">UNIT PENJAMINAN MUTU</div>
-        <div class="univ">UNIVERSITAS NUSA PUTRA</div>
-      </div>
-      <div class="ttd-wrap" style="width: 230px;">
-        <img src="../TTD Dosen/ttd_pak_pahmi.png" style="height:60px; object-fit:contain; margin-bottom:2px; margin-left:-25px; display:block;" alt="TTD">
+      <div class="upm">UNIT PENJAMINAN MUTU</div>
+      <div class="univ">UNIVERSITAS NUSA PUTRA</div>
+      <div class="ttd-wrap">
+        <img src="../TTD Dosen/ttd_pak_pahmi.png" alt="TTD">
         <div class="ttd-name">Dr. SAMSUL PAHMI, M.Pd.</div>
       </div>
     </div>
