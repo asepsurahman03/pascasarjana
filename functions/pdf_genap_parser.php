@@ -1,9 +1,8 @@
 <?php
 /**
  * functions/pdf_genap_parser.php
- * Membaca data dosen dari PDF Laporan Rekap Kuesioner (Genap)
- * dan mengembalikan array dengan format yang sama seperti parseExcelRaport()
- * Versi 2: Juga mengekstrak komentar Open Question (Kesan & Pesan) mahasiswa ke K1-K4
+ * Membaca data dosen dari PDF Laporan Rekap Kuesioner (Genap) - Versi 4
+ * Fix: UTF-16BE decode = 2 bytes per char, byte[0]=high (skip 0x00), byte[1]=Skia-shifted
  */
 
 function parseGenapPDF(string $pdfPath): array {
@@ -11,207 +10,209 @@ function parseGenapPDF(string $pdfPath): array {
 
     $raw = file_get_contents($pdfPath);
 
-    // ===== Helper: decompress =====
-    $decStream = function($data) {
-        $r = @gzuncompress($data);
-        if ($r !== false) return $r;
-        $r = @gzinflate(substr($data, 2));
-        if ($r !== false) return $r;
-        return false;
-    };
-
-    // ===== 1. Cari ToUnicode object IDs =====
-    preg_match_all('/ToUnicode\s+(\d+)\s+\d+\s+R/', $raw, $tuRefs);
-    $tounicodeIds = array_unique($tuRefs[1]);
-
-    // ===== 2. Parse semua objects =====
-    $objects = [];
-    preg_match_all('/(\d+)\s+0\s+obj\s+(.*?)\s+endobj/s', $raw, $objMatches, PREG_SET_ORDER);
-    foreach ($objMatches as $m) {
-        $objects[(int)$m[1]] = $m[2];
+    // ===== 1. Decompress FlateDecode streams with BT blocks =====
+    $decodedTexts = [];
+    preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $raw, $streamMatches);
+    foreach ($streamMatches[1] as $stream) {
+        $dec = @gzuncompress($stream);
+        if ($dec === false) $dec = @gzinflate($stream);
+        if ($dec === false) continue;
+        if (strpos($dec, 'BT') !== false) $decodedTexts[] = $dec;
     }
 
-    // ===== 3. Build CMap dari ToUnicode =====
-    $globalCmap = [];
-    foreach ($tounicodeIds as $id) {
-        if (!isset($objects[(int)$id])) continue;
-        $objContent = $objects[(int)$id];
-        if (!preg_match('/stream\r?\n(.*?)\r?\nendstream/s', $objContent, $sm)) continue;
-        $dec = $decStream($sm[1]);
-        if (!$dec || strpos($dec, 'beginbfchar') === false) continue;
-
-        preg_match_all('/beginbfchar(.*?)endbfchar/s', $dec, $bfc);
-        foreach ($bfc[1] as $block) {
-            preg_match_all('/<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>/', $block, $p);
-            foreach ($p[1] as $i => $src) {
-                $code = hexdec($src);
-                $dst  = hexdec($p[2][$i]);
-                $globalCmap[$code] = mb_convert_encoding(pack('N', $dst), 'UTF-8', 'UCS-4BE');
-            }
+    // ===== 2. Decode Skia PDF shift-29 (single byte) =====
+    // Skia encodes: stored_byte = original_byte - 29 (mod 95 in printable range)
+    $shiftChar = function(int $byte): string {
+        if ($byte >= 32 && $byte <= 126) {
+            $shifted = $byte + 29;
+            if ($shifted > 126) $shifted = $shifted - 95;
+            return chr($shifted);
         }
-        preg_match_all('/beginbfrange(.*?)endbfrange/s', $dec, $bfr);
-        foreach ($bfr[1] as $block) {
-            preg_match_all('/<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>/', $block, $r);
-            foreach ($r[1] as $i => $s1) {
-                $start = hexdec($s1);
-                $end   = hexdec($r[2][$i]);
-                $dst   = hexdec($r[3][$i]);
-                for ($c = $start; $c <= $end; $c++) {
-                    $globalCmap[$c] = mb_convert_encoding(pack('N', $dst + ($c - $start)), 'UTF-8', 'UCS-4BE');
+        return '';
+    };
+
+    // Decode a hex string from Skia PDF:
+    // Hex is stored as UTF-16BE where high byte is 0x00 and low byte is the shifted char
+    $decodeHex = function(string $hex) use ($shiftChar): string {
+        $result = '';
+        $len = strlen($hex);
+        // Process 4 hex chars at a time (= 2 bytes = 1 UTF-16BE char)
+        for ($i = 0; $i + 3 < $len; $i += 4) {
+            $highByte = hexdec(substr($hex, $i, 2));
+            $lowByte  = hexdec(substr($hex, $i + 2, 2));
+            if ($highByte === 0) {
+                // Normal ASCII char encoded with Skia shift
+                $result .= $shiftChar($lowByte);
+            } else {
+                // High byte non-zero → real Unicode char (UTF-16BE)
+                $cp = ($highByte << 8) | $lowByte;
+                if ($cp > 31 && $cp < 0xFFFD) {
+                    $result .= mb_chr($cp, 'UTF-8');
                 }
             }
         }
-    }
-
-    // ===== 4. Decode hex string ke teks =====
-    $decodeHex = function($hex) use ($globalCmap) {
-        $text = '';
-        $hex  = strtoupper(preg_replace('/\s+/', '', $hex));
-        for ($i = 0; $i < strlen($hex); $i += 4) {
-            $code  = hexdec(substr($hex, $i, 4));
-            $text .= $globalCmap[$code] ?? '';
-        }
-        return $text;
+        return $result;
     };
 
-    // ===== 5. Ekstrak teks dari content streams =====
-    $pageTexts = [];
-    foreach ($objects as $id => $objContent) {
-        if (strpos($objContent, 'stream') === false) continue;
-        if (!preg_match('/stream\r?\n(.*?)\r?\nendstream/s', $objContent, $sm)) continue;
-        $dec = $decStream($sm[1]);
-        if (!$dec || strpos($dec, 'TJ') === false) continue;
-
-        $pageText = '';
-        preg_match_all('/\[((?:<[0-9A-Fa-f]+>|-?\d+\s*)+)\]\s*TJ|<([0-9A-Fa-f]+)>\s*Tj/', $dec, $ops, PREG_SET_ORDER);
-        foreach ($ops as $op) {
-            if (!empty($op[1])) {
-                preg_match_all('/<([0-9A-Fa-f]+)>/', $op[1], $hp);
-                foreach ($hp[1] as $h) $pageText .= $decodeHex($h);
-            } elseif (!empty($op[2])) {
-                $pageText .= $decodeHex($op[2]);
+    // ===== 3. Extract unique text lines from BT...ET blocks =====
+    $allLines = [];
+    foreach ($decodedTexts as $text) {
+        preg_match_all('/BT(.*?)ET/s', $text, $btBlocks);
+        foreach ($btBlocks[1] as $block) {
+            // Extract all hex strings from this BT block
+            preg_match_all('/<([0-9A-Fa-f]+)>/', $block, $hexAll);
+            $lineText = '';
+            foreach ($hexAll[1] as $hex) {
+                if (strlen($hex) < 2) continue;
+                $lineText .= $decodeHex($hex);
             }
+            $lineText = trim($lineText);
+            if (strlen($lineText) > 1) $allLines[] = $lineText;
         }
-        if (strlen(trim($pageText)) > 5) $pageTexts[] = trim($pageText);
     }
 
-    $fullText = implode("\n", $pageTexts);
+    // Deduplicate consecutive identical lines (Skia sometimes draws text multiple times)
+    $lines = [];
+    $lastLine = null;
+    foreach ($allLines as $l) {
+        if ($l !== $lastLine) {
+            $lines[] = $l;
+            $lastLine = $l;
+        }
+    }
 
-    // ===== 6. Parse dosen dari teks =====
-    $lines   = preg_split('/\r?\n/', $fullText);
+    // ===== 4. Parse structure: identify dosen and collect komentar =====
+    $dosenData   = [];
+    $currentKey  = '';
+    $inOpenQ     = false;
+    $pendingKom  = [];
+    $expectNama  = false;
+    $expectProdi = false;
 
-    $currentNIP      = '';
-    $currentNama     = '';
-    $currentHomebase = '';
-    $currentKey      = '';
-    $dosenData       = [];
-    $inOpenQuestion  = false;
-    $komentar        = [];
-
-    // Kata kunci yang menandakan awal Open Question
-    $openQKeywords = ['Open Question', 'Kesan dan Pesan', 'Kesan dan pesan', 'tuliskan di sini'];
-    // Kata kunci yang menandakan akhir Open Question / header baru
-    $stopKeywords  = ['NIP Dosen', 'Nama Dosen', 'LAPORAN', 'Dicetak'];
-    $skipPrefixes  = ['Pertanyaan', 'Total Jawaban', 'Total Skor', 'Nilai', 'Rata-Rata',
-                      'Sangat', 'Tidak baik', 'Biasa', 'Baik', 'Lainnya', 'tuliskan'];
-
-    $saveKomentar = function() use (&$dosenData, &$komentar, &$currentKey) {
-        if ($currentKey && !empty($komentar) && isset($dosenData[$currentKey])) {
+    // Helper to save pending komentar to current dosen
+    $saveKom = function() use (&$dosenData, &$pendingKom, &$currentKey) {
+        if ($currentKey && !empty($pendingKom)) {
             $dosenData[$currentKey]['kommentars'] = array_merge(
                 $dosenData[$currentKey]['kommentars'] ?? [],
-                $komentar
+                $pendingKom
             );
-            $komentar = [];
         }
+        $pendingKom = [];
     };
 
+    // Keywords (decoded, no spaces)
+    $openQWords = ['OpenQuestion', 'KesandanPesan', 'tuliskandisini'];
+    $stopWords  = ['NIPDosen', 'NamaDosen', 'LAPORANREKAP', 'Dicetak'];
+    $skipWords  = [
+        'TotalJawaban','TotalSkor','Nilai','RataRata','Pertanyaan',
+        'Sangatbaik','Sangattidakbaik','Tidakbaik','tidakbaik',
+        'Biasa','Baik','baik','Lainnya','No',
+        'OpenQuestion','KesandanPesan','tuliskandisini',
+    ];
+
     foreach ($lines as $line) {
-        $line = trim($line);
+        $line  = trim($line);
         if (strlen($line) < 2) continue;
+        $clean = preg_replace('/\s+/', '', $line);
 
-        // Deteksi dosen baru
-        if (strpos($line, 'Nama Dosen:') !== false) {
-            $saveKomentar();
-            $inOpenQuestion = false;
+        // ── Deteksi "NamaDosen" ──
+        if (stripos($clean, 'NamaDosen') !== false) {
+            $saveKom();
+            $inOpenQ    = false;
+            $expectNama = true;
+            continue;
+        }
 
-            if (preg_match('/NIP\s*Dosen:\s*(\d+)/', $line, $m)) $currentNIP = $m[1];
-            if (preg_match('/Homebase:\s*([^N]+?)(?:Nama|$)/', $line, $m)) $currentHomebase = trim($m[1]);
-            if (preg_match('/Nama\s*Dosen:\s*([A-Z][A-Z\s\.,]+?)(?:\(|[A-Z][a-z]|$)/', $line, $m)) {
-                $rawName = trim($m[1]);
-                $rawName = preg_replace('/[A-Z][a-z].+$/', '', $rawName);
-                $currentNama = trim($rawName);
-            }
+        // ── Deteksi "Homebase" ──
+        if (stripos($clean, 'Homebase') !== false) {
+            $expectProdi = true;
+            continue;
+        }
 
-            $currentKey = $currentNIP ?: $currentNama;
-            if ($currentKey && !isset($dosenData[$currentKey])) {
+        // ── Capture nama dosen (baris setelah "NamaDosen") ──
+        if ($expectNama) {
+            $expectNama  = false;
+            $nama = strtoupper(trim($line));
+            $currentKey  = $nama;
+            if (!isset($dosenData[$currentKey])) {
                 $dosenData[$currentKey] = [
-                    'nip'        => $currentNIP,
-                    'nama'       => $currentNama,
-                    'homebase'   => $currentHomebase,
+                    'nama'       => $nama,
+                    'prodi'      => '',
                     'nilais'     => [],
                     'mk_count'   => 0,
                     'kommentars' => [],
                 ];
             }
+            continue;
         }
 
-        // Rata-Rata nilai kuesioner
-        if (preg_match('/Rata-Rata\s+(\d+\.\d{2})/', $line, $rrm) && $currentKey) {
-            $nilai = (float)$rrm[1];
-            if ($nilai > 0 && isset($dosenData[$currentKey])) {
+        // ── Capture prodi (baris setelah "Homebase") ──
+        if ($expectProdi && $currentKey) {
+            $dosenData[$currentKey]['prodi'] = trim($line);
+            $expectProdi = false;
+            continue;
+        }
+
+        // ── Rata-Rata nilai ──
+        if (preg_match('/RataRata(\d+[.,]\d{2})/', $clean, $m) && $currentKey) {
+            $nilai = (float)str_replace(',', '.', $m[1]);
+            if ($nilai > 0) {
                 $dosenData[$currentKey]['nilais'][]  = $nilai;
                 $dosenData[$currentKey]['mk_count']++;
             }
-            $inOpenQuestion = false;
+            $inOpenQ = false;
+            continue;
         }
 
-        // Deteksi awal Open Question
-        foreach ($openQKeywords as $kw) {
-            if (strpos($line, $kw) !== false) {
-                $inOpenQuestion = true;
+        // ── Deteksi Open Question trigger ──
+        foreach ($openQWords as $kw) {
+            if (stripos($clean, $kw) !== false) {
+                $inOpenQ = true;
                 continue 2;
             }
         }
 
-        // Kumpulkan komentar jika dalam Open Question
-        if ($inOpenQuestion && $currentKey) {
-            // Stop jika menemukan header baru
-            $shouldStop = false;
-            foreach ($stopKeywords as $sk) {
-                if (strpos($line, $sk) !== false) { $shouldStop = true; break; }
+        // ── Deteksi Stop trigger ──
+        foreach ($stopWords as $kw) {
+            if (stripos($clean, $kw) !== false) {
+                $inOpenQ = false;
+                continue 2;
             }
-            if ($shouldStop) { $inOpenQuestion = false; continue; }
+        }
 
-            // Skip baris yang merupakan elemen tabel/header
-            $shouldSkip = false;
-            foreach ($skipPrefixes as $sp) {
-                if (stripos($line, $sp) === 0) { $shouldSkip = true; break; }
+        // ── Collect komentar ──
+        if ($inOpenQ && $currentKey) {
+            // Skip header/table rows
+            $skip = false;
+            foreach ($skipWords as $sw) {
+                if (stripos($clean, $sw) !== false && strlen($clean) <= strlen($sw) + 5) {
+                    $skip = true; break;
+                }
             }
-            if ($shouldSkip || strlen($line) < 5) continue;
-
-            $komentar[] = $line;
+            if (preg_match('/^\d+$/', $clean)) $skip = true;
+            if ($skip || strlen($line) < 5) continue;
+            $pendingKom[] = $line;
         }
     }
+    $saveKom();
 
-    // Simpan komentar dosen terakhir
-    $saveKomentar();
-
-    // ===== 7. Build rows array =====
-    $no = 1;
+    // ===== 5. Build rows =====
+    $rows = [];
+    $no   = 1;
     foreach ($dosenData as $d) {
+        if (empty($d['nama'])) continue;
         $avgNilai = count($d['nilais']) > 0
             ? round(array_sum($d['nilais']) / count($d['nilais']), 2) : 0;
 
-        // Ambil max 4 komentar unik untuk K1-K4
-        $komUnik = array_values(array_unique(array_filter(
-            $d['kommentars'] ?? [],
-            fn($k) => strlen(trim($k)) > 4
-        )));
+        $komUnik = array_values(array_filter(
+            array_unique($d['kommentars'] ?? []),
+            fn($k) => strlen(trim($k)) >= 5
+        ));
 
         $rows[] = [
             'No'               => $no++,
             'Nama'             => $d['nama'],
-            'Prodi'            => $d['homebase'] ?: 'S2 Magister Pedagogi',
+            'Prodi'            => $d['prodi'] ?: 'S2 Magister Pedagogi',
             'Jumlah Matkul'    => $d['mk_count'],
             'Jumlah Kelas'     => $d['mk_count'],
             'Jumlah Responden' => '',
@@ -220,8 +221,13 @@ function parseGenapPDF(string $pdfPath): array {
             'Konten'           => 0,
             'Jumlah Penelitian'=> 0,
             'Jumlah Pengabdian'=> 0,
-            'P1' => '', 'P2' => '', 'P3' => '', 'P4' => '', 'P5' => '',
-            // Komentar mahasiswa dari Open Question
+            // Rekomendasi Perbaikan (ambil komentar ke-5 dst, atau generik)
+            'P1' => $komUnik[4] ?? ($komUnik[0] ?? 'Terus pertahankan kualitas pengajaran.'),
+            'P2' => $komUnik[5] ?? 'Tingkatkan interaksi aktif dengan mahasiswa.',
+            'P3' => $komUnik[6] ?? 'Berikan umpan balik yang lebih spesifik pada tugas.',
+            'P4' => $komUnik[7] ?? 'Gunakan media pembelajaran yang lebih variatif.',
+            'P5' => $komUnik[8] ?? 'Perbanyak diskusi dan studi kasus relevan.',
+            // Catatan Mahasiswa
             'K1' => $komUnik[0] ?? '',
             'K2' => $komUnik[1] ?? '',
             'K3' => $komUnik[2] ?? '',
@@ -229,5 +235,5 @@ function parseGenapPDF(string $pdfPath): array {
         ];
     }
 
-    return $rows ?? [];
+    return $rows;
 }
