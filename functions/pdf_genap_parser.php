@@ -3,6 +3,7 @@
  * functions/pdf_genap_parser.php
  * Membaca data dosen dari PDF Laporan Rekap Kuesioner (Genap)
  * dan mengembalikan array dengan format yang sama seperti parseExcelRaport()
+ * Versi 2: Juga mengekstrak komentar Open Question (Kesan & Pesan) mahasiswa ke K1-K4
  */
 
 function parseGenapPDF(string $pdfPath): array {
@@ -39,7 +40,6 @@ function parseGenapPDF(string $pdfPath): array {
         $dec = $decStream($sm[1]);
         if (!$dec || strpos($dec, 'beginbfchar') === false) continue;
 
-        // Parse bfchar
         preg_match_all('/beginbfchar(.*?)endbfchar/s', $dec, $bfc);
         foreach ($bfc[1] as $block) {
             preg_match_all('/<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>/', $block, $p);
@@ -49,7 +49,6 @@ function parseGenapPDF(string $pdfPath): array {
                 $globalCmap[$code] = mb_convert_encoding(pack('N', $dst), 'UTF-8', 'UCS-4BE');
             }
         }
-        // Parse bfrange
         preg_match_all('/beginbfrange(.*?)endbfrange/s', $dec, $bfr);
         foreach ($bfr[1] as $block) {
             preg_match_all('/<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>/', $block, $r);
@@ -99,55 +98,115 @@ function parseGenapPDF(string $pdfPath): array {
     $fullText = implode("\n", $pageTexts);
 
     // ===== 6. Parse dosen dari teks =====
-    $rows    = [];
-    $no      = 1;
     $lines   = preg_split('/\r?\n/', $fullText);
 
     $currentNIP      = '';
     $currentNama     = '';
     $currentHomebase = '';
+    $currentKey      = '';
     $dosenData       = [];
+    $inOpenQuestion  = false;
+    $komentar        = [];
+
+    // Kata kunci yang menandakan awal Open Question
+    $openQKeywords = ['Open Question', 'Kesan dan Pesan', 'Kesan dan pesan', 'tuliskan di sini'];
+    // Kata kunci yang menandakan akhir Open Question / header baru
+    $stopKeywords  = ['NIP Dosen', 'Nama Dosen', 'LAPORAN', 'Dicetak'];
+    $skipPrefixes  = ['Pertanyaan', 'Total Jawaban', 'Total Skor', 'Nilai', 'Rata-Rata',
+                      'Sangat', 'Tidak baik', 'Biasa', 'Baik', 'Lainnya', 'tuliskan'];
+
+    $saveKomentar = function() use (&$dosenData, &$komentar, &$currentKey) {
+        if ($currentKey && !empty($komentar) && isset($dosenData[$currentKey])) {
+            $dosenData[$currentKey]['kommentars'] = array_merge(
+                $dosenData[$currentKey]['kommentars'] ?? [],
+                $komentar
+            );
+            $komentar = [];
+        }
+    };
 
     foreach ($lines as $line) {
         $line = trim($line);
-        if (strlen($line) < 3) continue;
+        if (strlen($line) < 2) continue;
 
-        // Deteksi header laporan dosen
+        // Deteksi dosen baru
         if (strpos($line, 'Nama Dosen:') !== false) {
+            $saveKomentar();
+            $inOpenQuestion = false;
+
             if (preg_match('/NIP\s*Dosen:\s*(\d+)/', $line, $m)) $currentNIP = $m[1];
             if (preg_match('/Homebase:\s*([^N]+?)(?:Nama|$)/', $line, $m)) $currentHomebase = trim($m[1]);
             if (preg_match('/Nama\s*Dosen:\s*([A-Z][A-Z\s\.,]+?)(?:\(|[A-Z][a-z]|$)/', $line, $m)) {
                 $rawName = trim($m[1]);
-                // Bersihkan: ambil sampai huruf kecil pertama (nama MK) atau tanda kurung
                 $rawName = preg_replace('/[A-Z][a-z].+$/', '', $rawName);
                 $currentNama = trim($rawName);
             }
-        }
 
-        // Rata-Rata nilai kuesioner per kelas
-        if (preg_match('/Rata-Rata\s*(\d+\.\d{2})/', $line, $rrm) && $currentNama) {
-            $nilai = (float)$rrm[1];
-            $key   = $currentNIP ?: $currentNama;
-            if (!isset($dosenData[$key])) {
-                $dosenData[$key] = [
-                    'nip'       => $currentNIP,
-                    'nama'      => $currentNama,
-                    'homebase'  => $currentHomebase,
-                    'nilais'    => [],
-                    'mk_count'  => 0,
+            $currentKey = $currentNIP ?: $currentNama;
+            if ($currentKey && !isset($dosenData[$currentKey])) {
+                $dosenData[$currentKey] = [
+                    'nip'        => $currentNIP,
+                    'nama'       => $currentNama,
+                    'homebase'   => $currentHomebase,
+                    'nilais'     => [],
+                    'mk_count'   => 0,
+                    'kommentars' => [],
                 ];
             }
-            if ($nilai > 0) {
-                $dosenData[$key]['nilais'][]  = $nilai;
-                $dosenData[$key]['mk_count']++;
+        }
+
+        // Rata-Rata nilai kuesioner
+        if (preg_match('/Rata-Rata\s+(\d+\.\d{2})/', $line, $rrm) && $currentKey) {
+            $nilai = (float)$rrm[1];
+            if ($nilai > 0 && isset($dosenData[$currentKey])) {
+                $dosenData[$currentKey]['nilais'][]  = $nilai;
+                $dosenData[$currentKey]['mk_count']++;
             }
+            $inOpenQuestion = false;
+        }
+
+        // Deteksi awal Open Question
+        foreach ($openQKeywords as $kw) {
+            if (strpos($line, $kw) !== false) {
+                $inOpenQuestion = true;
+                continue 2;
+            }
+        }
+
+        // Kumpulkan komentar jika dalam Open Question
+        if ($inOpenQuestion && $currentKey) {
+            // Stop jika menemukan header baru
+            $shouldStop = false;
+            foreach ($stopKeywords as $sk) {
+                if (strpos($line, $sk) !== false) { $shouldStop = true; break; }
+            }
+            if ($shouldStop) { $inOpenQuestion = false; continue; }
+
+            // Skip baris yang merupakan elemen tabel/header
+            $shouldSkip = false;
+            foreach ($skipPrefixes as $sp) {
+                if (stripos($line, $sp) === 0) { $shouldSkip = true; break; }
+            }
+            if ($shouldSkip || strlen($line) < 5) continue;
+
+            $komentar[] = $line;
         }
     }
 
-    // ===== 7. Build rows array (format sama dengan Excel parser) =====
+    // Simpan komentar dosen terakhir
+    $saveKomentar();
+
+    // ===== 7. Build rows array =====
+    $no = 1;
     foreach ($dosenData as $d) {
         $avgNilai = count($d['nilais']) > 0
             ? round(array_sum($d['nilais']) / count($d['nilais']), 2) : 0;
+
+        // Ambil max 4 komentar unik untuk K1-K4
+        $komUnik = array_values(array_unique(array_filter(
+            $d['kommentars'] ?? [],
+            fn($k) => strlen(trim($k)) > 4
+        )));
 
         $rows[] = [
             'No'               => $no++,
@@ -161,11 +220,14 @@ function parseGenapPDF(string $pdfPath): array {
             'Konten'           => 0,
             'Jumlah Penelitian'=> 0,
             'Jumlah Pengabdian'=> 0,
-            // Kosong karena tidak ada di PDF kuesioner
             'P1' => '', 'P2' => '', 'P3' => '', 'P4' => '', 'P5' => '',
-            'K1' => '', 'K2' => '', 'K3' => '', 'K4' => '',
+            // Komentar mahasiswa dari Open Question
+            'K1' => $komUnik[0] ?? '',
+            'K2' => $komUnik[1] ?? '',
+            'K3' => $komUnik[2] ?? '',
+            'K4' => $komUnik[3] ?? '',
         ];
     }
 
-    return $rows;
+    return $rows ?? [];
 }
