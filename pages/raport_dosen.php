@@ -123,7 +123,7 @@ require_once __DIR__ . '/../includes/header.php';
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Times New Roman',Times,serif; font-size:9pt; color:#000; background:#fff; }
 
-  @page { size: A4 portrait; margin: 0; } /* Remove default browser header/footer margins */
+  @page { size: A4 portrait; margin: 0.5cm; } /* Use small margin to avoid Chrome 0-margin blank page bug */
 
   /* Halaman A4 portrait */
   .page {
@@ -198,12 +198,12 @@ require_once __DIR__ . '/../includes/header.php';
     .no-print { display: none !important; }
     html, body { margin: 0 !important; padding: 0 !important; background: white; }
     .page { 
-      margin: 0; 
-      padding: 10mm 15mm 10mm 20mm; 
+      margin: 0 !important; 
+      padding: 5mm 10mm 5mm 15mm !important; 
       box-shadow: none; 
       height: auto; 
       page-break-after: always;
-      page-break-before: auto;
+      page-break-before: avoid !important;
     }
     .page:last-child { page-break-after: auto; }
   }
