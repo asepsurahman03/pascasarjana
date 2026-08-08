@@ -121,7 +121,7 @@ require_once __DIR__ . '/../includes/header.php';
      TEMPLATE SURAT RAPORT DOSEN - SESUAI EXCEL SHEET 'Rapot'
      ================================================================ */
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Times New Roman',Times,serif; font-size:9pt; color:#000; background:#fff; }
+  body { font-family:'Times New Roman',Times,serif; font-size:9pt; line-height:1.1; color:#000; background:#fff; }
 
   @page { size: A4 portrait; margin: 0.5cm; } /* Use small margin to avoid Chrome 0-margin blank page bug */
 
@@ -155,32 +155,30 @@ require_once __DIR__ . '/../includes/header.php';
   .subsec { font-weight: bold; font-size: 9pt; margin: 2px 0 2px; }
 
   /* A. IDENTITAS */
-  .tbl-id { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 4px; }
-  .tbl-id td { padding: 1px 3px; vertical-align: top; font-size: 9pt; }
+  .tbl-id { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 2px; }
+  .tbl-id td { padding: 0px 2px; vertical-align: top; font-size: 9pt; }
   .tbl-id td.lbl { width: 33%; }
 
   /* B. REKAPITULASI */
-  .tbl-rekap { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 4px; }
-  .tbl-rekap th { border: 1px solid #000; padding: 1px 3px; font-weight: bold; text-align: center; font-size: 9pt; }
-  .tbl-rekap td { border: 1px solid #000; padding: 1px 3px; font-size: 9pt; vertical-align: middle; }
+  .tbl-rekap { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 2px; }
+  .tbl-rekap th { border: 1px solid #000; padding: 0px 2px; font-weight: bold; text-align: center; font-size: 9pt; }
+  .tbl-rekap td { border: 1px solid #000; padding: 0px 2px; font-size: 9pt; vertical-align: middle; }
   .tbl-rekap td.nilai { text-align: right; width: 13%; }
   .tbl-rekap td.ket   { width: 42%; }
   .tbl-rekap td.ind   { width: 45%; }
 
   /* C. ASPEK */
-  .aspek-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 3px; }
-  .aspek-tbl td { padding: 2px 3px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; }
+  .aspek-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 2px; }
+  .aspek-tbl td { padding: 0px 2px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; }
   .aspek-tbl td.no-col  { width: 22px; text-align: center; }
 
   /* D. CATATAN */
-  .cat-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 3px; }
-  .cat-tbl td { padding: 2px 3px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; }
+  .cat-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 2px; }
+  .cat-tbl td { padding: 0px 2px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; }
   .cat-tbl td.dash-col { width: 22px; font-weight: bold; text-align: center; }
-  /* Row 34 dipaskan agar proporsional */
-  .cat-tbl tr:nth-child(2) td { min-height: 25pt; height: 25pt; }
 
   /* FOOTER */
-  .footer-wrap { margin-top: 6px; display: flex; align-items: flex-start; }
+  .footer-wrap { margin-top: 4px; display: flex; align-items: flex-start; }
   .footer-left  { flex: 0 0 42%; font-size: 9pt; }
   .footer-right { flex: 1; font-size: 9pt; }
   .footer-left .ttd-wrap { margin-top: 5px; text-align: center; width: 170px; }
@@ -188,8 +186,8 @@ require_once __DIR__ . '/../includes/header.php';
                             padding-top: 2px; display: inline-block; width: 100%; text-align: left; }
   .footer-right .kr-hd { font-size: 9pt; margin-bottom: 2px; }
   .tbl-kr { border-collapse: collapse; width: 100%; font-size: 9pt; }
-  .tbl-kr th { border: 1px solid #000; padding: 1px 3px; font-weight: bold; text-align: center; font-size: 9pt; }
-  .tbl-kr td { border: 1px solid #000; padding: 1px 3px; font-size: 9pt; }
+  .tbl-kr th { border: 1px solid #000; padding: 0px 2px; font-weight: bold; text-align: center; font-size: 9pt; }
+  .tbl-kr td { border: 1px solid #000; padding: 0px 2px; font-size: 9pt; }
   .tbl-kr td.skor { text-align: right; width: 22%; }
   .tbl-kr td.sd   { text-align: left; width: 33%; }
   .tbl-kr td.ket  { text-align: left; }
