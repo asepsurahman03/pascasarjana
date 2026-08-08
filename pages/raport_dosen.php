@@ -196,13 +196,14 @@ require_once __DIR__ . '/../includes/header.php';
 
   @media print {
     .no-print { display: none !important; }
-    html, body { height: 100%; margin: 0 !important; padding: 0 !important; }
+    html, body { margin: 0 !important; padding: 0 !important; background: white; }
     .page { 
       margin: 0; 
       padding: 10mm 15mm 10mm 20mm; 
       box-shadow: none; 
       height: auto; 
       page-break-after: always;
+      page-break-before: auto;
     }
     .page:last-child { page-break-after: auto; }
   }
