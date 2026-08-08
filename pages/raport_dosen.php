@@ -169,12 +169,12 @@ require_once __DIR__ . '/../includes/header.php';
 
   /* C. ASPEK */
   .aspek-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 2px; }
-  .aspek-tbl td { padding: 0px 2px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; }
+  .aspek-tbl td { padding: 1px 3px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; height: 13pt; }
   .aspek-tbl td.no-col  { width: 22px; text-align: center; }
 
   /* D. CATATAN */
   .cat-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 2px; }
-  .cat-tbl td { padding: 0px 2px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; }
+  .cat-tbl td { padding: 1px 3px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; height: 13pt; }
   .cat-tbl td.dash-col { width: 22px; font-weight: bold; text-align: center; }
 
   /* FOOTER */
