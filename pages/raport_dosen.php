@@ -16,9 +16,9 @@ $excelData = parseExcelRaport(RAPORT_EXCEL_PATH);
 $allDosen  = $excelData['rows'] ?? [];
 $hasError  = isset($excelData['error']);
 
-// Ambil daftar prodi unik
-$allProdi = array_values(array_filter(array_unique(array_column($allDosen, 'Prodi'))));
-sort($allProdi);
+// Ambil daftar prodi unik dari Excel
+$prodiList = array_values(array_filter(array_unique(array_column($allDosen, 'Prodi'))));
+sort($prodiList);
 
 // Filter GET
 $filterProdi = $_GET['prodi'] ?? '';
@@ -544,7 +544,7 @@ endif;
         <select name="prodi" onchange="document.getElementById('filter-form').submit()"
           class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#8c0c4c]">
           <option value="">Semua Prodi</option>
-          <?php foreach ($allProdi as $p): ?>
+          <?php foreach ($prodiList as $p): ?>
           <option value="<?= htmlspecialchars($p) ?>" <?= $filterProdi === $p ? 'selected' : '' ?>><?= htmlspecialchars($p) ?></option>
           <?php endforeach; ?>
         </select>
