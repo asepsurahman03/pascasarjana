@@ -123,18 +123,15 @@ require_once __DIR__ . '/../includes/header.php';
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Times New Roman',Times,serif; font-size:9pt; color:#000; background:#fff; }
 
-  @page { size: A4 portrait; margin: 0; } /* Remove default browser header/footer margins */
+  @page { size: A4 portrait; }
 
-  /* Halaman A4 portrait, set strict height agar tidak tumpah ke page 2 */
+  /* Halaman A4 portrait */
   .page {
     width: 210mm;
-    height: 297mm;
-    max-height: 297mm;
-    padding: 15mm 15mm 15mm 20mm; /* Dikurangi sedikit agar lebih lega */
+    padding: 10mm 10mm 10mm 15mm;
     margin: 0 auto;
     page-break-after: always;
     font-size: 9pt;
-    overflow: hidden; /* Paksa 1 halaman */
     position: relative;
   }
   .page:last-child { page-break-after: avoid; }
@@ -198,8 +195,8 @@ require_once __DIR__ . '/../includes/header.php';
 
   @media print {
     .no-print { display: none !important; }
-    body { background: white; }
-    .page { margin: 0; padding: 15mm 15mm 15mm 20mm; box-shadow: none; }
+    body { background: white; margin: 0; padding: 0; }
+    .page { padding: 5mm 10mm 10mm 15mm !important; width: 100%; box-shadow: none; margin: 0; }
   }
 </style>
 </head>
