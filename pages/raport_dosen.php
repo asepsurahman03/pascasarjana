@@ -119,30 +119,33 @@ require_once __DIR__ . '/../includes/header.php';
 <style>
   /* ================================================================
      TEMPLATE SURAT RAPORT DOSEN - SESUAI EXCEL SHEET 'Rapot'
-     Audit: font=9pt, col A=3.86, B=36.57, C=7.43, D=22.43, E-G=7.43
-     Print area: A2:I48, margin: L/R=19mm, T/B=25mm
      ================================================================ */
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Times New Roman',Times,serif; font-size:9pt; color:#000; background:#fff; }
 
-  /* Halaman A4 portrait, margin sesuai Excel (0.748 inch = ~19mm) */
+  @page { size: A4 portrait; margin: 0; } /* Remove default browser header/footer margins */
+
+  /* Halaman A4 portrait, set strict height agar tidak tumpah ke page 2 */
   .page {
     width: 210mm;
-    min-height: 297mm;
-    padding: 19mm 19mm 25mm 25mm;
+    height: 297mm;
+    max-height: 297mm;
+    padding: 15mm 15mm 15mm 20mm; /* Dikurangi sedikit agar lebih lega */
     margin: 0 auto;
     page-break-after: always;
     font-size: 9pt;
+    overflow: hidden; /* Paksa 1 halaman */
+    position: relative;
   }
   .page:last-child { page-break-after: avoid; }
 
-  /* ===== HEADER: A5:H5-A8:H8 - centered, bold ===== */
+  /* ===== HEADER ===== */
   .hdr {
     text-align: center;
-    padding-bottom: 6px;
+    padding-bottom: 5px;
     border-bottom: 2.5pt double #000;
-    margin-bottom: 6px;
-    line-height: 1.5;
+    margin-bottom: 5px;
+    line-height: 1.3;
   }
   .hdr .r5 { font-weight: bold; font-size: 9pt; text-transform: uppercase; }
   .hdr .r6 { font-weight: bold; font-size: 9pt; }
@@ -150,8 +153,8 @@ require_once __DIR__ . '/../includes/header.php';
   .hdr .r8 { font-size: 9pt; }
 
   /* Section headers */
-  .sec-a, .sec-b, .sec-c, .sec-d { font-weight: bold; font-size: 9pt; margin: 5px 0 2px; }
-  .subsec { font-weight: bold; font-size: 9pt; margin: 3px 0 2px; }
+  .sec-a, .sec-b, .sec-c, .sec-d { font-weight: bold; font-size: 9pt; margin: 4px 0 2px; }
+  .subsec { font-weight: bold; font-size: 9pt; margin: 2px 0 2px; }
 
   /* A. IDENTITAS */
   .tbl-id { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 4px; }
@@ -159,7 +162,7 @@ require_once __DIR__ . '/../includes/header.php';
   .tbl-id td.lbl { width: 33%; }
 
   /* B. REKAPITULASI */
-  .tbl-rekap { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 5px; }
+  .tbl-rekap { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 4px; }
   .tbl-rekap th { border: 1px solid #000; padding: 3px 5px; font-weight: bold; text-align: center; font-size: 9pt; }
   .tbl-rekap td { border: 1px solid #000; padding: 2px 5px; font-size: 9pt; vertical-align: middle; }
   .tbl-rekap td.nilai { text-align: right; width: 13%; }
@@ -175,14 +178,14 @@ require_once __DIR__ . '/../includes/header.php';
   .cat-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 3px; }
   .cat-tbl td { padding: 2px 3px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; }
   .cat-tbl td.dash-col { width: 22px; font-weight: bold; text-align: center; }
-  /* Row 34 height adjusted to fit 1 page */
-  .cat-tbl tr:nth-child(2) td { min-height: 35pt; height: 35pt; }
+  /* Row 34 dipaskan agar proporsional */
+  .cat-tbl tr:nth-child(2) td { min-height: 25pt; height: 25pt; }
 
   /* FOOTER */
-  .footer-wrap { margin-top: 8px; display: flex; align-items: flex-start; }
+  .footer-wrap { margin-top: 6px; display: flex; align-items: flex-start; }
   .footer-left  { flex: 0 0 42%; font-size: 9pt; }
   .footer-right { flex: 1; font-size: 9pt; }
-  .footer-left .ttd-wrap { margin-top: 10px; text-align: center; width: 170px; }
+  .footer-left .ttd-wrap { margin-top: 5px; text-align: center; width: 170px; }
   .footer-left .ttd-name { font-weight: bold; font-size: 9pt; border-top: 1px solid #000;
                             padding-top: 2px; display: inline-block; width: 100%; text-align: left; }
   .footer-right .kr-hd { font-size: 9pt; margin-bottom: 2px; }
@@ -196,7 +199,7 @@ require_once __DIR__ . '/../includes/header.php';
   @media print {
     .no-print { display: none !important; }
     body { background: white; }
-    .page { margin: 0; padding: 19mm 19mm 25mm 25mm; }
+    .page { margin: 0; padding: 15mm 15mm 15mm 20mm; box-shadow: none; }
   }
 </style>
 </head>
