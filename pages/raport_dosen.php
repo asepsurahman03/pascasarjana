@@ -3,20 +3,59 @@ $pageTitle  = 'Raport Laporan Dosen';
 $breadcrumb = [['label' => 'Akademik', 'url' => '#'], ['label' => 'Raport Laporan Dosen']];
 require_once __DIR__ . '/../includes/functions.php';
 requireAdmin();
-
 require_once __DIR__ . '/../functions/excel_raport_helper.php';
 
-// Path file Excel tetap di server
-define('RAPORT_EXCEL_PATH', __DIR__ . '/../Contoh Lampiran/Laporan Raport/Sistem Report Dosen 2025 - 2026 Gasal.xlsx');
-define('RAPORT_EXCEL_NAME', 'Sistem Report Dosen 2025 - 2026 Gasal.xlsx');
-define('RAPORT_PERIODE', 'Gasal 2025 - 2026');
+// ======================================================
+// MULTI-PERIODE: Gasal & Genap
+// ======================================================
+$periodeParam = $_GET['periode'] ?? 'gasal';
+$periodeParam = in_array($periodeParam, ['gasal','genap']) ? $periodeParam : 'gasal';
 
-// Parse Excel
-$excelData = parseExcelRaport(RAPORT_EXCEL_PATH);
-$allDosen  = $excelData['rows'] ?? [];
-$hasError  = isset($excelData['error']);
+$periodeConfig = [
+    'gasal' => [
+        'label'    => 'Gasal 2025 - 2026',
+        'excel'    => 'Sistem Report Dosen 2025 - 2026 Gasal.xlsx',
+        'path'     => __DIR__ . '/../Contoh Lampiran/Laporan Raport/Sistem Report Dosen 2025 - 2026 Gasal.xlsx',
+        'pdf'      => null,
+    ],
+    'genap' => [
+        'label'    => 'Genap 2025 - 2026',
+        'excel'    => 'Sistem Report Dosen 2025 - 2026 Genap.xlsx',
+        'path'     => __DIR__ . '/../Contoh Lampiran/Laporan Raport/Sistem Report Dosen 2025 - 2026 Genap.xlsx',
+        'pdf'      => __DIR__ . '/../Contoh Lampiran/Laporan Raport/Laporan Rekap Kuesioner 2025 - 2026 Genap.pdf',
+    ],
+];
 
-// Ambil daftar prodi unik dari Excel
+$cfg = $periodeConfig[$periodeParam];
+
+define('RAPORT_EXCEL_PATH', $cfg['path']);
+define('RAPORT_EXCEL_NAME', $cfg['excel']);
+define('RAPORT_PERIODE',    $cfg['label']);
+define('RAPORT_PERIODE_KEY', $periodeParam);
+
+// Parse data – Excel jika ada, fallback ke PDF parser untuk Genap
+$excelData = [];
+$allDosen  = [];
+$hasError  = false;
+
+if (file_exists(RAPORT_EXCEL_PATH)) {
+    $excelData = parseExcelRaport(RAPORT_EXCEL_PATH);
+    $allDosen  = $excelData['rows'] ?? [];
+    $hasError  = isset($excelData['error']);
+} elseif ($periodeParam === 'genap' && $cfg['pdf'] && file_exists($cfg['pdf'])) {
+    // Fallback: gunakan data yang sudah di-parse dari PDF
+    require_once __DIR__ . '/../functions/pdf_genap_parser.php';
+    $allDosen = parseGenapPDF($cfg['pdf']);
+    if (empty($allDosen)) {
+        $hasError = true;
+        $excelData['error'] = 'File Excel Genap belum tersedia. Data PDF belum dapat di-parse otomatis.';
+    }
+} else {
+    $hasError = true;
+    $excelData['error'] = 'File Excel ' . RAPORT_EXCEL_NAME . ' tidak ditemukan di server.';
+}
+
+// Daftar prodi unik
 $prodiList = array_values(array_filter(array_unique(array_column($allDosen, 'Prodi'))));
 sort($prodiList);
 
@@ -403,13 +442,25 @@ endif;
 <?php else: ?>
 <!-- ====================== LIST VIEW ====================== -->
 <div class="pb-10">
-  <!-- Header -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+  <!-- Header + Periode Switcher -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div>
       <h1 class="font-display font-bold text-2xl md:text-3xl text-slate-800 dark:text-white">📋 Raport Laporan Dosen</h1>
-      <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Generate surat raport dosen otomatis dari data kuesioner dan evaluasi Tridharma</p>
+      <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Generate surat raport dosen otomatis dari data kuesioner &amp; evaluasi Tridharma</p>
     </div>
     <div class="flex items-center gap-3">
+      <!-- Periode Switcher -->
+      <div class="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
+        <a href="raport_dosen.php?periode=gasal"
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition-all <?= RAPORT_PERIODE_KEY === 'gasal' ? 'bg-[#8c0c4c] text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-700' ?>">
+          🍂 Gasal 2025-2026
+        </a>
+        <a href="raport_dosen.php?periode=genap"
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition-all <?= RAPORT_PERIODE_KEY === 'genap' ? 'bg-[#8c0c4c] text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-700' ?>">
+          🌸 Genap 2025-2026
+        </a>
+      </div>
+      <!-- Info File -->
       <div class="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-200 dark:border-emerald-800 text-sm">
         <span class="text-emerald-700 dark:text-emerald-400 font-bold">📁 <?= RAPORT_EXCEL_NAME ?></span>
         <br><span class="text-emerald-600 text-xs"><?= count($allDosen) ?> dosen · <?= RAPORT_PERIODE ?></span>
@@ -418,8 +469,15 @@ endif;
   </div>
 
   <?php if ($hasError): ?>
-  <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-2xl p-6 mb-6">
-    <p class="text-red-700 dark:text-red-400 font-semibold">❌ <?= htmlspecialchars($excelData['error']) ?></p>
+  <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 mb-6">
+    <p class="text-amber-700 dark:text-amber-400 font-semibold">⚠️ <?= htmlspecialchars($excelData['error'] ?? 'Data tidak tersedia') ?></p>
+    <?php if (RAPORT_PERIODE_KEY === 'genap'): ?>
+    <p class="text-amber-600 dark:text-amber-500 text-sm mt-2">
+      💡 <strong>Genap:</strong> Letakkan file <code class="bg-amber-100 dark:bg-amber-900 px-1 rounded">Sistem Report Dosen 2025 - 2026 Genap.xlsx</code>
+      di folder <code class="bg-amber-100 dark:bg-amber-900 px-1 rounded">Contoh Lampiran/Laporan Raport/</code> untuk menggunakan data Excel penuh.
+      Sistem akan otomatis membaca dari PDF kuesioner sebagai sumber data sementara.
+    </p>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 
@@ -451,6 +509,7 @@ endif;
   <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/60 shadow-sm p-5 mb-6">
     <form method="GET" id="filter-form" class="flex flex-wrap gap-3 items-end">
       <input type="hidden" name="step" value="list">
+      <input type="hidden" name="periode" value="<?= RAPORT_PERIODE_KEY ?>">
       
       <div class="flex-1 min-w-[200px]">
         <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Cari Nama Dosen</label>
@@ -477,7 +536,7 @@ endif;
       </button>
 
       <?php if ($filterProdi || $filterCari): ?>
-      <a href="raport_dosen.php" class="px-5 py-2.5 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-colors">
+      <a href="raport_dosen.php?periode=<?= RAPORT_PERIODE_KEY ?>" class="px-5 py-2.5 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-colors">
         ✕ Reset
       </a>
       <?php endif; ?>
@@ -611,11 +670,11 @@ endif;
             </td>
             <td class="py-3.5 px-4 text-right">
               <div class="flex items-center justify-end gap-1.5">
-                <a href="raport_dosen.php?step=preview&no=<?= $d['No'] ?>"
+                <a href="raport_dosen.php?step=preview&no=<?= $d['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>"
                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 transition-colors">
                    👁️ Preview
                 </a>
-                <a href="raport_dosen.php?step=print&ids=<?= $d['No'] ?>" target="_blank"
+                <a href="raport_dosen.php?step=print&ids=<?= $d['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>" target="_blank"
                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#8c0c4c]/10 text-[#8c0c4c] hover:bg-[#8c0c4c]/20 transition-colors">
                    🖨️ Cetak
                 </a>
