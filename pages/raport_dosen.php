@@ -175,16 +175,16 @@ require_once __DIR__ . '/../includes/header.php';
   .cat-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 3px; }
   .cat-tbl td { padding: 2px 3px; font-size: 9pt; vertical-align: top; border-bottom: 0.5pt solid #ccc; }
   .cat-tbl td.dash-col { width: 22px; font-weight: bold; text-align: center; }
-  /* Row 34 sangat tinggi (72.75pt) */
-  .cat-tbl tr:nth-child(2) td { min-height: 55pt; height: 55pt; }
+  /* Row 34 height adjusted to fit 1 page */
+  .cat-tbl tr:nth-child(2) td { min-height: 35pt; height: 35pt; }
 
   /* FOOTER */
-  .footer-wrap { margin-top: 12px; display: flex; align-items: flex-start; }
+  .footer-wrap { margin-top: 8px; display: flex; align-items: flex-start; }
   .footer-left  { flex: 0 0 42%; font-size: 9pt; }
   .footer-right { flex: 1; font-size: 9pt; }
-  .footer-left .ttd-wrap { margin-top: 42px; }
+  .footer-left .ttd-wrap { margin-top: 10px; text-align: center; width: 170px; }
   .footer-left .ttd-name { font-weight: bold; font-size: 9pt; border-top: 1px solid #000;
-                            padding-top: 2px; display: inline-block; min-width: 170px; }
+                            padding-top: 2px; display: inline-block; width: 100%; text-align: left; }
   .footer-right .kr-hd { font-size: 9pt; margin-bottom: 2px; }
   .tbl-kr { border-collapse: collapse; width: 100%; font-size: 9pt; }
   .tbl-kr th { border: 1px solid #000; padding: 2px 5px; font-weight: bold; text-align: center; font-size: 9pt; }
@@ -356,6 +356,7 @@ foreach ($printDosen as $d):
       <div class="upm">UNIT PENJAMINAN MUTU</div>
       <div class="univ">UNIVERSITAS NUSA PUTRA</div>
       <div class="ttd-wrap">
+        <img src="../assets/img/ttd_samsulpahmi.png" style="height:55px; object-fit:contain; margin-bottom:5px; margin-left:-20px;" alt="TTD">
         <div class="ttd-name">Dr. SAMSUL PAHMI, M.Pd.</div>
       </div>
     </div>
