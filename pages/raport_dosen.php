@@ -78,291 +78,213 @@ require_once __DIR__ . '/../includes/header.php';
 <meta charset="UTF-8">
 <title>Cetak Raport Laporan Dosen – <?= RAPORT_PERIODE ?></title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; background: #fff; }
-  .page { width: 210mm; min-height: 297mm; padding: 20mm 25mm 20mm 30mm; margin: 0 auto; page-break-after: always; }
-  .page:last-child { page-break-after: avoid; }
-  .header-top { display: flex; align-items: center; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
-  .logo-area { width: 70px; height: 70px; margin-right: 12px; }
-  .logo-area img { width: 100%; height: 100%; object-fit: contain; }
-  .logo-area-placeholder { width: 70px; height: 70px; border: 1px solid #999; display: flex; align-items: center; justify-content: center; font-size: 8pt; text-align: center; margin-right: 12px; flex-shrink: 0; }
-  .header-text { text-align: center; flex: 1; }
-  .header-text h1 { font-size: 13pt; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; }
-  .header-text h2 { font-size: 10pt; font-weight: normal; margin-bottom: 2px; }
-  .header-text p { font-size: 9pt; }
-  .doc-title { text-align: center; margin: 14px 0 10px; }
-  .doc-title h3 { font-size: 13pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000; display: inline-block; padding-bottom: 2px; }
-  .doc-title p  { font-size: 11pt; margin-top: 2px; }
-  .section-title { font-weight: bold; font-size: 11pt; margin: 14px 0 6px; text-transform: uppercase; }
-  .id-table { width: 100%; border-collapse: collapse; font-size: 11pt; margin-bottom: 8px; }
-  .id-table td { padding: 3px 6px; vertical-align: top; }
-  .id-table td:first-child { width: 180px; font-weight: bold; }
-  .id-table td:nth-child(2) { width: 12px; }
-  .recap-table { width: 100%; border-collapse: collapse; font-size: 11pt; margin-bottom: 10px; }
-  .recap-table th, .recap-table td { border: 1px solid #000; padding: 5px 8px; }
-  .recap-table th { background: #f0f0f0; text-align: center; font-weight: bold; }
-  .recap-table td.center { text-align: center; }
-  .badge-sb { background:#d1fae5; color:#065f46; padding:1px 8px; border-radius:10px; font-size:10pt; }
-  .badge-b  { background:#dbeafe; color:#1e40af; padding:1px 8px; border-radius:10px; font-size:10pt; }
-  .badge-c  { background:#fef3c7; color:#92400e; padding:1px 8px; border-radius:10px; font-size:10pt; }
-  .badge-kb { background:#fee2e2; color:#991b1b; padding:1px 8px; border-radius:10px; font-size:10pt; }
-  .perbaikan-table { width: 100%; border-collapse: collapse; font-size: 11pt; margin-bottom: 10px; }
-  .perbaikan-table th, .perbaikan-table td { border: 1px solid #000; padding: 5px 8px; }
-  .perbaikan-table th { background: #f0f0f0; font-weight: bold; text-align: center; }
-  .catatan-table { width: 100%; border-collapse: collapse; font-size: 11pt; margin-bottom: 14px; }
-  .catatan-table th, .catatan-table td { border: 1px solid #000; padding: 5px 8px; }
-  .catatan-table th { background: #f0f0f0; font-weight: bold; }
-  .ttd-area { display: flex; justify-content: space-between; margin-top: 30px; font-size: 11pt; }
-  .ttd-box { text-align: center; min-width: 200px; }
-  .ttd-box .ttd-space { height: 60px; }
-  .ttd-box .ttd-name { font-weight: bold; border-top: 1px solid #000; display: inline-block; min-width: 180px; padding-top: 4px; }
-  .kriteria-box { margin-top: 14px; font-size: 10pt; border: 1px solid #ccc; padding: 8px; }
-  .kriteria-box table { border-collapse: collapse; width: 100%; }
-  .kriteria-box table td, .kriteria-box table th { border: 1px solid #ccc; padding: 3px 8px; font-size: 10pt; }
-  @media print {
-    .no-print { display: none !important; }
-    body { background: white; }
-  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Times New Roman',Times,serif; font-size:11pt; color:#000; background:#fff; }
+  .page { width:210mm; min-height:297mm; padding:18mm 20mm 18mm 25mm; margin:0 auto; page-break-after:always; }
+  .page:last-child { page-break-after:avoid; }
+  /* Kop */
+  .kop { display:flex; align-items:center; border-bottom:3px double #000; padding-bottom:8px; margin-bottom:0; }
+  .kop-logo-ph { width:75px; height:75px; border:1px solid #ccc; display:flex; align-items:center; justify-content:center; font-size:7pt; text-align:center; flex-shrink:0; margin-right:14px; color:#888; }
+  .kop-logo img { width:75px; height:75px; object-fit:contain; margin-right:14px; flex-shrink:0; }
+  .kop-text { flex:1; text-align:center; }
+  .kop-text .inst { font-size:16pt; font-weight:bold; text-transform:uppercase; line-height:1.2; }
+  .kop-text .unit { font-size:11pt; }
+  .kop-text .alamat { font-size:8.5pt; margin-top:2px; }
+  /* Judul */
+  .judul-box { text-align:center; margin:10px 0 12px; }
+  .judul-box .j1 { font-size:12pt; font-weight:bold; text-transform:uppercase; }
+  .judul-box .j2 { font-size:11pt; font-weight:bold; }
+  .judul-box .j3 { font-size:11pt; }
+  /* Sections */
+  .sec { font-weight:bold; font-size:11pt; margin:12px 0 5px; text-transform:uppercase; }
+  .subsec { font-weight:bold; font-size:11pt; margin:8px 0 5px; }
+  /* Identitas */
+  .tbl-id { width:100%; border-collapse:collapse; font-size:11pt; margin-bottom:10px; }
+  .tbl-id td { padding:2px 5px; vertical-align:top; }
+  .tbl-id td:first-child { width:185px; font-weight:bold; }
+  .tbl-id td:nth-child(2) { width:10px; }
+  /* Rekap - 3 kolom sesuai Excel */
+  .tbl-rekap { width:100%; border-collapse:collapse; font-size:11pt; margin-bottom:10px; }
+  .tbl-rekap th { border:1px solid #000; padding:5px 8px; background:#e8e8e8; font-weight:bold; text-align:center; }
+  .tbl-rekap td { border:1px solid #000; padding:4px 8px; }
+  .tbl-rekap td.c { text-align:center; }
+  /* C1. Rekomendasi - tanpa tabel, hanya baris bernomor */
+  .aspek-row { display:flex; gap:8px; padding:4px 0; font-size:11pt; border-bottom:1px solid #ccc; min-height:26px; }
+  .aspek-row .no { width:22px; text-align:center; flex-shrink:0; }
+  .aspek-row .isi { flex:1; }
+  /* D. Catatan */
+  .cat-row { display:flex; gap:8px; padding:4px 0; font-size:11pt; border-bottom:1px solid #ccc; min-height:26px; }
+  .cat-row .dash { width:18px; flex-shrink:0; }
+  .cat-row .isi { flex:1; }
+  /* Footer */
+  .footer-wrap { margin-top:18px; display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+  .footer-left .instansi { font-weight:bold; font-size:10pt; }
+  .footer-left .nama-ttd { display:inline-block; min-width:200px; font-weight:bold; border-top:1px solid #000; padding-top:3px; margin-top:55px; font-size:11pt; }
+  .footer-right { flex:1; }
+  .footer-right .kr-title { font-weight:bold; font-size:9.5pt; margin-bottom:3px; }
+  .tbl-kr { border-collapse:collapse; width:100%; font-size:9.5pt; }
+  .tbl-kr th, .tbl-kr td { border:1px solid #000; padding:3px 8px; }
+  .tbl-kr th { background:#e8e8e8; font-weight:bold; }
+  @media print { .no-print{display:none!important;} body{background:white;} }
 </style>
 </head>
 <body>
 
-<div class="no-print" style="background:#1e293b;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;">
-  <button onclick="window.print()" style="background:#8c0c4c;color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">🖨️ Cetak Semua</button>
-  <span style="font-size:13px;">Cetak Raport Laporan Dosen – <?= RAPORT_PERIODE ?> | <?= count($selectedDosen) ?> dosen dipilih</span>
-  <a href="raport_dosen.php" style="color:#94a3b8;font-size:13px;text-decoration:none;">← Kembali</a>
+<div class="no-print" style="background:#1e293b;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;font-family:sans-serif;">
+  <button onclick="window.print()" style="background:#8c0c4c;color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">&#128424; Cetak / Print PDF</button>
+  <span style="font-size:13px;">Raport Laporan Dosen &ndash; <?= RAPORT_PERIODE ?> | <?= count($selectedDosen) ?> dosen</span>
+  <a href="raport_dosen.php" style="color:#94a3b8;font-size:13px;text-decoration:none;margin-left:auto;">&larr; Kembali ke Daftar</a>
 </div>
 
 <?php
-$perbaikanLabels = [
-    1 => 'Kesiapan memberikan kuliah dan/atau praktek/praktikum',
-    2 => 'Keteraturan dan ketertiban penyelenggaraan perkuliahan',
-    3 => 'Kemampuan menghidupkan suasana kelas',
-    4 => 'Kejelasan penyampaian materi dan jawaban terhadap pertanyaan di kelas',
-    5 => 'Pemanfaatan media dan teknologi pembelajaran',
-];
-$printDosen = $selectedDosen;
-if (empty($printDosen) && !empty($allDosen)) {
-    $printDosen = $filteredDosen;
+// Fungsi keterangan sesuai label Excel sheet Rapot
+function getKetKuis(float $s): string {
+    if ($s == 0)    return 'Belum Memenuhi';
+    if ($s >= 4.58) return 'Sangat Baik';
+    if ($s >= 4.12) return 'Baik';
+    if ($s >= 3.66) return 'Cukup';
+    return 'Kurang Baik';
 }
+function getKetHadir(float $h): string {
+    if ($h == 0)  return 'Belum Memenuhi';
+    if ($h >= 16) return 'Memenuhi';
+    if ($h >= 14) return 'Cukup';
+    return 'Belum Memenuhi';
+}
+function getKetKonten(float $k): string {
+    if ($k == 0)   return 'Kurang';
+    if ($k >= 4.58) return 'Sangat Baik';
+    if ($k >= 4.12) return 'Baik';
+    if ($k >= 3.66) return 'Cukup';
+    return 'Kurang';
+}
+
+$printDosen = $selectedDosen;
+if (empty($printDosen)) $printDosen = $filteredDosen;
+
 foreach ($printDosen as $d):
-    $skorKuis    = (float)($d['Nilai Kuesioner'] ?? 0);
-    $kat         = getSkorKategori($skorKuis);
-    $kehadiran   = (float)($d['Jumlah Kehadiran'] ?? 0);
-    $katHadir    = getKategoriKehadiran($kehadiran);
-    $konten      = (float)($d['Konten'] ?? 0);
-    $katKonten   = getSkorKategori($konten);
-    $penelitian  = (int)($d['Jumlah Penelitian'] ?? 0);
-    $pengabdian  = (int)($d['Jumlah Pengabdian'] ?? 0);
-    $katPenelitian  = $penelitian >= 1 ? 'Memenuhi' : 'Belum Memenuhi';
-    $katPengabdian  = $pengabdian >= 1 ? 'Memenuhi' : 'Belum Memenuhi';
-    
-    // Badge class
-    $badgeClass = match($kat['label']) {
-        'Sangat Baik' => 'badge-sb',
-        'Baik'        => 'badge-b',
-        'Cukup'       => 'badge-c',
-        default       => 'badge-kb',
-    };
+    $nama     = $d['Nama'] ?? '-';
+    $prodi    = $d['Prodi'] ?? '-';
+    $jmlMK    = $d['Jumlah Matkul'] ?? '';
+    $jmlKelas = $d['Jumlah Kelas'] ?? '';
+    $jmlResp  = $d['Jumlah Responden'] ?? '';
+    $sKuis    = (float)($d['Nilai Kuesioner'] ?? 0);
+    $sHadir   = (float)($d['Jumlah Kehadiran'] ?? 0);
+    $sKonten  = (float)($d['Konten'] ?? 0);
+    $jPenel   = (int)($d['Jumlah Penelitian'] ?? 0);
+    $jPengab  = (int)($d['Jumlah Pengabdian'] ?? 0);
+
+    $vKuis   = $sKuis   > 0 ? number_format($sKuis, 2)   : '0';
+    $vHadir  = $sHadir  > 0 ? (string)$sHadir             : '0';
+    $vKonten = $sKonten > 0 ? number_format($sKonten, 2) : '0';
+    $vPenel  = (string)$jPenel;
+    $vPengab = (string)$jPengab;
+
+    $kKuis   = getKetKuis($sKuis);
+    $kHadir  = getKetHadir($sHadir);
+    $kKonten = getKetKonten($sKonten);
+    $kPenel  = $jPenel  >= 1 ? 'Memenuhi' : 'Belum Memenuhi';
+    $kPengab = $jPengab >= 1 ? 'Memenuhi' : 'Belum Memenuhi';
+
+    $perbaikan = [];
+    foreach (['P1','P2','P3','P4','P5'] as $pk) {
+        $v = trim($d[$pk] ?? '');
+        if ($v !== '' && $v !== '0') $perbaikan[] = $v;
+    }
+    $catatan = [];
+    foreach (['K1','K2','K3','K4'] as $kk) {
+        $v = trim($d[$kk] ?? '');
+        if ($v !== '' && $v !== '0') $catatan[] = $v;
+    }
 ?>
 <div class="page">
-  <!-- HEADER -->
-  <div class="header-top">
-    <div class="logo-area-placeholder">LOGO NPU</div>
-    <div class="header-text">
-      <h1>Universitas Nusa Putra</h1>
-      <h2>Unit Penjaminan Mutu</h2>
-      <p>Jl. Raya Cibolang No. 21, Cisaat, Sukabumi, Jawa Barat 43152. Telp. (0266) 210594</p>
+
+  <!-- KOP SURAT -->
+  <div class="kop">
+    <div class="kop-logo-ph">LOGO<br>NPU</div>
+    <div class="kop-text">
+      <div class="inst">Universitas Nusa Putra</div>
+      <div class="unit">Unit Penjaminan Mutu</div>
+      <div class="alamat">Jl. Raya Cibolang No. 21, Cibolang Kaler, Cisaat, Sukabumi, Jawa Barat 43152. Telp. (0266) 210594</div>
     </div>
   </div>
 
-  <!-- JUDUL -->
-  <div class="doc-title">
-    <h3>Laporan Evaluasi Tridharma Dosen</h3>
-    <p><?= htmlspecialchars(RAPORT_PERIODE) ?></p>
+
+  <!-- JUDUL (3 baris sesuai Excel: LAPORAN EVALUASI | GASAL 2025-2026 | NUSA PUTRA UNIVERSITY) -->
+  <div class="judul-box">
+    <div class="j1">Laporan Evaluasi Tridharma Dosen</div>
+    <div class="j2"><?= htmlspecialchars(RAPORT_PERIODE) ?></div>
+    <div class="j3">Nusa Putra University</div>
   </div>
 
-  <!-- A. IDENTITAS -->
-  <div class="section-title">A. Identitas Dosen</div>
-  <table class="id-table">
-    <tr><td>Nama Dosen</td><td>:</td><td><?= htmlspecialchars($d['Nama'] ?? '-') ?></td></tr>
-    <tr><td>Program Studi</td><td>:</td><td><?= htmlspecialchars($d['Prodi'] ?? '-') ?></td></tr>
-    <tr><td>Jumlah Mata Kuliah</td><td>:</td><td><?= htmlspecialchars($d['Jumlah Matkul'] ?? '0') ?></td></tr>
-    <tr><td>Jumlah Kelas</td><td>:</td><td><?= htmlspecialchars($d['Jumlah Kelas'] ?? '0') ?></td></tr>
-    <tr><td>Jumlah Responden</td><td>:</td><td><?= htmlspecialchars($d['Jumlah Responden'] ?? '0') ?></td></tr>
+  <!-- A. IDENTITAS DOSEN -->
+  <div class="sec">A. Identitas Dosen</div>
+  <table class="tbl-id">
+    <tr><td>Nama Dosen</td><td>:</td><td><?= htmlspecialchars($nama) ?></td></tr>
+    <tr><td>Program Studi</td><td>:</td><td><?= htmlspecialchars($prodi) ?></td></tr>
+    <tr><td>Jumlah Mata Kuliah</td><td>:</td><td><?= htmlspecialchars($jmlMK ?: '0') ?></td></tr>
+    <tr><td>Jumlah Kelas</td><td>:</td><td><?= htmlspecialchars($jmlKelas ?: '0') ?></td></tr>
+    <tr><td>Jumlah Responden</td><td>:</td><td><?= htmlspecialchars($jmlResp ?: '0') ?></td></tr>
   </table>
 
-  <!-- B. REKAPITULASI -->
-  <div class="section-title">B. Rekapitulasi Penilaian</div>
-  <table class="recap-table">
+
+  <!-- B. REKAPITULASI PENILAIAN (3 kolom sesuai Excel: Indikator | Nilai | Keterangan) -->
+  <div class="sec">B. Rekapitulasi Penilaian</div>
+  <table class="tbl-rekap">
     <thead>
       <tr>
-        <th style="width:40%">Indikator Penilaian</th>
+        <th style="width:45%">Indikator Penilaian</th>
         <th style="width:15%">Nilai</th>
-        <th style="width:20%">Keterangan</th>
-        <th style="width:25%">Kategori</th>
+        <th style="width:40%">Keterangan</th>
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>Kuesioner Mahasiswa</td>
-        <td class="center"><?= $skorKuis > 0 ? number_format($skorKuis, 2) : '-' ?></td>
-        <td class="center"><span class="<?= $badgeClass ?>"><?= $kat['label'] ?></span></td>
-        <td style="font-size:9pt;"><?= $skorKuis > 0 ? 'Skor dari penilaian mahasiswa' : 'Tidak ada data' ?></td>
-      </tr>
-      <tr>
-        <td>Kehadiran Mengajar</td>
-        <td class="center"><?= $kehadiran > 0 ? $kehadiran . ' pertemuan' : '-' ?></td>
-        <td class="center">
-          <?php $katHC = ($kehadiran >= 16) ? 'Memenuhi' : (($kehadiran >= 14) ? 'Cukup' : 'Belum Memenuhi'); ?>
-          <span class="<?= $katHC === 'Memenuhi' ? 'badge-sb' : ($katHC === 'Cukup' ? 'badge-c' : 'badge-kb') ?>">
-            <?= $katHC ?>
-          </span>
-        </td>
-        <td style="font-size:9pt;">Standar minimal 16 pertemuan</td>
-      </tr>
-      <tr>
-        <td>Kelengkapan Konten Perkuliahan</td>
-        <td class="center"><?= $konten > 0 ? number_format($konten, 2) : '-' ?></td>
-        <td class="center">
-          <?php $katK = getSkorKategori($konten); ?>
-          <span class="<?= match($katK['label']) { 'Sangat Baik'=>'badge-sb','Baik'=>'badge-b','Cukup'=>'badge-c',default=>'badge-kb' } ?>">
-            <?= $katK['label'] ?>
-          </span>
-        </td>
-        <td style="font-size:9pt;">Kelengkapan materi di LMS</td>
-      </tr>
-      <tr>
-        <td>Penelitian</td>
-        <td class="center"><?= $penelitian ?> kegiatan</td>
-        <td class="center">
-          <span class="<?= $penelitian >= 1 ? 'badge-sb' : 'badge-kb' ?>">
-            <?= $penelitian >= 1 ? 'Memenuhi' : 'Belum Memenuhi' ?>
-          </span>
-        </td>
-        <td style="font-size:9pt;">Standar minimal 1 penelitian/semester</td>
-      </tr>
-      <tr>
-        <td>Pengabdian Masyarakat</td>
-        <td class="center"><?= $pengabdian ?> kegiatan</td>
-        <td class="center">
-          <span class="<?= $pengabdian >= 1 ? 'badge-sb' : 'badge-kb' ?>">
-            <?= $pengabdian >= 1 ? 'Memenuhi' : 'Belum Memenuhi' ?>
-          </span>
-        </td>
-        <td style="font-size:9pt;">Standar minimal 1 pengabdian/semester</td>
-      </tr>
+      <tr><td>Kuesioner Mahasiswa</td><td class="c"><?= $vKuis ?></td><td><?= $kKuis ?></td></tr>
+      <tr><td>Kehadiran</td><td class="c"><?= $vHadir ?></td><td><?= $kHadir ?></td></tr>
+      <tr><td>Kelengkapan Konten Perkuliahan</td><td class="c"><?= $vKonten ?></td><td><?= $kKonten ?></td></tr>
+      <tr><td>Penelitian</td><td class="c"><?= $vPenel ?></td><td><?= $kPenel ?></td></tr>
+      <tr><td>Pengabdian</td><td class="c"><?= $vPengab ?></td><td><?= $kPengab ?></td></tr>
     </tbody>
   </table>
 
-  <!-- C. ASPEK PEMBELAJARAN -->
-  <div class="section-title">C. Aspek Pembelajaran – Rekomendasi Perbaikan</div>
-  <table class="perbaikan-table">
-    <thead>
-      <tr><th style="width:8%">No</th><th>Aspek yang Perlu Ditingkatkan</th><th style="width:20%">Nilai Aspek</th></tr>
-    </thead>
-    <tbody>
-      <?php
-      $pKeys = ['P1','P2','P3','P4','P5'];
-      $pItems = [];
-      foreach ($pKeys as $pk) {
-          $v = trim($d[$pk] ?? '');
-          if ($v !== '' && $v !== '0') $pItems[] = $v;
-      }
-      
-      // Cari aspek dengan skor rendah dari penilaian kuesioner
-      $aspekList = [
-          'Kesiapan memberikan kuliah dan/atau praktek/praktikum',
-          'Keteraturan dan ketertiban penyelenggaraan perkuliahan',
-          'Kemampuan menghidupkan suasana kelas',
-          'Kejelasan penyampaian materi dan jawaban terhadap pertanyaan di kelas',
-          'Pemanfaatan media dan teknologi pembelajaran',
-      ];
-      
-      if (!empty($pItems)) {
-          foreach ($pItems as $idx => $item) {
-              echo "<tr><td style='text-align:center'>" . ($idx+1) . "</td><td>" . htmlspecialchars($item) . "</td><td style='text-align:center'>-</td></tr>";
-          }
-      } else {
-          // Tampilkan placeholder jika tidak ada data spesifik
-          echo "<tr><td style='text-align:center' colspan='3'><em>Tidak ada aspek yang perlu diperbaiki secara khusus berdasarkan data kuesioner</em></td></tr>";
-      }
-      ?>
-    </tbody>
-  </table>
 
-  <!-- D. CATATAN -->
-  <div class="section-title">D. Catatan</div>
-  <table class="catatan-table">
-    <thead>
-      <tr><th style="width:8%">No</th><th>Catatan</th></tr>
-    </thead>
-    <tbody>
-      <?php
-      $kKeys = ['K1','K2','K3','K4'];
-      $kItems = [];
-      foreach ($kKeys as $kk) {
-          $v = trim($d[$kk] ?? '');
-          if ($v !== '' && $v !== '0') $kItems[] = $v;
-      }
-      
-      // Generate catatan otomatis berdasarkan data
-      $autoCatatan = [];
-      if ($skorKuis > 0 && $skorKuis < 3.66) {
-          $autoCatatan[] = 'Skor kuesioner mahasiswa masih di bawah standar. Perlu perhatian khusus pada kualitas pengajaran.';
-      }
-      if ($kehadiran > 0 && $kehadiran < 16) {
-          $autoCatatan[] = 'Kehadiran mengajar belum memenuhi standar minimal 16 pertemuan per semester.';
-      }
-      if ($konten > 0 && $konten < 3.66) {
-          $autoCatatan[] = 'Kelengkapan konten perkuliahan di LMS perlu ditingkatkan.';
-      }
-      if ($penelitian < 1) {
-          $autoCatatan[] = 'Dosen belum melaksanakan kegiatan penelitian pada semester ini.';
-      }
-      if ($pengabdian < 1) {
-          $autoCatatan[] = 'Dosen belum melaksanakan kegiatan pengabdian masyarakat pada semester ini.';
-      }
-      
-      $allCatatan = array_merge($kItems, $autoCatatan);
-      
-      if (empty($allCatatan)) {
-          echo "<tr><td style='text-align:center'>-</td><td><em>Tidak ada catatan khusus. Kinerja dosen sesuai standar yang ditetapkan.</em></td></tr>";
-      } else {
-          foreach ($allCatatan as $idx => $cat) {
-              echo "<tr><td style='text-align:center'>" . ($idx+1) . "</td><td>" . htmlspecialchars($cat) . "</td></tr>";
-          }
-      }
-      ?>
-    </tbody>
-  </table>
-
-  <!-- KRITERIA SKOR -->
-  <div class="kriteria-box">
-    <strong>Catatan: Kriteria Penskoran</strong>
-    <table style="margin-top:4px;">
-      <tr><th>Rentang Skor</th><th>Kriteria</th></tr>
-      <tr><td>3.20 – 3.65</td><td>Kurang Baik</td></tr>
-      <tr><td>3.66 – 4.11</td><td>Cukup</td></tr>
-      <tr><td>4.12 – 4.57</td><td>Baik</td></tr>
-      <tr><td>4.58 – 5.00</td><td>Sangat Baik</td></tr>
-    </table>
+  <!-- C. ASPEK PEMBELAJARAN (sesuai Excel: C. ASPEK PEMBELAJARAN > C1. REKOMENDASI PERBAIKAN > baris 1-5) -->
+  <div class="sec">C. Aspek Pembelajaran</div>
+  <div class="subsec">C1. Rekomendasi Perbaikan</div>
+  <?php for ($i = 1; $i <= 5; $i++): ?>
+  <div class="aspek-row">
+    <span class="no"><?= $i ?></span>
+    <span class="isi"><?= htmlspecialchars($perbaikan[$i-1] ?? '') ?></span>
   </div>
+  <?php endfor; ?>
 
-  <!-- TTD -->
-  <div class="ttd-area">
-    <div class="ttd-box">
-      <p>Sukabumi, <?= tgl_indo(date('Y-m-d')) ?></p>
-      <div class="ttd-space"></div>
-      <div><span class="ttd-name">Unit Penjaminan Mutu</span></div>
-      <p>Universitas Nusa Putra</p>
+  <!-- D. CATATAN (sesuai Excel: 4 baris dengan tanda "-") -->
+  <div class="sec" style="margin-top:12px;">D. Catatan</div>
+  <?php for ($i = 1; $i <= 4; $i++): ?>
+  <div class="cat-row">
+    <span class="dash">-</span>
+    <span class="isi"><?= htmlspecialchars($catatan[$i-1] ?? '') ?></span>
+  </div>
+  <?php endfor; ?>
+
+  <!-- FOOTER: Unit Penjaminan Mutu (kiri) + Kriteria Penskoran (kanan) sesuai Excel -->
+  <div class="footer-wrap">
+    <div class="footer-left">
+      <div class="instansi">Unit Penjaminan Mutu</div>
+      <div class="instansi">Universitas Nusa Putra</div>
+      <div class="nama-ttd">Dr. SAMSUL PAHMI, M.Pd.</div>
     </div>
-    <div class="ttd-box">
-      <p style="margin-bottom:4px;">Mengetahui,</p>
-      <p>Direktur Pascasarjana</p>
-      <div class="ttd-space"></div>
-      <div><span class="ttd-name">Dr. SAMSUL PAHMI, M.Pd.</span></div>
+    <div class="footer-right">
+      <div class="kr-title">Catatan: Kriteria Penskoran</div>
+      <table class="tbl-kr">
+        <thead><tr><th colspan="2">Rentang Skor</th><th>Kriteria</th></tr></thead>
+        <tbody>
+          <tr><td>3.2</td><td>s/d 3.65</td><td>Kurang Baik</td></tr>
+          <tr><td>3.66</td><td>s/d 4.11</td><td>Cukup</td></tr>
+          <tr><td>4.12</td><td>s/d 4.57</td><td>Baik</td></tr>
+          <tr><td>4.58</td><td>s/d 5.00</td><td>Sangat Baik</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
