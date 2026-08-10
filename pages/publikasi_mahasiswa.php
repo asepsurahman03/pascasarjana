@@ -1,35 +1,39 @@
 <?php
-$pageTitle = 'Publikasi Dosen';
+$pageTitle = 'Publikasi Mahasiswa';
 require_once __DIR__ . '/../includes/header.php';
 
 // ─── Filter & Search ──────────────────────────────────────────────────────────
-$filterStatus = $_GET['status'] ?? '';
-$filterTahun  = $_GET['tahun']  ?? '';
-$searchQ      = trim($_GET['q'] ?? '');
+$filterStatus = $_GET['status']   ?? '';
+$filterProdi  = (int)($_GET['prodi_id'] ?? 0);
+$filterTahun  = $_GET['tahun']    ?? '';
+$searchQ      = trim($_GET['q']   ?? '');
 $page         = max(1, (int)($_GET['page'] ?? 1));
 $perPage      = 20;
 
 $params = []; $where = ['1=1'];
-if ($filterStatus) { $where[] = 'dp.status_publikasi = ?'; $params[] = $filterStatus; }
-if ($filterTahun)  { $where[] = 'dp.tahun_terbit = ?';     $params[] = (int)$filterTahun; }
+if ($filterStatus) { $where[] = 'mp.status_publikasi = ?'; $params[] = $filterStatus; }
+if ($filterProdi)  { $where[] = 'm.prodi_id = ?';          $params[] = $filterProdi;  }
+if ($filterTahun)  { $where[] = 'mp.tahun_terbit = ?';     $params[] = (int)$filterTahun; }
 if ($searchQ)      {
-    $where[] = '(dp.judul_artikel LIKE ? OR dp.nama_jurnal LIKE ? OR d.nama LIKE ? OR d.nidn LIKE ?)';
+    $where[] = '(mp.judul_artikel LIKE ? OR mp.nama_jurnal LIKE ? OR m.nama LIKE ? OR m.nim LIKE ?)';
     $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; $params[] = "%$searchQ%";
 }
 $whereStr = implode(' AND ', $where);
 
-$total = (int)dbQueryOne("SELECT COUNT(*) AS c FROM dosen_publikasi dp LEFT JOIN dosen d ON dp.dosen_id=d.id WHERE $whereStr", $params)['c'];
+// Total count
+$total = (int)dbQueryOne("SELECT COUNT(*) AS c FROM mahasiswa_publikasi mp LEFT JOIN mahasiswa m ON mp.mahasiswa_id=m.id WHERE $whereStr", $params)['c'];
 $totalPages = max(1, (int)ceil($total / $perPage));
 $page = min($page, $totalPages);
 $offset = ($page - 1) * $perPage;
 
+// Data
 $pubs = dbQuery(
-    "SELECT dp.*, d.nama AS dosen_nama, d.nidn, p.nama AS prodi_nama
-     FROM dosen_publikasi dp
-     LEFT JOIN dosen d ON dp.dosen_id = d.id
-     LEFT JOIN prodi p ON d.prodi_id = p.id
+    "SELECT mp.*, m.nama AS mhs_nama, m.nim AS mhs_nim, p.nama AS prodi_nama
+     FROM mahasiswa_publikasi mp
+     LEFT JOIN mahasiswa m ON mp.mahasiswa_id = m.id
+     LEFT JOIN prodi p ON m.prodi_id = p.id
      WHERE $whereStr
-     ORDER BY dp.tahun_terbit DESC, dp.created_at DESC
+     ORDER BY mp.tahun_terbit DESC, mp.created_at DESC
      LIMIT $perPage OFFSET $offset",
     $params
 );
@@ -37,13 +41,14 @@ $pubs = dbQuery(
 // ─── Statistik ────────────────────────────────────────────────────────────────
 $stats = dbQueryOne("SELECT
     COUNT(*) AS total,
-    SUM(dp.status_publikasi='Publish') AS publish,
-    SUM(dp.status_publikasi='ACC / Diterima') AS acc,
-    SUM(dp.status_publikasi='Sedang Review') AS review,
-    COUNT(DISTINCT dp.dosen_id) AS jml_dosen
-    FROM dosen_publikasi dp", []);
+    SUM(mp.status_publikasi='Publish') AS publish,
+    SUM(mp.status_publikasi='ACC / Diterima') AS acc,
+    SUM(mp.status_publikasi='Sedang Review') AS review,
+    COUNT(DISTINCT mp.mahasiswa_id) AS jml_mhs
+    FROM mahasiswa_publikasi mp", []);
 
-$tahunList = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE tahun_terbit IS NOT NULL ORDER BY tahun_terbit DESC", []);
+$allProdi   = dbQuery("SELECT id, nama FROM prodi ORDER BY nama", []);
+$tahunList  = dbQuery("SELECT DISTINCT tahun_terbit FROM mahasiswa_publikasi WHERE tahun_terbit IS NOT NULL ORDER BY tahun_terbit DESC", []);
 
 // ─── Warna status ─────────────────────────────────────────────────────────────
 $statusColor = [
@@ -53,25 +58,27 @@ $statusColor = [
 ];
 $defaultStatusColor = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600/50';
 
-function dsnUrl(array $extra = []): string {
-    global $filterStatus, $filterTahun, $searchQ;
+// URL helper
+function pubUrl(array $extra = []): string {
+    global $filterStatus, $filterProdi, $filterTahun, $searchQ;
     $p = array_filter(array_merge([
-        'status' => $filterStatus,
-        'tahun'  => $filterTahun,
-        'q'      => $searchQ,
+        'status'   => $filterStatus,
+        'prodi_id' => $filterProdi ?: '',
+        'tahun'    => $filterTahun,
+        'q'        => $searchQ,
     ], $extra));
-    return 'penelitian_dosen' . ($p ? '?' . http_build_query($p) : '');
+    return 'publikasi_mahasiswa' . ($p ? '?' . http_build_query($p) : '');
 }
 
-$exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
-    ? '?' . http_build_query(array_filter(['status'=>$filterStatus,'tahun'=>$filterTahun,'q'=>$searchQ]))
+$exportUrl = 'export_pub_mhs_admin' . ($filterStatus||$filterProdi||$filterTahun||$searchQ
+    ? '?' . http_build_query(array_filter(['status'=>$filterStatus,'prodi_id'=>$filterProdi,'tahun'=>$filterTahun,'q'=>$searchQ]))
     : '');
 ?>
 
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
   <div>
-    <h1 class="font-display font-bold text-2xl md:text-3xl text-slate-800 dark:text-white">Publikasi Ilmiah Dosen</h1>
-    <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Manajemen dan rekapitulasi publikasi ilmiah seluruh dosen Pascasarjana</p>
+    <h1 class="font-display font-bold text-2xl md:text-3xl text-slate-800 dark:text-white">Publikasi Ilmiah Mahasiswa</h1>
+    <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Manajemen dan rekapitulasi publikasi ilmiah seluruh mahasiswa Pascasarjana</p>
   </div>
   <?php if ($total > 0): ?>
   <a href="<?= $exportUrl ?>" target="_blank" rel="noopener"
@@ -94,11 +101,11 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
 <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
   <?php
   $statItems = [
-    ['label'=>'Total Publikasi',    'val'=>$stats['total'],    'color'=>'from-[#8c0c4c] to-[#a3155b]', 'bg'=>'bg-[#8c0c4c]/5 dark:bg-[#8c0c4c]/20', 'icon'=>'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-    ['label'=>'Publish',           'val'=>$stats['publish'],  'color'=>'from-emerald-500 to-teal-600', 'bg'=>'bg-emerald-50 dark:bg-emerald-900/20','icon'=>'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z'],
-    ['label'=>'ACC / Diterima',    'val'=>$stats['acc'],      'color'=>'from-blue-500 to-indigo-600',  'bg'=>'bg-blue-50 dark:bg-blue-900/20',      'icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'],
-    ['label'=>'Sedang Review',     'val'=>$stats['review'],   'color'=>'from-amber-500 to-orange-600', 'bg'=>'bg-amber-50 dark:bg-amber-900/20',    'icon'=>'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
-    ['label'=>'Dosen Berkontribusi','val'=>$stats['jml_dosen'],'color'=>'from-violet-500 to-purple-600','bg'=>'bg-violet-50 dark:bg-violet-900/20', 'icon'=>'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
+    ['label'=>'Total Publikasi', 'val'=>$stats['total'],   'color'=>'from-[#8c0c4c] to-[#a3155b]',  'bg'=>'bg-[#8c0c4c]/5 dark:bg-[#8c0c4c]/20', 'icon'=>'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+    ['label'=>'Publish',        'val'=>$stats['publish'],  'color'=>'from-emerald-500 to-teal-600',  'bg'=>'bg-emerald-50 dark:bg-emerald-900/20','icon'=>'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z'],
+    ['label'=>'ACC / Diterima', 'val'=>$stats['acc'],      'color'=>'from-blue-500 to-indigo-600',   'bg'=>'bg-blue-50 dark:bg-blue-900/20',      'icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'],
+    ['label'=>'Sedang Review',  'val'=>$stats['review'],   'color'=>'from-amber-500 to-orange-600',  'bg'=>'bg-amber-50 dark:bg-amber-900/20',    'icon'=>'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
+    ['label'=>'Mhs. Berkontribusi','val'=>$stats['jml_mhs'],'color'=>'from-violet-500 to-purple-600','bg'=>'bg-violet-50 dark:bg-violet-900/20',  'icon'=>'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'],
   ];
   foreach ($statItems as $s): ?>
   <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/60 shadow-sm p-5 relative overflow-hidden group hover:shadow-md transition-all">
@@ -119,15 +126,21 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
 <!-- ─── Filter & Search ────────────────────────────────────────────────── -->
 <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/60 shadow-sm p-4 mb-5">
   <form method="GET" class="flex flex-wrap gap-3 items-center">
-    <div class="relative flex-1 min-w-[220px]">
+    <div class="relative flex-1 min-w-[200px]">
       <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" name="q" value="<?= htmlspecialchars($searchQ) ?>" placeholder="Cari judul, jurnal, NIDN, nama dosen..."
+      <input type="text" name="q" value="<?= htmlspecialchars($searchQ) ?>" placeholder="Cari judul, jurnal, NIM, nama mahasiswa..."
              class="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-[#8c0c4c] focus:ring-2 focus:ring-[#8c0c4c]/15 text-slate-800 dark:text-white placeholder-slate-400 transition-all">
     </div>
     <select name="status" class="text-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#8c0c4c] transition-colors">
       <option value="">Semua Status</option>
       <?php foreach (['Publish','ACC / Diterima','Sedang Review'] as $st): ?>
       <option value="<?= $st ?>" <?= $filterStatus===$st?'selected':'' ?>><?= $st ?></option>
+      <?php endforeach; ?>
+    </select>
+    <select name="prodi_id" class="text-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#8c0c4c] transition-colors">
+      <option value="">Semua Prodi</option>
+      <?php foreach ($allProdi as $pr): ?>
+      <option value="<?= $pr['id'] ?>" <?= $filterProdi==$pr['id']?'selected':'' ?>><?= htmlspecialchars($pr['nama']) ?></option>
       <?php endforeach; ?>
     </select>
     <select name="tahun" class="text-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#8c0c4c] transition-colors">
@@ -137,8 +150,8 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
       <?php endforeach; ?>
     </select>
     <button type="submit" class="px-5 py-2.5 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl text-sm font-bold transition-colors shadow-sm">Filter</button>
-    <?php if ($filterStatus||$filterTahun||$searchQ): ?>
-    <a href="penelitian_dosen" class="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">Reset</a>
+    <?php if ($filterStatus||$filterProdi||$filterTahun||$searchQ): ?>
+    <a href="publikasi_mahasiswa" class="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">Reset</a>
     <?php endif; ?>
   </form>
 </div>
@@ -147,8 +160,10 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
 <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/60 shadow-sm overflow-hidden mb-6">
   <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
     <div>
-      <span class="font-bold text-sm text-slate-800 dark:text-white"><?= $total ?> publikasi ditemukan</span>
-      <?php if ($filterStatus||$filterTahun||$searchQ): ?>
+      <span class="font-bold text-sm text-slate-800 dark:text-white">
+        <?= $total ?> publikasi ditemukan
+      </span>
+      <?php if ($filterStatus||$filterProdi||$filterTahun||$searchQ): ?>
       <span class="ml-2 text-xs text-slate-400">(filter aktif)</span>
       <?php endif; ?>
     </div>
@@ -160,8 +175,8 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
     <div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
       <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
     </div>
-    <p class="text-slate-500 font-semibold">Belum ada data publikasi dosen</p>
-    <p class="text-slate-400 text-sm mt-1">Dosen belum menginput publikasi ilmiah melalui portal dosen.</p>
+    <p class="text-slate-500 font-semibold">Belum ada data publikasi</p>
+    <p class="text-slate-400 text-sm mt-1">Mahasiswa belum menginput publikasi ilmiah.</p>
   </div>
   <?php else: ?>
   <div class="overflow-x-auto">
@@ -169,9 +184,8 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
       <thead class="bg-slate-50 dark:bg-slate-900/50">
         <tr>
           <th class="text-left py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-8">#</th>
-          <th class="text-left py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Dosen & Artikel</th>
-          <th class="text-left py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Jurnal / DOI</th>
-          <th class="text-left py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Penulis</th>
+          <th class="text-left py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mahasiswa & Artikel</th>
+          <th class="text-left py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Jurnal / Bibliografi</th>
           <th class="text-left py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
           <th class="text-left py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tahun</th>
           <th class="text-right py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
@@ -186,11 +200,9 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
               <?= htmlspecialchars($p['judul_artikel']) ?>
             </div>
             <div class="flex flex-wrap items-center gap-1.5 text-xs">
-              <span class="font-semibold text-[#8c0c4c] dark:text-[#f06ea4]"><?= htmlspecialchars($p['dosen_nama'] ?? '-') ?></span>
-              <?php if (!empty($p['nidn'])): ?>
+              <span class="font-semibold text-[#8c0c4c] dark:text-[#f06ea4]"><?= htmlspecialchars($p['mhs_nama'] ?? '-') ?></span>
               <span class="text-slate-300">·</span>
-              <span class="text-slate-500 font-medium">NIDN: <?= htmlspecialchars($p['nidn']) ?></span>
-              <?php endif; ?>
+              <span class="text-slate-500 font-medium"><?= htmlspecialchars($p['mhs_nim'] ?? '') ?></span>
             </div>
             <?php if (!empty($p['prodi_nama'])): ?>
             <span class="inline-block mt-1 text-[10px] bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded font-medium"><?= htmlspecialchars($p['prodi_nama']) ?></span>
@@ -199,14 +211,19 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
           <td class="py-4 px-4">
             <div class="text-sm font-semibold text-slate-700 dark:text-slate-200 line-clamp-1"><?= htmlspecialchars($p['nama_jurnal'] ?? '-') ?></div>
             <?php if (!empty($p['doi'])): ?>
-            <div class="text-xs text-slate-400 font-mono mt-0.5 truncate max-w-[180px]" title="<?= htmlspecialchars($p['doi']) ?>">DOI: <?= htmlspecialchars($p['doi']) ?></div>
+            <div class="text-xs text-slate-400 font-mono mt-0.5 truncate max-w-[200px]" title="<?= htmlspecialchars($p['doi']) ?>">DOI: <?= htmlspecialchars($p['doi']) ?></div>
             <?php endif; ?>
-            <?php if (!empty($p['kata_kunci'])): ?>
-            <div class="text-[10px] text-slate-400 mt-1 line-clamp-1" title="<?= htmlspecialchars($p['kata_kunci']) ?>"><?= htmlspecialchars($p['kata_kunci']) ?></div>
-            <?php endif; ?>
-          </td>
-          <td class="py-4 px-4">
-            <div class="text-xs text-slate-600 dark:text-slate-300 max-w-[160px] line-clamp-2"><?= htmlspecialchars($p['penulis'] ?? '-') ?></div>
+            <div class="flex flex-wrap gap-1 mt-1">
+              <?php if (!empty($p['volume'])): ?>
+              <span class="text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">Vol. <?= htmlspecialchars($p['volume']) ?></span>
+              <?php endif; ?>
+              <?php if (!empty($p['nomor_terbit'])): ?>
+              <span class="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded font-medium">No. <?= htmlspecialchars($p['nomor_terbit']) ?></span>
+              <?php endif; ?>
+              <?php if (!empty($p['halaman'])): ?>
+              <span class="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-medium">Hal. <?= htmlspecialchars($p['halaman']) ?></span>
+              <?php endif; ?>
+            </div>
           </td>
           <td class="py-4 px-4">
             <span class="px-2.5 py-1 rounded-lg text-xs font-bold border <?= $statusColor[$p['status_publikasi']] ?? $defaultStatusColor ?>">
@@ -227,14 +244,14 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
               <?php endif; ?>
               <?php if (!empty($p['file_jurnal'])): ?>
               <a href="<?= BASE_URL ?>/<?= htmlspecialchars($p['file_jurnal']) ?>" target="_blank"
-                 class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition" title="Unduh File">
+                 class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition" title="Unduh File Jurnal">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               </a>
               <?php endif; ?>
               <form method="POST" action="aksi_pub_admin" onsubmit="return confirm('Hapus publikasi ini? Tindakan tidak bisa dibatalkan.')">
-                <input type="hidden" name="type" value="dosen">
+                <input type="hidden" name="type" value="mhs">
                 <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                <input type="hidden" name="back" value="penelitian_dosen">
+                <input type="hidden" name="back" value="publikasi_mahasiswa">
                 <button type="submit" class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition" title="Hapus">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
@@ -253,18 +270,18 @@ $exportUrl = 'export_pub_dosen_admin' . ($filterStatus||$filterTahun||$searchQ
 <?php if ($totalPages > 1): ?>
 <div class="flex items-center justify-center gap-2 mb-8">
   <?php if ($page > 1): ?>
-  <a href="<?= dsnUrl(['page' => $page - 1]) ?>" class="px-4 py-2 rounded-xl text-sm font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#8c0c4c] hover:text-[#8c0c4c] transition-colors">← Prev</a>
+  <a href="<?= pubUrl(['page' => $page - 1]) ?>" class="px-4 py-2 rounded-xl text-sm font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#8c0c4c] hover:text-[#8c0c4c] transition-colors">← Prev</a>
   <?php endif; ?>
   <?php
   $start = max(1, $page - 2); $end = min($totalPages, $page + 2);
   for ($pg = $start; $pg <= $end; $pg++): ?>
-  <a href="<?= dsnUrl(['page' => $pg]) ?>"
+  <a href="<?= pubUrl(['page' => $pg]) ?>"
      class="w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-colors <?= $pg === $page ? 'bg-[#8c0c4c] text-white shadow-md' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#8c0c4c] hover:text-[#8c0c4c]' ?>">
     <?= $pg ?>
   </a>
   <?php endfor; ?>
   <?php if ($page < $totalPages): ?>
-  <a href="<?= dsnUrl(['page' => $page + 1]) ?>" class="px-4 py-2 rounded-xl text-sm font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#8c0c4c] hover:text-[#8c0c4c] transition-colors">Next →</a>
+  <a href="<?= pubUrl(['page' => $page + 1]) ?>" class="px-4 py-2 rounded-xl text-sm font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#8c0c4c] hover:text-[#8c0c4c] transition-colors">Next →</a>
   <?php endif; ?>
 </div>
 <?php endif; ?>

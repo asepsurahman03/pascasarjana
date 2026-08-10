@@ -1,0 +1,236 @@
+<?php
+/**
+ * Export Excel Admin — Semua Publikasi Mahasiswa (.xlsx)
+ * No HTML output — auth manual via session
+ */
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
+requireLogin();
+
+// Filter opsional (URL params)
+$filterStatus = $_GET['status'] ?? '';
+$filterProdi  = (int)($_GET['prodi_id'] ?? 0);
+$filterTahun  = $_GET['tahun']  ?? '';
+$searchQ      = trim($_GET['q'] ?? '');
+
+$params = [];
+$where  = ['1=1'];
+if ($filterStatus) { $where[] = 'mp.status_publikasi = ?'; $params[] = $filterStatus; }
+if ($filterProdi)  { $where[] = 'm.prodi_id = ?';          $params[] = $filterProdi;  }
+if ($filterTahun)  { $where[] = 'mp.tahun_terbit = ?';     $params[] = (int)$filterTahun; }
+if ($searchQ)      { $where[] = '(mp.judul_artikel LIKE ? OR mp.nama_jurnal LIKE ? OR m.nama LIKE ?)'; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; }
+
+$sql = "SELECT mp.*, m.nama AS mhs_nama, m.nim AS mhs_nim, p.nama AS prodi_nama
+        FROM mahasiswa_publikasi mp
+        LEFT JOIN mahasiswa m ON mp.mahasiswa_id = m.id
+        LEFT JOIN prodi p ON m.prodi_id = p.id
+        WHERE " . implode(' AND ', $where) . "
+        ORDER BY mp.tahun_terbit DESC, mp.created_at DESC";
+
+$pubs = dbQuery($sql, $params);
+
+// ─── Header kolom ────────────────────────────────────────────────────────────
+$headers = [
+    'No', 'NIM', 'Nama Mahasiswa', 'Program Studi',
+    'Judul Artikel', 'Nama Jurnal', 'Penulis / Rekan',
+    'Dosen Pembimbing', 'DOI', 'Tahun Terbit',
+    'Volume', 'Nomor Terbit', 'Halaman',
+    'Status Publikasi', 'Kata Kunci', 'Link Artikel',
+    'Abstrak', 'Tanggal Input',
+];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function xmlEscA(string $s): string { return htmlspecialchars($s, ENT_QUOTES | ENT_XML1, 'UTF-8'); }
+function colLetA(int $i): string {
+    $i++; $c = '';
+    while ($i > 0) { $i--; $c = chr(65 + $i % 26) . $c; $i = intdiv($i, 26); }
+    return $c;
+}
+function caA(int $col, int $row): string { return colLetA($col) . $row; }
+
+// ─── Shared strings pool ─────────────────────────────────────────────────────
+$strings = [];
+$strIdx = function(string $s) use (&$strings): int {
+    $s = trim($s);
+    $k = array_search($s, $strings, true);
+    if ($k === false) { $strings[] = $s; $k = count($strings) - 1; }
+    return $k;
+};
+foreach ($headers as $h) { $strIdx($h); }
+
+// ─── Baris data ──────────────────────────────────────────────────────────────
+$rows = [];
+foreach ($pubs as $i => $p) {
+    $rows[] = [
+        $i + 1,
+        $p['mhs_nim']          ?? '',
+        $p['mhs_nama']         ?? '',
+        $p['prodi_nama']       ?? '',
+        $p['judul_artikel']    ?? '',
+        $p['nama_jurnal']      ?? '',
+        $p['rekan_penulis']    ?? '',
+        $p['dosen_pendamping'] ?? '',
+        $p['doi']              ?? '',
+        (int)($p['tahun_terbit'] ?? 0) ?: '',
+        $p['volume']           ?? '',
+        $p['nomor_terbit']     ?? '',
+        $p['halaman']          ?? '',
+        $p['status_publikasi'] ?? '',
+        $p['kata_kunci']       ?? '',
+        $p['link_artikel']     ?? '',
+        $p['abstrak']          ?? '',
+        date('d/m/Y', strtotime($p['created_at'])),
+    ];
+}
+// Numeric cols: 0 (No), 9 (Tahun)
+foreach ($rows as $row) {
+    foreach ($row as $ci => $val) {
+        if ($ci !== 0 && $ci !== 9) { $strIdx((string)$val); }
+    }
+}
+
+// ─── Open XML parts ──────────────────────────────────────────────────────────
+$contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>';
+$rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>';
+$wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>';
+$workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="Publikasi Mahasiswa" sheetId="1" r:id="rId1"/></sheets>
+</workbook>';
+$styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="4">
+    <font><sz val="11"/><name val="Calibri"/></font>
+    <font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font>
+    <font><b/><sz val="13"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font>
+    <font><sz val="10"/><name val="Calibri"/></font>
+  </fonts>
+  <fills count="5">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FF8C0C4C"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFFDF0F7"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFE8F5E9"/></patternFill></fill>
+  </fills>
+  <borders count="2">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border>
+      <left style="thin"><color rgb="FFD1D5DB"/></left>
+      <right style="thin"><color rgb="FFD1D5DB"/></right>
+      <top style="thin"><color rgb="FFD1D5DB"/></top>
+      <bottom style="thin"><color rgb="FFD1D5DB"/></bottom>
+    </border>
+  </borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="7">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf>
+    <xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf>
+    <xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+  </cellXfs>
+</styleSheet>';
+
+// ─── Worksheet ───────────────────────────────────────────────────────────────
+$colWidths = [4,14,35,28,50,35,35,30,28,10,10,12,12,18,35,35,60,14];
+$numCols   = count($headers);
+$lastCol   = colLetA($numCols - 1);
+
+$ws  = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n";
+$ws .= '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . "\n";
+$ws .= '  <sheetViews><sheetView tabSelected="1" workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' . "\n";
+$ws .= '  <cols>' . "\n";
+foreach ($colWidths as $ci => $w) { $ws .= '    <col min="'.($ci+1).'" max="'.($ci+1).'" width="'.$w.'" customWidth="1"/>'."\n"; }
+$ws .= '  </cols>' . "\n";
+$ws .= '  <sheetData>' . "\n";
+
+// Row 1 — Judul
+$ws .= '    <row r="1" ht="30" customHeight="1">' . "\n";
+$title = 'REKAP PUBLIKASI ILMIAH MAHASISWA — PASCASARJANA NPU — ' . date('d F Y');
+$ws .= '      <c r="A1" s="1" t="s"><v>'.$strIdx($title).'</v></c>' . "\n";
+$ws .= '    </row>' . "\n";
+
+// Row 2 — Info
+$ws .= '    <row r="2" ht="16" customHeight="1">' . "\n";
+$info = 'Total: ' . count($rows) . ' publikasi  |  Dicetak: ' . date('d/m/Y H:i') . ' WIB';
+$ws .= '      <c r="A2" s="1" t="s"><v>'.$strIdx($info).'</v></c>' . "\n";
+$ws .= '    </row>' . "\n";
+
+// Row 3 — kosong
+$ws .= '    <row r="3"/>' . "\n";
+
+// Row 4 — Header kolom
+$ws .= '    <row r="4" ht="35" customHeight="1">' . "\n";
+foreach ($headers as $ci => $h) { $ws .= '      <c r="'.caA($ci,4).'" s="2" t="s"><v>'.$strIdx($h).'</v></c>'."\n"; }
+$ws .= '    </row>' . "\n";
+
+// Data rows
+foreach ($rows as $ri => $row) {
+    $er = $ri + 5;
+    $ws .= '    <row r="'.$er.'" ht="55" customHeight="1">' . "\n";
+    foreach ($row as $ci => $val) {
+        $addr = caA($ci, $er);
+        if ($ci === 0) {
+            $ws .= '      <c r="'.$addr.'" s="4"><v>'.(int)$val.'</v></c>'."\n";
+        } elseif ($ci === 9) {
+            if ($val !== '') { $ws .= '      <c r="'.$addr.'" s="4"><v>'.(int)$val.'</v></c>'."\n"; }
+            else             { $ws .= '      <c r="'.$addr.'" s="4" t="s"><v>'.$strIdx('').'</v></c>'."\n"; }
+        } elseif ($ci === 13) {
+            $sStyle = str_contains(strtolower((string)$val), 'publish') ? 5 : 3;
+            $ws .= '      <c r="'.$addr.'" s="'.$sStyle.'" t="s"><v>'.$strIdx((string)$val).'</v></c>'."\n";
+        } else {
+            $sStyle = ($ri % 2 === 0) ? 3 : 6;
+            $ws .= '      <c r="'.$addr.'" s="'.$sStyle.'" t="s"><v>'.$strIdx((string)$val).'</v></c>'."\n";
+        }
+    }
+    $ws .= '    </row>' . "\n";
+}
+$ws .= '  </sheetData>' . "\n";
+$ws .= '  <mergeCells count="2"><mergeCell ref="A1:'.$lastCol.'1"/><mergeCell ref="A2:'.$lastCol.'2"/></mergeCells>' . "\n";
+$ws .= '</worksheet>';
+
+// Shared strings
+$ssXml  = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n";
+$ssXml .= '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'.count($strings).'" uniqueCount="'.count($strings).'">'."\n";
+foreach ($strings as $s) { $ssXml .= '  <si><t xml:space="preserve">'.xmlEscA($s).'</t></si>'."\n"; }
+$ssXml .= '</sst>';
+
+// Build ZIP
+$tmp = tempnam(sys_get_temp_dir(), 'xlsx_admin_mhs_');
+$zip = new ZipArchive();
+$zip->open($tmp, ZipArchive::OVERWRITE);
+$zip->addFromString('[Content_Types].xml',        $contentTypes);
+$zip->addFromString('_rels/.rels',                $rels);
+$zip->addFromString('xl/workbook.xml',            $workbook);
+$zip->addFromString('xl/_rels/workbook.xml.rels', $wbRels);
+$zip->addFromString('xl/styles.xml',              $styles);
+$zip->addFromString('xl/sharedStrings.xml',       $ssXml);
+$zip->addFromString('xl/worksheets/sheet1.xml',   $ws);
+$zip->close();
+
+$fname = 'Rekap_Publikasi_Mahasiswa_' . date('Ymd') . '.xlsx';
+header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+header('Content-Disposition: attachment; filename="'.$fname.'"');
+header('Content-Length: ' . filesize($tmp));
+header('Cache-Control: max-age=0');
+readfile($tmp);
+unlink($tmp);
+exit;

@@ -15,7 +15,7 @@ else $activePage = 'index';
 
 // Grouping menu items for horizontal nav
 $navMasterData = ['dosen_pasca', 'mahasiswa', 'prodi'];
-$navAkademik = ['sidang', 'jadwal', 'penelitian_dosen', 'tugas', 'analisis_rapot', 'raport_dosen'];
+$navAkademik = ['sidang', 'jadwal', 'penelitian_dosen', 'publikasi_mahasiswa', 'tugas', 'analisis_rapot', 'raport_dosen'];
 $navSurat = ['surat', 'surat_keluaran', 'agenda_surat'];
 $navLampiran = ['buat_lampiran_tesis', 'buat_lampiran_proposal', 'buat_lampiran_capstone', 'buat_lampiran_iamp', 'buat_lampiran_kolokium', 'buat_lampiran_kualifikasi'];
 $navPanduan = ['panduan_tesis', 'panduan_kolokium', 'panduan_capstone', 'panduan_iamp', 'panduan_kualifikasi'];
@@ -223,6 +223,7 @@ $navSistem = ['whatsapp', 'laporan', 'settings'];
             <a href="<?= BASE_URL ?>/pages/sidang" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Sidang & Seminar</a>
             <a href="<?= BASE_URL ?>/pages/jadwal" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Jadwal Agenda</a>
             <a href="<?= BASE_URL ?>/pages/penelitian_dosen" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Penelitian Dosen</a>
+            <a href="<?= BASE_URL ?>/pages/publikasi_mahasiswa" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Publikasi Mahasiswa</a>
             <a href="<?= BASE_URL ?>/pages/tugas" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Tugas & Catatan</a>
             <a href="<?= BASE_URL ?>/pages/analisis_rapot" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Analisis Rapot</a>
             <a href="<?= BASE_URL ?>/pages/raport_dosen" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">📋 Raport Laporan Dosen</a>
@@ -317,7 +318,8 @@ $navSistem = ['whatsapp', 'laporan', 'settings'];
     <div class="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-2 border-t border-slate-100 dark:border-slate-800 pt-4">Akademik</div>
     <a href="<?= BASE_URL ?>/pages/sidang" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Sidang & Seminar</a>
     <a href="<?= BASE_URL ?>/pages/jadwal" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Jadwal Agenda</a>
-    <a href="<?= BASE_URL ?>/pages/penelitian_dosen" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Penelitian Dosen</a>
+    <a href="<?= BASE_URL ?>/pages/penelitian_dosen" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Publikasi Dosen</a>
+    <a href="<?= BASE_URL ?>/pages/publikasi_mahasiswa" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Publikasi Mahasiswa</a>
     <a href="<?= BASE_URL ?>/pages/tugas" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Tugas & Catatan</a>
     <a href="<?= BASE_URL ?>/pages/analisis_rapot" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Analisis Rapot</a>
     <a href="<?= BASE_URL ?>/pages/raport_dosen" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">📋 Raport Laporan Dosen</a>
