@@ -32,6 +32,9 @@ if ($action === 'insert') {
     $namaJurnal = trim($_POST['nama_jurnal'] ?? '');
     $tahun   = !empty($_POST['tahun_terbit']) ? (int)$_POST['tahun_terbit'] : null;
     $referensi = trim($_POST['referensi'] ?? '');
+    $volume = trim($_POST['volume'] ?? '');
+    $nomorTerbit = trim($_POST['nomor_terbit'] ?? '');
+    $halaman = trim($_POST['halaman'] ?? '');
 
     // Jika pilih dari dropdown, ambil nama dosen dari DB
     if ($dosenId) {
@@ -78,11 +81,11 @@ if ($action === 'insert') {
 
     $stmt = $pdo->prepare("INSERT INTO mahasiswa_publikasi 
         (mahasiswa_id, dosen_id, judul_artikel, dosen_pendamping, rekan_penulis, status_publikasi,
-         link_artikel, doi, abstrak, kata_kunci, nama_jurnal, 
+         link_artikel, doi, abstrak, kata_kunci, nama_jurnal, volume, nomor_terbit, halaman, 
          tahun_terbit, referensi, file_jurnal, file_bukti_bayar, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     $stmt->execute([$mhsId, $dosenId, $judul, $dosen, $rekan, $status, $link, $doi ?: null,
-                    $abstrak ?: null, $katakunci ?: null, $namaJurnal ?: null,
+                    $abstrak ?: null, $katakunci ?: null, $namaJurnal ?: null, $volume ?: null, $nomorTerbit ?: null, $halaman ?: null,
                     $tahun, $referensi ?: null, $fileJurnal, $fileBukti]);
 
     setFlash('success', 'Publikasi berhasil ditambahkan ke portofolio Anda.');

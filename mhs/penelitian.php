@@ -54,11 +54,11 @@ $flash = getFlash();
 
 <?php // Override page padding to be full-width ?>
 <style>
-  /* Make this page full-width within the main wrapper and offset top padding */
-  .sd-page { margin: -2rem -1rem 0; }
-  @media(min-width:640px)  { .sd-page { margin: -2.5rem -1.5rem 0; } }
-  @media(min-width:768px)  { .sd-page { margin: -3rem -1.5rem 0; } }
-  @media(min-width:1024px) { .sd-page { margin: -3.5rem -2rem 0; } }
+  /* Make this page full-width within the main wrapper with proper top spacing */
+  .sd-page { margin: -1rem -1rem 0; }
+  @media(min-width:640px)  { .sd-page { margin: -1.25rem -1.5rem 0; } }
+  @media(min-width:768px)  { .sd-page { margin: -1.25rem -1.5rem 0; } }
+  @media(min-width:1024px) { .sd-page { margin: -1.25rem -2rem 0; } }
 
   /* ScienceDirect-style article list */
   .sd-article:not(:last-child) { border-bottom: 1px solid #e2e8f0; }
@@ -98,11 +98,26 @@ $flash = getFlash();
         <h1 class="text-2xl font-display font-extrabold text-slate-900 dark:text-white mb-1">Repository Publikasi Ilmiah</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400">Portofolio karya ilmiah, artikel, dan penelitian — Pascasarjana Universitas Nusa Putra</p>
       </div>
-      <button onclick="document.getElementById('addModal').classList.remove('hidden')"
-              class="shrink-0 inline-flex items-center gap-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-        Tambah Publikasi
-      </button>
+      <div class="flex items-center gap-2 flex-wrap justify-end">
+        <?php if ($total > 0): ?>
+        <a href="export_publikasi_excel<?= ($filterStatus||$filterYear||$searchQ) ? '?'.http_build_query(array_filter(['status'=>$filterStatus,'year'=>$filterYear,'q'=>$searchQ])) : '' ?>"
+           id="btnExportExcel"
+           target="_blank" rel="noopener"
+           class="shrink-0 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+           title="Download data publikasi sebagai file Excel (.xlsx)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          </svg>
+          Export Excel
+        </a>
+        <?php endif; ?>
+        <button onclick="document.getElementById('addModal').classList.remove('hidden')"
+                class="shrink-0 inline-flex items-center gap-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+          Tambah Publikasi
+        </button>
+      </div>
     </div>
 
     <!-- Search Bar (ScienceDirect style) -->
@@ -443,6 +458,9 @@ $flash = getFlash();
             ],
             'Bibliografi' => [
               ['name'=>'tahun_terbit','label'=>'Tahun Terbit',     'type'=>'number','req'=>false,'placeholder'=>date('Y'), 'full'=>false],
+              ['name'=>'volume',      'label'=>'Volume',           'type'=>'text',  'req'=>false,'placeholder'=>'Misal: Vol. 11', 'full'=>false],
+              ['name'=>'nomor_terbit','label'=>'Nomor Terbit',     'type'=>'text',  'req'=>false,'placeholder'=>'Misal: No. 2', 'full'=>false],
+              ['name'=>'halaman',     'label'=>'Halaman',          'type'=>'text',  'req'=>false,'placeholder'=>'Misal: 145-162', 'full'=>false],
             ],
             'Penulis' => [
               ['name'=>'dosen_pendamping','label'=>'Dosen Pembimbing (opsional)','type'=>'dosen_select','req'=>false, 'placeholder'=>'Nama dosen pembimbing', 'full'=>true],
@@ -654,11 +672,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (jurnalBase) {
                     const vol   = item?.volume   || oaw?.biblio?.volume  || dcAttr?.container?.volume || csl?.volume || '';
                     const issue = item?.issue    || oaw?.biblio?.issue   || dcAttr?.container?.issue  || csl?.issue  || '';
+                    const pages = item?.page
+                               || (oaw?.biblio?.first_page ? (oaw.biblio.last_page ? oaw.biblio.first_page + '-' + oaw.biblio.last_page : oaw.biblio.first_page) : '')
+                               || (dcAttr?.container?.firstPage ? (dcAttr.container.lastPage ? dcAttr.container.firstPage + '-' + dcAttr.container.lastPage : dcAttr.container.firstPage) : '')
+                               || csl?.page
+                               || '';
+
                     let jurnal  = jurnalBase;
                     if (vol)   jurnal += `, Vol. ${vol}`;
                     if (issue) jurnal += `, No. ${issue}`;
                     const el = document.querySelector('input[name="nama_jurnal"]');
                     if (el) el.value = jurnal;
+
+                    const elVol = document.querySelector('input[name="volume"]');
+                    if (elVol) elVol.value = vol;
+
+                    const elIssue = document.querySelector('input[name="nomor_terbit"]');
+                    if (elIssue) elIssue.value = issue;
+
+                    const elHalaman = document.querySelector('input[name="halaman"]');
+                    if (elHalaman) elHalaman.value = pages;
                 }
 
                 // ── TAHUN ──────────────────────────────────────────────────

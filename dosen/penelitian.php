@@ -68,7 +68,7 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
 <?php endif; ?>
 
 <!-- Page Header -->
-<div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm -mx-6 -mt-6 px-6 py-6 mb-6">
+<div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm -mx-4 -mt-4 md:-mx-6 md:-mt-6 px-4 md:px-6 pt-5 pb-6 mb-6">
   <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-end justify-between">
     <div>
       <h1 class="text-2xl font-display font-bold text-slate-800 dark:text-white">Penelitian & Publikasi</h1>
@@ -78,6 +78,19 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
       <!-- Stats pills -->
       <span class="text-xs font-bold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full"><?= $total ?> Total</span>
       <span class="text-xs font-bold px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full"><?= $publish ?> Publish</span>
+      <?php if ($total > 0): ?>
+      <a href="export_publikasi_excel<?= ($searchQ||$filterYear||$filterStatus) ? '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'status'=>$filterStatus])) : '' ?>"
+         id="btnExportExcelDosen"
+         target="_blank" rel="noopener"
+         class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white text-sm transition hover:shadow-lg hover:-translate-y-0.5 bg-emerald-600 hover:bg-emerald-700"
+         title="Download data publikasi sebagai file Excel (.xlsx)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        Export Excel
+      </a>
+      <?php endif; ?>
       <button onclick="document.getElementById('addModal').classList.remove('hidden')"
               class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white text-sm transition hover:shadow-lg hover:-translate-y-0.5 bg-gradient-to-r from-[#8c0c4c] to-[#c41e73]">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
