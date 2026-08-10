@@ -193,7 +193,28 @@ $exportUrl = 'export_pub_mhs_admin' . ($filterStatus||$filterProdi||$filterTahun
       </thead>
       <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
         <?php foreach ($pubs as $i => $p): ?>
-        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors group">
+        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors group"
+            data-id="<?= $p['id'] ?>"
+            data-judul="<?= htmlspecialchars($p['judul_artikel'], ENT_QUOTES) ?>"
+            data-nama="<?= htmlspecialchars($p['mhs_nama'] ?? '', ENT_QUOTES) ?>"
+            data-nim="<?= htmlspecialchars($p['mhs_nim'] ?? '', ENT_QUOTES) ?>"
+            data-prodi="<?= htmlspecialchars($p['prodi_nama'] ?? '', ENT_QUOTES) ?>"
+            data-jurnal="<?= htmlspecialchars($p['nama_jurnal'] ?? '', ENT_QUOTES) ?>"
+            data-doi="<?= htmlspecialchars($p['doi'] ?? '', ENT_QUOTES) ?>"
+            data-penulis="<?= htmlspecialchars($p['rekan_penulis'] ?? '', ENT_QUOTES) ?>"
+            data-pembimbing="<?= htmlspecialchars($p['dosen_pendamping'] ?? '', ENT_QUOTES) ?>"
+            data-tahun="<?= $p['tahun_terbit'] ?>"
+            data-volume="<?= htmlspecialchars($p['volume'] ?? '', ENT_QUOTES) ?>"
+            data-nomor="<?= htmlspecialchars($p['nomor_terbit'] ?? '', ENT_QUOTES) ?>"
+            data-halaman="<?= htmlspecialchars($p['halaman'] ?? '', ENT_QUOTES) ?>"
+            data-status="<?= htmlspecialchars($p['status_publikasi'] ?? '', ENT_QUOTES) ?>"
+            data-kata_kunci="<?= htmlspecialchars($p['kata_kunci'] ?? '', ENT_QUOTES) ?>"
+            data-abstrak="<?= htmlspecialchars($p['abstrak'] ?? '', ENT_QUOTES) ?>"
+            data-link="<?= htmlspecialchars($p['link_artikel'] ?? '', ENT_QUOTES) ?>"
+            data-file="<?= !empty($p['file_jurnal']) ? BASE_URL.'/'.$p['file_jurnal'] : '' ?>"
+            data-file_bukti="<?= !empty($p['file_bukti_bayar']) ? BASE_URL.'/'.$p['file_bukti_bayar'] : '' ?>"
+            data-referensi="<?= htmlspecialchars($p['referensi'] ?? '', ENT_QUOTES) ?>"
+            data-created="<?= date('d/m/Y H:i', strtotime($p['created_at'])) ?>">
           <td class="py-4 px-4 text-xs text-slate-400 font-medium"><?= $offset + $i + 1 ?></td>
           <td class="py-4 px-4 max-w-sm">
             <div class="font-bold text-sm text-slate-800 dark:text-white line-clamp-2 mb-1">
@@ -236,6 +257,10 @@ $exportUrl = 'export_pub_mhs_admin' . ($filterStatus||$filterProdi||$filterTahun
           </td>
           <td class="py-4 px-4 text-right">
             <div class="flex gap-1 justify-end">
+              <button type="button" onclick="showDetail(this.closest('tr'))" title="Lihat Detail"
+                class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-[#8c0c4c] hover:bg-[#8c0c4c]/10 dark:hover:bg-[#8c0c4c]/20 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              </button>
               <?php if (!empty($p['link_artikel'])): ?>
               <a href="<?= htmlspecialchars($p['link_artikel']) ?>" target="_blank" rel="noopener"
                  class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition" title="Buka Artikel">
@@ -285,5 +310,141 @@ $exportUrl = 'export_pub_mhs_admin' . ($filterStatus||$filterProdi||$filterTahun
   <?php endif; ?>
 </div>
 <?php endif; ?>
+
+<!-- ─── Modal Detail ──────────────────────────────────────────────────── -->
+<div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+  <div onclick="closeDetail()" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+  <div class="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-3xl border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    <!-- Header Modal -->
+    <div class="sticky top-0 z-10 bg-white dark:bg-slate-800 flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700 rounded-t-3xl">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8c0c4c] to-[#a3155b] text-white flex items-center justify-center shadow">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div>
+          <h3 class="font-display font-bold text-base text-slate-800 dark:text-white">Detail Publikasi Mahasiswa</h3>
+          <p class="text-xs text-slate-400" id="dmSubtitle"></p>
+        </div>
+      </div>
+      <button onclick="closeDetail()" class="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition text-lg font-bold">✕</button>
+    </div>
+    <!-- Body -->
+    <div class="p-6 space-y-5">
+      <!-- Judul + Status -->
+      <div class="flex items-start justify-between gap-4">
+        <h4 id="dmJudul" class="font-display font-bold text-lg text-slate-800 dark:text-white leading-snug flex-1"></h4>
+        <span id="dmStatus" class="shrink-0 px-3 py-1 rounded-xl text-xs font-bold border"></span>
+      </div>
+
+      <!-- Info Mahasiswa -->
+      <div class="bg-gradient-to-r from-[#8c0c4c]/5 to-[#a3155b]/5 dark:from-[#8c0c4c]/15 dark:to-[#a3155b]/15 rounded-2xl p-4">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-[#8c0c4c] dark:text-[#f06ea4] mb-2">Identitas Mahasiswa</div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Nama</div><div id="dmNama" class="text-sm font-bold text-slate-800 dark:text-white"></div></div>
+          <div><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">NIM</div><div id="dmNim" class="text-sm font-mono font-semibold text-slate-700 dark:text-slate-200"></div></div>
+          <div><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Program Studi</div><div id="dmProdi" class="text-sm font-semibold text-slate-700 dark:text-slate-200"></div></div>
+        </div>
+        <div id="dmPembimbingWrap" class="mt-3">
+          <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Dosen Pembimbing / Pendamping</div>
+          <div id="dmPembimbing" class="text-sm font-semibold text-slate-700 dark:text-slate-200"></div>
+        </div>
+      </div>
+
+      <!-- Bibliografi -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4">
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">Bibliografi Jurnal</div>
+          <div class="space-y-2">
+            <div><div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Nama Jurnal</div><div id="dmJurnal" class="text-sm font-bold text-slate-800 dark:text-white"></div></div>
+            <div class="grid grid-cols-3 gap-2">
+              <div><div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Volume</div><div id="dmVolume" class="text-sm font-semibold text-blue-600 dark:text-blue-400"></div></div>
+              <div><div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Nomor</div><div id="dmNomor" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400"></div></div>
+              <div><div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Halaman</div><div id="dmHalaman" class="text-sm font-semibold text-slate-700 dark:text-slate-200"></div></div>
+            </div>
+            <div><div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Tahun Terbit</div><div id="dmTahun" class="text-sm font-bold text-slate-800 dark:text-white"></div></div>
+          </div>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 space-y-2">
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">Identifikasi</div>
+          <div><div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">DOI</div><div id="dmDoi" class="text-xs font-mono text-slate-700 dark:text-slate-200 break-all"></div></div>
+          <div><div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Penulis / Rekan Penulis</div><div id="dmPenulis" class="text-sm text-slate-700 dark:text-slate-200"></div></div>
+          <div><div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Kata Kunci</div><div id="dmKataKunci" class="text-xs text-slate-500 dark:text-slate-400 italic"></div></div>
+        </div>
+      </div>
+
+      <!-- Abstrak -->
+      <div id="dmAbstrakWrap" class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Abstrak</div>
+        <p id="dmAbstrak" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"></p>
+      </div>
+
+      <!-- Referensi -->
+      <div id="dmReferensiWrap" class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Referensi</div>
+        <p id="dmReferensi" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap"></p>
+      </div>
+
+      <!-- Links & Files -->
+      <div class="flex flex-wrap gap-3" id="dmLinksWrap"></div>
+
+      <!-- Footer info -->
+      <div class="text-xs text-slate-400 text-right border-t border-slate-100 dark:border-slate-700 pt-3">
+        Ditambahkan: <span id="dmCreated" class="font-semibold"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const statusColor = {
+  'Publish':        'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'ACC / Diterima': 'bg-blue-100 text-blue-700 border-blue-200',
+  'Sedang Review':  'bg-amber-100 text-amber-700 border-amber-200',
+};
+function showDetail(row) {
+  const d = row.dataset;
+  document.getElementById('dmSubtitle').textContent = (d.nim ? d.nim + ' · ' : '') + (d.prodi || '');
+  document.getElementById('dmJudul').textContent    = d.judul || '-';
+  const stEl = document.getElementById('dmStatus');
+  stEl.textContent = d.status || '-';
+  stEl.className = 'shrink-0 px-3 py-1 rounded-xl text-xs font-bold border ' + (statusColor[d.status] || 'bg-slate-100 text-slate-600 border-slate-200');
+  document.getElementById('dmNama').textContent      = d.nama || '-';
+  document.getElementById('dmNim').textContent       = d.nim  || '-';
+  document.getElementById('dmProdi').textContent     = d.prodi|| '-';
+  const pbWrap = document.getElementById('dmPembimbingWrap');
+  if (d.pembimbing) { document.getElementById('dmPembimbing').textContent = d.pembimbing; pbWrap.classList.remove('hidden'); }
+  else { pbWrap.classList.add('hidden'); }
+  document.getElementById('dmJurnal').textContent   = d.jurnal  || '-';
+  document.getElementById('dmVolume').textContent   = d.volume  || '-';
+  document.getElementById('dmNomor').textContent    = d.nomor   || '-';
+  document.getElementById('dmHalaman').textContent  = d.halaman || '-';
+  document.getElementById('dmTahun').textContent    = d.tahun   || '-';
+  document.getElementById('dmDoi').textContent      = d.doi     || '-';
+  document.getElementById('dmPenulis').textContent  = d.penulis || '-';
+  document.getElementById('dmKataKunci').textContent= d.kata_kunci || '-';
+  const absWrap = document.getElementById('dmAbstrakWrap');
+  if (d.abstrak) { document.getElementById('dmAbstrak').textContent = d.abstrak; absWrap.classList.remove('hidden'); }
+  else { absWrap.classList.add('hidden'); }
+  const refWrap = document.getElementById('dmReferensiWrap');
+  if (d.referensi) { document.getElementById('dmReferensi').textContent = d.referensi; refWrap.classList.remove('hidden'); }
+  else { refWrap.classList.add('hidden'); }
+  document.getElementById('dmCreated').textContent  = d.created || '-';
+  // Links
+  const lw = document.getElementById('dmLinksWrap'); lw.innerHTML = '';
+  if (d.link) lw.innerHTML += `<a href="${d.link}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>Buka Artikel</a>`;
+  if (d.file) lw.innerHTML += `<a href="${d.file}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>File Jurnal</a>`;
+  if (d.file_bukti) lw.innerHTML += `<a href="${d.file_bukti}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Bukti Bayar</a>`;
+  // Show modal
+  const m = document.getElementById('detailModal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+  document.body.style.overflow = 'hidden';
+}
+function closeDetail() {
+  const m = document.getElementById('detailModal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
