@@ -659,15 +659,59 @@ document.addEventListener('DOMContentLoaded', function() {
                 const detectedKategori = detectKategori(item, oaw, s2, dcAttr, csl, doi);
                 const elKategori = document.querySelector('select[name="kategori_publikasi"]');
                 const noteEl = document.getElementById('kategoriHelperNoteDosen');
-                if (elKategori && detectedKategori) {
-                    elKategori.value = detectedKategori;
+
+                // ── Helper: Update UI kategori ────────────────────────────
+                function applyKategori(kategori, source) {
+                    if (!elKategori) return;
+                    elKategori.value = kategori;
                     elKategori.classList.add('ring-2', 'ring-[#8c0c4c]');
                     setTimeout(() => elKategori.classList.remove('ring-2', 'ring-[#8c0c4c]'), 2500);
-
                     if (noteEl) {
-                        noteEl.innerHTML = `💡 <strong>Rekomendasi Indeksasi:</strong> Terpilih otomatis <u>${detectedKategori}</u>. Harap pastikan dan sesuaikan tingkatan Kuartil Scopus (Q1–Q4) atau SINTA (1–6) sesuai sertifikat resmi jurnal Anda.`;
-                        noteEl.classList.remove('hidden');
+                        const srcLabel = source === 'sinta' ? '✅ <strong>Data resmi SINTA Kemdikbud</strong>' : '🔍 Rekomendasi berdasarkan metadata DOI';
+                        noteEl.innerHTML = `${srcLabel}: Terpilih <u>${kategori}</u>. ${source === 'sinta' ? 'Peringkat ini diambil langsung dari database SINTA.' : 'Pastikan sesuai dengan sertifikat resmi jurnal Anda.'}`;
+                        noteEl.className = source === 'sinta'
+                            ? 'mt-2 text-xs font-semibold text-green-800 dark:text-green-200 bg-green-50 dark:bg-green-950/40 p-2.5 rounded-xl border border-green-200 dark:border-green-800/60'
+                            : 'mt-2 text-xs font-semibold text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60';
                     }
+                }
+
+                // Terapkan dulu rekomendasi lokal
+                if (detectedKategori) {
+                    applyKategori(detectedKategori, 'local');
+                }
+
+                // ── Panggil API SINTA real-time ───────────────────────────
+                const issn = (
+                    item?.ISSN?.[0] ||
+                    oaw?.primary_location?.source?.issn_l ||
+                    (oaw?.primary_location?.source?.issn || [])[0] ||
+                    s2?.publicationVenue?.issn ||
+                    csl?.ISSN?.[0] || ''
+                ).replace(/[^0-9X]/gi, '').replace(/(.{4})(.{4})/, '$1-$2');
+
+                const sintaQuery = issn || (item?.['container-title']?.[0] || oaw?.primary_location?.source?.display_name || s2?.publicationVenue?.name || csl?.['container-title'] || '');
+
+                if (sintaQuery && sintaQuery.length > 3) {
+                    if (noteEl) {
+                        noteEl.className = 'mt-2 text-xs font-semibold text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/60';
+                        noteEl.innerHTML = '🔄 Memeriksa ke database SINTA Kemdikbud...';
+                    }
+                    const sintaParam = issn ? `issn=${encodeURIComponent(issn)}` : `q=${encodeURIComponent(sintaQuery)}`;
+                    fetch(`<?= rtrim(str_replace(DIRECTORY_SEPARATOR, '/', str_replace($_SERVER['DOCUMENT_ROOT'] ?? '', '', dirname(__DIR__))), '/') ?>/api/check_sinta.php?${sintaParam}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.sinta_rank && /^SINTA\s*[1-6]$/i.test(data.sinta_rank.trim())) {
+                                applyKategori(data.sinta_rank.trim(), 'sinta');
+                            } else if (detectedKategori && /^SINTA/i.test(detectedKategori)) {
+                                // Sudah ada rekomendasi lokal SINTA, tidak perlu ubah
+                            } else if (data.error) {
+                                if (noteEl && !detectedKategori) {
+                                    noteEl.className = 'mt-2 text-xs font-semibold text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60';
+                                    noteEl.innerHTML = '⚠️ Tidak dapat memeriksa SINTA. Silakan cek manual di <a href="https://sinta.kemdikbud.go.id/journals" target="_blank" class="underline font-bold">SINTA Kemdikbud ↗</a>';
+                                }
+                            }
+                        })
+                        .catch(() => { /* silent fail */ });
                 }
 
                 // ── PENULIS (Authors) ──────────────────────────────────────
