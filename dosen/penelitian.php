@@ -630,27 +630,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         return 'Scopus Q2';
                     }
 
-                    // 6. Cek SINTA spesifik jika ada di teks
-                    const sintaMatch = (pubName + ' ' + title).match(/sinta\s*([1-6])/i);
+                    // 6. Cek SINTA spesifik HANYA jika nama jurnal/judul sudah mencantumkan level SINTA
+                    // (jangan tebak SINTA 1-6 dari heuristik — nanti API SINTA yang tentukan)
+                    const sintaMatch = (pubName + ' ' + title).match(/sinta[\s-]*([1-6])/i);
                     if (sintaMatch) {
                         return `SINTA ${sintaMatch[1]}`;
                     }
 
-                    // 7. Cek Jurnal Indonesia / Nasional (Default ke SINTA 2 / SINTA 3 yang merupakan standar akreditasi umum)
+                    // 7. Jurnal Indonesia / Nasional → aman-nya ke 'Jurnal Nasional Terakreditasi'
+                    //    Level SINTA 1-6 AKAN diisi oleh API SINTA Kemdikbud (check_sinta.php)
                     const isIndonesian = pubName.includes('jurnal') || pubName.includes('indonesia') || pubName.includes('nasional') || publisher.includes('universitas') || publisher.includes('institut') || publisher.includes('politeknik') || publisher.includes('asosi') || publisher.includes('perkumpulan') || publisher.includes('stmik') || publisher.includes('lldikti');
                     if (isIndonesian) {
-                        if (oaWork?.primary_location?.source?.is_in_doaj || pubName.includes('international') || pubName.includes('journal of')) {
-                            return 'SINTA 2';
-                        }
-                        return 'SINTA 3';
+                        return 'Jurnal Nasional Terakreditasi'; // Level pasti akan diperbarui API SINTA
                     }
 
-                    // 8. Jika jurnal internasional lain
+                    // 8. Jurnal internasional tanpa DOI prefix yang dikenali
                     if (pubName) {
-                        if (pubName.includes('international') || pubName.includes('journal')) {
-                            return 'Jurnal Internasional Terindeks';
-                        }
-                        return 'SINTA 3';
+                        return 'Jurnal Internasional Terindeks';
                     }
 
                     return 'Lainnya';
