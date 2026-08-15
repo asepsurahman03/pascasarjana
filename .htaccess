@@ -3,22 +3,22 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /Pascasarjana/
 
-  # If the request is for a directory, don't rewrite
+  # Jika request untuk direktori fisik, jangan rewrite
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # If the request has .php extension, redirect to extensionless (optional, but good for SEO/clean URLs)
-  # Uncomment if you want to force redirect:
-  # RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /Pascasarjana/(.*)\.php[\ ?]
-  # RewriteRule ^(.*)\.php$ $1 [R=301,L]
+  # Jika request untuk file fisik (assets, css, js, images), jangan rewrite
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
 
-  # If the requested file without .php exists, use it
+  # Jika file .php ada langsung di root (misal /login -> login.php)
   RewriteCond %{REQUEST_FILENAME}\.php -f
-  RewriteRule ^(.*)$ $1.php [L]
-  
-  # Also handle /pages/ explicitly if needed, but the above rule handles any path.
+  RewriteRule ^(.*)$ $1.php [L,QSA]
+
+  # Dukung akses halaman di dalam folder pages/ secara clean
+  RewriteCond %{DOCUMENT_ROOT}/pages/$1\.php -f
+  RewriteRule ^(.*)$ pages/$1.php [L,QSA]
 </IfModule>
 
 # Security headers (sesuai Aktiftidakaktif)

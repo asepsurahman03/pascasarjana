@@ -4,7 +4,15 @@ define('DB_NAME', 'pascasarjana_unp');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
-define('BASE_URL', 'http://localhost/Pascasarjana');
+
+// Deteksi BASE_URL secara dinamis (otomatis cocok untuk https://pascasarjana.codetech.id maupun localhost)
+if (!defined('BASE_URL')) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? 80) == 443) ? 'https' : 'http';
+    $host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $script   = $_SERVER['SCRIPT_NAME'] ?? '';
+    $subDir   = (strpos($script, '/Pascasarjana') !== false) ? '/Pascasarjana' : '';
+    define('BASE_URL', $protocol . '://' . $host . $subDir);
+}
 define('BASE_PATH', dirname(__DIR__));
 
 function getDB(): PDO {
