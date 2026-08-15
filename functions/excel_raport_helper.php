@@ -152,6 +152,21 @@ function parseExcelRaport(string $filePath): array {
             foreach ($headers as $ci => $hdr) {
                 $mapped[$hdr] = $rowData[$ci] ?? '';
             }
+
+            // Fix floating point precision untuk kolom numerik
+            $numericCols = ['Nilai Kuesioner', 'Jumlah Kehadiran', 'Konten'];
+            foreach ($numericCols as $col) {
+                if (isset($mapped[$col]) && is_numeric($mapped[$col]) && $mapped[$col] !== '') {
+                    $mapped[$col] = round((float)$mapped[$col], 3);
+                }
+            }
+            $intCols = ['Jumlah Matkul', 'Jumlah Kelas', 'Jumlah Penelitian', 'Jumlah Pengabdian'];
+            foreach ($intCols as $col) {
+                if (isset($mapped[$col]) && is_numeric($mapped[$col]) && $mapped[$col] !== '') {
+                    $mapped[$col] = (int)$mapped[$col];
+                }
+            }
+
             $rows[] = $mapped;
         }
     }
