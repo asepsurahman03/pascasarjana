@@ -1,36 +1,26 @@
-Options -Indexes
 DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteBase /
 
-  # Jika request untuk direktori fisik, jangan rewrite
+  # 1. Jika request mengarah ke file atau folder fisik nyata (css, js, gambar), lewati rewrite
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Jika request untuk file fisik (assets, css, js, images), jangan rewrite
-  RewriteCond %{REQUEST_FILENAME} -f
-  RewriteRule ^ - [L]
+  # 2. Jika file .php ada di root (contoh: /login -> login.php, /logout -> logout.php)
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^([^/]+)/?$ $1.php [L,QSA]
 
-  # Jika file .php ada langsung di root (misal /login -> login.php)
-  RewriteCond %{REQUEST_FILENAME}\.php -f
-  RewriteRule ^(.*)$ $1.php [L,QSA]
-
-  # Dukung akses halaman di dalam folder pages/ secara clean
-  RewriteCond %{DOCUMENT_ROOT}/pages/$1\.php -f
-  RewriteRule ^(.*)$ pages/$1.php [L,QSA]
+  # 3. Jika file .php ada di dalam folder pages (contoh: /raport_dosen -> pages/raport_dosen.php)
+  RewriteCond %{DOCUMENT_ROOT}/pages/$1.php -f
+  RewriteRule ^([^/]+)/?$ pages/$1.php [L,QSA]
 </IfModule>
 
-# Security headers (sesuai Aktiftidakaktif)
 <IfModule mod_headers.c>
-  Header always set X-Content-Type-Options nosniff
-  Header always set X-Frame-Options SAMEORIGIN
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
   Header always set X-XSS-Protection "1; mode=block"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
-</IfModule>
-
-# PHP settings (sesuai Aktiftidakaktif)
-<IfModule mod_php.c>
-  php_flag session.cookie_httponly on
-  php_flag session.use_strict_mode on
 </IfModule>
