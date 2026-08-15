@@ -11,12 +11,12 @@ if (isLoggedIn()) {
     exit;
 }
 
-// Hardcode Client ID dan Secret langsung di kode
-$clientId ='ISI_DENGAN_GOOGLE_CLIENT_ID_ANDA';
-$clientSecret = 'ISI_DENGAN_GOOGLE_CLIENT_SECRET_ANDA';
+// Ambil Client ID dan Secret secara dinamis dari database (Pengaturan Sistem)
+$clientId     = getSetting('google_client_id');
+$clientSecret = getSetting('google_client_secret');
 
-if ($clientId === 'ISI_DENGAN_GOOGLE_CLIENT_ID_ANDA' || empty($clientId) || empty($clientSecret)) {
-    die("Error: Harap masukkan Google Client ID dan Client Secret Anda di dalam file google_login_manual.php pada variabel \$clientId dan \$clientSecret.");
+if (empty($clientId) || empty($clientSecret)) {
+    die("Error: Google Client ID dan Client Secret belum diatur. Silakan atur di menu Pengaturan Sistem (Dashboard Admin).");
 }
 
 // URL file ini sebagai callback dari Google (sesuai konfigurasi di console)
