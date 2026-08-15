@@ -11,12 +11,12 @@ if (isLoggedIn()) {
     exit;
 }
 
-// Ambil Client ID dan Secret secara dinamis dari database (Pengaturan Sistem)
-$clientId     = getSetting('google_client_id');
-$clientSecret = getSetting('google_client_secret');
+// Ambil Google Client ID dan Secret dari database settings
+$clientId     = trim(getSetting('google_client_id'));
+$clientSecret = trim(getSetting('google_client_secret'));
 
 if (empty($clientId) || empty($clientSecret)) {
-    die("Error: Google Client ID dan Client Secret belum diatur. Silakan atur di menu Pengaturan Sistem (Dashboard Admin).");
+    die("Error: Google Client ID dan Client Secret belum diatur. Harap masukkan di menu Pengaturan → Konfigurasi Sistem.");
 }
 
 // URL file ini sebagai callback dari Google (sesuai konfigurasi di console)
