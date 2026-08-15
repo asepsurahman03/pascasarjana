@@ -6,14 +6,16 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 requireLogin();
 
-$filterStatus = $_GET['status'] ?? '';
-$filterTahun  = $_GET['tahun']  ?? '';
-$searchQ      = trim($_GET['q'] ?? '');
+$filterStatus   = $_GET['status']   ?? '';
+$filterTahun    = $_GET['tahun']    ?? '';
+$filterKategori = $_GET['kategori'] ?? '';
+$searchQ        = trim($_GET['q']   ?? '');
 
 $params = []; $where = ['1=1'];
-if ($filterStatus) { $where[] = 'dp.status_publikasi = ?'; $params[] = $filterStatus; }
-if ($filterTahun)  { $where[] = 'dp.tahun_terbit = ?';     $params[] = (int)$filterTahun; }
-if ($searchQ)      { $where[] = '(dp.judul_artikel LIKE ? OR dp.nama_jurnal LIKE ? OR d.nama LIKE ?)'; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; }
+if ($filterStatus)   { $where[] = 'dp.status_publikasi = ?'; $params[] = $filterStatus; }
+if ($filterTahun)    { $where[] = 'dp.tahun_terbit = ?';     $params[] = (int)$filterTahun; }
+if ($filterKategori) { $where[] = 'dp.kategori_publikasi LIKE ?'; $params[] = "%$filterKategori%"; }
+if ($searchQ)        { $where[] = '(dp.judul_artikel LIKE ? OR dp.nama_jurnal LIKE ? OR dp.kategori_publikasi LIKE ? OR d.nama LIKE ?)'; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; }
 
 $sql = "SELECT dp.*, d.nama AS dosen_nama, d.nidn
         FROM dosen_publikasi dp
@@ -22,7 +24,7 @@ $sql = "SELECT dp.*, d.nama AS dosen_nama, d.nidn
         ORDER BY dp.tahun_terbit DESC, dp.created_at DESC";
 $pubs = dbQuery($sql, $params);
 
-$headers = ['No','NIDN','Nama Dosen','Judul Artikel','Nama Jurnal','Penulis','DOI','Tahun Terbit','Status Publikasi','Kata Kunci','Link Artikel','Abstrak','Tanggal Input'];
+$headers = ['No','NIDN','Nama Dosen','Judul Artikel','Kategori / Indeksasi','Nama Jurnal','Penulis','DOI','Tahun Terbit','Status Publikasi','Kata Kunci','Link Artikel','Abstrak','Tanggal Input'];
 
 function xmlEscD(string $s): string { return htmlspecialchars($s, ENT_QUOTES|ENT_XML1, 'UTF-8'); }
 function colLetD(int $i): string { $i++; $c=''; while($i>0){$i--;$c=chr(65+$i%26).$c;$i=intdiv($i,26);} return $c; }
@@ -39,23 +41,24 @@ $rows = [];
 foreach ($pubs as $i => $p) {
     $rows[] = [
         $i + 1,
-        $p['nidn']             ?? '',
-        $p['dosen_nama']       ?? '',
-        $p['judul_artikel']    ?? '',
-        $p['nama_jurnal']      ?? '',
-        $p['penulis']          ?? '',
-        $p['doi']              ?? '',
+        $p['nidn']               ?? '',
+        $p['dosen_nama']         ?? '',
+        $p['judul_artikel']      ?? '',
+        $p['kategori_publikasi'] ?? 'Lainnya',
+        $p['nama_jurnal']        ?? '',
+        $p['penulis']            ?? '',
+        $p['doi']                ?? '',
         (int)($p['tahun_terbit'] ?? 0) ?: '',
-        $p['status_publikasi'] ?? '',
-        $p['kata_kunci']       ?? '',
-        $p['link_artikel']     ?? '',
-        $p['abstrak']          ?? '',
+        $p['status_publikasi']   ?? '',
+        $p['kata_kunci']         ?? '',
+        $p['link_artikel']       ?? '',
+        $p['abstrak']            ?? '',
         date('d/m/Y', strtotime($p['created_at'])),
     ];
 }
 foreach ($rows as $row) {
     foreach ($row as $ci => $val) {
-        if ($ci !== 0 && $ci !== 7) { $strIdx((string)$val); }
+        if ($ci !== 0 && $ci !== 8) { $strIdx((string)$val); }
     }
 }
 
@@ -88,7 +91,7 @@ $styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   </cellXfs>
 </styleSheet>';
 
-$colWidths=[4,14,35,50,35,38,28,10,18,35,38,60,14];
+$colWidths=[4,14,35,50,25,35,38,28,10,18,35,38,60,14];
 $numCols=count($headers); $lastCol=colLetD($numCols-1);
 $ws='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
 $ws.='<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'."\n";

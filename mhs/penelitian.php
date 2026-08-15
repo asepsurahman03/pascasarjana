@@ -17,13 +17,18 @@ $myPubs = dbQuery(
     [$mhsId]
 );
 
-$total   = count($myPubs);
-$publish = 0; $acc = 0; $review = 0;
+$total       = count($myPubs);
+$publish     = 0; $acc = 0; $review = 0;
+$scopusCount = 0; $sintaCount = 0;
 foreach ($myPubs as $p) {
-    $s = strtolower($p['status_publikasi']);
+    $s   = strtolower($p['status_publikasi']);
+    $kat = strtolower($p['kategori_publikasi'] ?? '');
     if (str_contains($s,'publish')) $publish++;
     elseif (str_contains($s,'acc')) $acc++;
     else $review++;
+
+    if (str_contains($kat, 'scopus')) $scopusCount++;
+    if (str_contains($kat, 'sinta'))  $sintaCount++;
 }
 
 // Collect unique years for filter
@@ -31,19 +36,22 @@ $years = [];
 foreach ($myPubs as $p) { if ($p['tahun_terbit']) $years[$p['tahun_terbit']] = true; }
 krsort($years);
 
-$filterStatus = $_GET['status'] ?? '';
-$filterYear   = $_GET['year']   ?? '';
-$searchQ      = $_GET['q']      ?? '';
+$filterStatus   = $_GET['status']   ?? '';
+$filterYear     = $_GET['year']     ?? '';
+$filterKategori = $_GET['kategori'] ?? '';
+$searchQ        = $_GET['q']        ?? '';
 
 // Apply PHP-side filter (for non-JS fallback)
-$filtered = array_filter($myPubs, function($p) use ($filterStatus, $filterYear, $searchQ) {
+$filtered = array_filter($myPubs, function($p) use ($filterStatus, $filterYear, $filterKategori, $searchQ) {
     $s = strtolower($p['status_publikasi']);
+    $k = strtolower($p['kategori_publikasi'] ?? '');
     if ($filterStatus === 'publish' && !str_contains($s,'publish')) return false;
     if ($filterStatus === 'acc'     && !str_contains($s,'acc'))     return false;
     if ($filterStatus === 'review'  && !str_contains($s,'review'))  return false;
+    if ($filterKategori && !str_contains($k, strtolower($filterKategori))) return false;
     if ($filterYear && $p['tahun_terbit'] != $filterYear) return false;
     if ($searchQ) {
-        $hay = strtolower(($p['judul_artikel']??'').' '.($p['nama_jurnal']??'').' '.($p['kata_kunci']??'').' '.($p['abstrak']??''));
+        $hay = strtolower(($p['judul_artikel']??'').' '.($p['nama_jurnal']??'').' '.($p['kata_kunci']??'').' '.($p['abstrak']??'').' '.($p['kategori_publikasi']??''));
         if (!str_contains($hay, strtolower($searchQ))) return false;
     }
     return true;
@@ -99,11 +107,21 @@ $flash = getFlash();
         <p class="text-sm text-slate-500 dark:text-slate-400">Portofolio karya ilmiah, artikel, dan penelitian — Pascasarjana Universitas Nusa Putra</p>
       </div>
       <div class="flex items-center gap-2 flex-wrap justify-end">
+        <!-- Stats pills -->
+        <span class="text-xs font-bold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full border border-slate-200 dark:border-slate-700"><?= $total ?> Total</span>
+        <span class="text-xs font-bold px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded-full border border-amber-300 dark:border-amber-700/60 shadow-xs flex items-center gap-1">
+          ⭐ Scopus: <strong><?= $scopusCount ?></strong>
+        </span>
+        <span class="text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 rounded-full border border-blue-300 dark:border-blue-700/60 shadow-xs flex items-center gap-1">
+          🏅 SINTA: <strong><?= $sintaCount ?></strong>
+        </span>
+        <span class="text-xs font-bold px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-800/50"><?= $publish ?> Publish</span>
+
         <?php if ($total > 0): ?>
-        <a href="export_publikasi_excel<?= ($filterStatus||$filterYear||$searchQ) ? '?'.http_build_query(array_filter(['status'=>$filterStatus,'year'=>$filterYear,'q'=>$searchQ])) : '' ?>"
+        <a href="export_publikasi_excel<?= ($filterStatus||$filterYear||$filterKategori||$searchQ) ? '?'.http_build_query(array_filter(['status'=>$filterStatus,'year'=>$filterYear,'kategori'=>$filterKategori,'q'=>$searchQ])) : '' ?>"
            id="btnExportExcel"
            target="_blank" rel="noopener"
-           class="shrink-0 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+           class="shrink-0 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 ml-1"
            title="Download data publikasi sebagai file Excel (.xlsx)">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -113,7 +131,7 @@ $flash = getFlash();
         </a>
         <?php endif; ?>
         <button onclick="document.getElementById('addModal').classList.remove('hidden')"
-                class="shrink-0 inline-flex items-center gap-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+                class="shrink-0 inline-flex items-center gap-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
           Tambah Publikasi
         </button>
@@ -123,10 +141,11 @@ $flash = getFlash();
     <!-- Search Bar (ScienceDirect style) -->
     <form method="GET" class="mt-5 flex gap-0 shadow-md rounded-xl overflow-hidden border border-slate-300 dark:border-slate-600 focus-within:border-[#8c0c4c] focus-within:ring-2 focus-within:ring-[#8c0c4c]/20 transition-all">
       <input type="text" name="q" value="<?= htmlspecialchars($searchQ) ?>"
-             placeholder="Cari judul artikel, nama jurnal, kata kunci, penulis..."
+             placeholder="Cari judul artikel, nama jurnal, kata kunci, penulis, indeksasi..."
              class="flex-1 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm px-5 py-3.5 outline-none placeholder-slate-400">
       <?php if($filterStatus): ?><input type="hidden" name="status" value="<?= htmlspecialchars($filterStatus) ?>"><?php endif; ?>
       <?php if($filterYear):   ?><input type="hidden" name="year"   value="<?= htmlspecialchars($filterYear)   ?>"><?php endif; ?>
+      <?php if($filterKategori):?><input type="hidden" name="kategori" value="<?= htmlspecialchars($filterKategori) ?>"><?php endif; ?>
       <button type="submit" class="bg-[#8c0c4c] hover:bg-[#a3155b] text-white px-6 font-bold text-sm transition-colors flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
         Cari
@@ -147,8 +166,40 @@ $flash = getFlash();
 
     <!-- Refine Results -->
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm mb-5">
-      <div class="bg-[#8c0c4c] px-4 py-3">
+      <div class="bg-[#8c0c4c] px-4 py-3 flex items-center justify-between">
         <h3 class="text-white text-sm font-bold uppercase tracking-wide">Saring Hasil</h3>
+        <?php if ($filterStatus || $filterKategori || $filterYear): ?>
+        <a href="penelitian" class="text-[11px] text-white/80 hover:text-white underline">Reset</a>
+        <?php endif; ?>
+      </div>
+
+      <!-- By Indeksasi / Kategori -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-700">
+        <h4 class="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+          <span>Indeksasi</span>
+          <span class="text-[10px] text-slate-400 font-normal">Kategori</span>
+        </h4>
+        <div class="space-y-1">
+          <?php
+          $kats = [
+            ['val'=>'',        'label'=>'Semua Indeksasi'],
+            ['val'=>'scopus',  'label'=>'⭐ Scopus'],
+            ['val'=>'sinta',   'label'=>'🏅 SINTA'],
+            ['val'=>'internasional','label'=>'🌐 Jurnal Internasional'],
+            ['val'=>'nasional', 'label'=>'🏛️ Jurnal Nasional'],
+            ['val'=>'prosiding','label'=>'📑 Prosiding'],
+            ['val'=>'hki',      'label'=>'💡 HKI / Paten / Buku'],
+          ];
+          foreach ($kats as $kt):
+            $active = ($filterKategori === $kt['val']);
+            $href   = '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'status'=>$filterStatus,'kategori'=>$kt['val']]));
+          ?>
+          <a href="<?= $href ?>" class="flex items-center justify-between group rounded-lg px-2.5 py-1.5 <?= $active ? 'bg-[#8c0c4c]/10 dark:bg-[#f06ea4]/15 text-[#8c0c4c] dark:text-[#f06ea4] font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60' ?> text-xs transition-colors">
+            <span><?= $kt['label'] ?></span>
+            <?php if ($active): ?><span class="w-1.5 h-1.5 rounded-full bg-[#8c0c4c] dark:bg-[#f06ea4]"></span><?php endif; ?>
+          </a>
+          <?php endforeach; ?>
+        </div>
       </div>
 
       <!-- By Status -->
@@ -157,14 +208,14 @@ $flash = getFlash();
         <div class="space-y-2">
           <?php
           $statuses = [
-            ['val'=>'',        'label'=>'Semua',          'count'=> $total,   'col'=>'text-slate-600'],
+            ['val'=>'',        'label'=>'Semua Status',   'count'=> $total,   'col'=>'text-slate-600'],
             ['val'=>'publish', 'label'=>'Sudah Publish',  'count'=> $publish, 'col'=>'text-emerald-600'],
             ['val'=>'acc',     'label'=>'ACC / Diterima', 'count'=> $acc,     'col'=>'text-blue-600'],
             ['val'=>'review',  'label'=>'Sedang Review',  'count'=> $review,  'col'=>'text-amber-600'],
           ];
           foreach ($statuses as $st):
             $active = ($filterStatus === $st['val']);
-            $href   = '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'status'=>$st['val']]));
+            $href   = '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'kategori'=>$filterKategori,'status'=>$st['val']]));
           ?>
           <a href="<?= $href ?>" class="flex items-center justify-between group rounded-lg px-2.5 py-2 <?= $active ? 'bg-[#8c0c4c]/8 dark:bg-[#f06ea4]/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700' ?> transition-colors">
             <span class="text-sm <?= $active ? 'font-bold text-[#8c0c4c] dark:text-[#f06ea4]' : 'text-slate-600 dark:text-slate-400' ?>"><?= $st['label'] ?></span>
@@ -180,13 +231,13 @@ $flash = getFlash();
         <h4 class="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Tahun Terbit</h4>
         <div class="space-y-1.5">
           <?php
-          $allHref = '?'.http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus]));
+          $allHref = '?'.http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus,'kategori'=>$filterKategori]));
           ?>
           <a href="<?= $allHref ?>" class="flex items-center justify-between px-2.5 py-1.5 rounded-lg <?= !$filterYear ? 'text-[#8c0c4c] dark:text-[#f06ea4] font-bold bg-[#8c0c4c]/8' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700' ?> transition-colors text-sm">
             <span>Semua Tahun</span>
           </a>
           <?php foreach (array_keys($years) as $yr):
-            $yHref = '?'.http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus,'year'=>$yr]));
+            $yHref = '?'.http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus,'kategori'=>$filterKategori,'year'=>$yr]));
             $isY = ($filterYear == $yr);
           ?>
           <a href="<?= $yHref ?>" class="flex items-center justify-between px-2.5 py-1.5 rounded-lg <?= $isY ? 'text-[#8c0c4c] dark:text-[#f06ea4] font-bold bg-[#8c0c4c]/8' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700' ?> transition-colors text-sm">
@@ -220,12 +271,13 @@ $flash = getFlash();
   <div class="flex-1 min-w-0">
 
     <!-- Active filter chips -->
-    <?php if ($filterStatus || $filterYear || $searchQ): ?>
+    <?php if ($filterStatus || $filterYear || $filterKategori || $searchQ): ?>
     <div class="flex flex-wrap gap-2 mb-4">
       <span class="text-xs text-slate-500 dark:text-slate-400 self-center font-semibold">Filter aktif:</span>
-      <?php if($searchQ):   ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Kata: "<?= htmlspecialchars($searchQ) ?>" <a href="?<?= http_build_query(array_filter(['status'=>$filterStatus,'year'=>$filterYear])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
-      <?php if($filterStatus): ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Status: <?= ucfirst($filterStatus) ?> <a href="?<?= http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
-      <?php if($filterYear):   ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Tahun: <?= $filterYear ?> <a href="?<?= http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
+      <?php if($searchQ):   ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Kata: "<?= htmlspecialchars($searchQ) ?>" <a href="?<?= http_build_query(array_filter(['status'=>$filterStatus,'year'=>$filterYear,'kategori'=>$filterKategori])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
+      <?php if($filterKategori): ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Indeks: <?= ucfirst($filterKategori) ?> <a href="?<?= http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus,'year'=>$filterYear])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
+      <?php if($filterStatus): ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Status: <?= ucfirst($filterStatus) ?> <a href="?<?= http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'kategori'=>$filterKategori])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
+      <?php if($filterYear):   ?><span class="inline-flex items-center gap-1.5 bg-[#8c0c4c]/10 text-[#8c0c4c] dark:text-[#f06ea4] text-xs font-bold px-3 py-1.5 rounded-full border border-[#8c0c4c]/20">Tahun: <?= $filterYear ?> <a href="?<?= http_build_query(array_filter(['q'=>$searchQ,'status'=>$filterStatus,'kategori'=>$filterKategori])) ?>" class="hover:text-red-600 ml-1">×</a></span><?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -260,32 +312,20 @@ $flash = getFlash();
     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
 
       <?php foreach ($filtered as $pub):
-        $ps   = strtolower($pub['status_publikasi']);
-        $badgeCls = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
-        $dotCls   = 'bg-slate-400';
-        if (str_contains($ps,'publish')) { $badgeCls='bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'; $dotCls='bg-emerald-500'; }
-        if (str_contains($ps,'acc'))     { $badgeCls='bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';           $dotCls='bg-blue-500'; }
-        if (str_contains($ps,'review'))  { $badgeCls='bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';       $dotCls='bg-amber-500'; }
-
         $kws = $pub['kata_kunci'] ? array_map('trim', explode(',', $pub['kata_kunci'])) : [];
         $doi = $pub['doi'] ?? null;
       ?>
       <article class="sd-article relative px-6 py-6 hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors group cursor-pointer">
 
         <!-- Row 1: Journal source + badge -->
-        <div class="flex flex-wrap items-center gap-3 mb-2">
+        <div class="flex flex-wrap items-center gap-2.5 mb-2">
+          <?= getKategoriBadge($pub['kategori_publikasi'] ?? 'Lainnya') ?>
           <?php if ($pub['nama_jurnal']): ?>
           <span class="text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-wide"><?= htmlspecialchars($pub['nama_jurnal']) ?></span>
           <?php if ($pub['tahun_terbit']): ?>
           <span class="text-xs text-slate-400">&bull; <?= $pub['tahun_terbit'] ?></span>
           <?php endif; ?>
           <?php endif; ?>
-
-          <!-- Status badge right -->
-          <span class="ml-auto inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-md <?= $badgeCls ?>">
-            <span class="w-1.5 h-1.5 rounded-full <?= $dotCls ?>"></span>
-            <?= htmlspecialchars($pub['status_publikasi']) ?>
-          </span>
         </div>
 
         <!-- Row 2: Title -->
@@ -299,29 +339,17 @@ $flash = getFlash();
         <!-- Row 3: Authors -->
         <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">
           <?php
-            $allAuthors = [];
-            if (!empty($pub['rekan_penulis'])) {
-                $allAuthors = array_map('trim', explode(',', $pub['rekan_penulis']));
-            } else {
-                $allAuthors = [htmlspecialchars($mhs['nama'])];
-            }
-            // Append dosen pendamping ONLY if not already in the list
-            if ($pub['dosen_pendamping']) {
-                $dosenFound = false;
-                foreach ($allAuthors as $a) {
-                    if (strcasecmp($a, $pub['dosen_pendamping']) === 0) {
-                        $dosenFound = true;
-                        break;
-                    }
-                }
-                if (!$dosenFound) {
-                    $allAuthors[] = htmlspecialchars($pub['dosen_pendamping']);
-                }
-            }
-          ?>
-          <?php foreach ($allAuthors as $idx => $author): ?>
-            <?php if ($idx > 0): ?><span class="text-slate-400 mx-1">,</span><?php endif; ?>
-            <span class="<?= $idx === 0 ? 'font-semibold text-slate-800 dark:text-slate-300' : '' ?>"><?= htmlspecialchars($author) ?></span>
+          $allAuthors = [];
+          if (!empty($pub['rekan_penulis'])) {
+              $allAuthors = array_map('trim', explode(',', $pub['rekan_penulis']));
+          } elseif (!empty($pub['dosen_pendamping'])) {
+              $allAuthors = [$mhs['nama'], $pub['dosen_pendamping']];
+          } else {
+              $allAuthors = [$mhs['nama']];
+          }
+          foreach ($allAuthors as $idx => $author): ?>
+          <?php if ($idx > 0): ?><span class="text-slate-400 mx-1">,</span><?php endif; ?>
+          <span class="<?= $idx === 0 ? 'font-semibold text-slate-800 dark:text-slate-300' : '' ?>"><?= htmlspecialchars($author) ?></span>
           <?php endforeach; ?>
         </p>
 
@@ -335,9 +363,9 @@ $flash = getFlash();
         </p>
         <?php endif; ?>
 
-        <!-- Row 5: Abstract snippet -->
+        <!-- Row 5: Abstract preview -->
         <?php if ($pub['abstrak']): ?>
-        <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-4 line-clamp-2">
+        <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-3 line-clamp-2">
           <?= htmlspecialchars(mb_strimwidth($pub['abstrak'], 0, 280, '...')) ?>
         </p>
         <?php endif; ?>
@@ -351,36 +379,31 @@ $flash = getFlash();
         </div>
         <?php endif; ?>
 
-        <!-- Row 7: Action buttons (ScienceDirect-style) -->
+        <!-- Row 7: Actions -->
         <div class="flex flex-wrap items-center gap-2 relative z-10">
-          <a href="detail_publikasi?id=<?= $pub['id'] ?>"
+          <?php if ($pub['link_artikel']): ?>
+          <a href="<?= htmlspecialchars($pub['link_artikel']) ?>" target="_blank"
              class="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#8c0c4c] hover:bg-[#a3155b] px-4 py-2 rounded-lg transition-colors shadow-sm">
-            Lihat Abstrak & Detail
+            Kunjungi Jurnal ↗
           </a>
+          <?php endif; ?>
           <?php if ($pub['file_jurnal']): ?>
           <a href="../<?= htmlspecialchars($pub['file_jurnal']) ?>" target="_blank"
-             class="inline-flex items-center gap-1.5 text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4] border border-[#8c0c4c]/30 dark:border-[#f06ea4]/30 hover:bg-[#8c0c4c]/5 px-4 py-2 rounded-lg transition-colors">
+             class="inline-flex items-center gap-1.5 text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4] border border-[#8c0c4c]/30 hover:bg-[#8c0c4c]/5 px-4 py-2 rounded-lg transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             Download PDF
           </a>
           <?php endif; ?>
-          <?php if ($pub['link_artikel']): ?>
-          <a href="<?= htmlspecialchars($pub['link_artikel']) ?>" target="_blank"
-             class="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#8c0c4c] dark:hover:text-[#f06ea4] px-3 py-2 rounded-lg transition-colors">
-            Kunjungi Jurnal ↗
-          </a>
-          <?php endif; ?>
 
-          <!-- Date added -->
+          <!-- Date -->
           <span class="ml-auto text-[11px] text-slate-400 dark:text-slate-500">
             Ditambahkan <?= date('d M Y', strtotime($pub['created_at'])) ?>
           </span>
 
           <!-- Hapus -->
-          <form action="aksi_publikasi" method="POST" onsubmit="return confirm('Yakin ingin menghapus publikasi ini? Tindakan tidak dapat dibatalkan.')" class="inline">
+          <form action="aksi_publikasi" method="POST" onsubmit="return confirm('Yakin ingin menghapus publikasi ini?')" class="inline">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id" value="<?= $pub['id'] ?>">
-            <input type="hidden" name="mahasiswa_id" value="<?= $mhsId ?>">
             <button type="submit" class="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400 hover:text-white hover:bg-red-500 dark:hover:bg-red-600 border border-red-200 dark:border-red-800/60 hover:border-red-500 px-3 py-1.5 rounded-lg transition-all">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               Hapus
@@ -389,95 +412,92 @@ $flash = getFlash();
         </div>
       </article>
       <?php endforeach; ?>
-
     </div>
     <?php endif; ?>
-  </div><!-- end main content -->
-</div><!-- end two-col -->
-</div><!-- end sd-page -->
 
-<!-- ═══════════════════════════════════
-     ADD PUBLICATION MODAL
-════════════════════════════════════════ -->
-<div id="addModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
-  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="document.getElementById('addModal').classList.add('hidden')"></div>
-  <div class="flex min-h-full items-start justify-center p-4 pt-8">
-    <div class="relative w-full max-w-3xl bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+  </div>
+</div>
+</div>
 
-      <!-- Modal header -->
-      <div class="bg-gradient-to-r from-[#6b0a3a] via-[#8c0c4c] to-[#c41e73] px-7 py-5 relative overflow-hidden">
-        <div class="absolute inset-0 opacity-[.07]" style="background-image:radial-gradient(circle at 2px 2px,white 1px,transparent 0);background-size:18px 18px;"></div>
-        <div class="relative flex justify-between items-start">
-          <div>
-            <h3 class="text-xl font-bold text-white">Tambah Karya Ilmiah Baru</h3>
-            <p class="text-pink-100/75 text-xs mt-1">Lengkapi data artikel sesuai standar metadata jurnal akademik</p>
+<!-- ===== ADD MODAL ===== -->
+<div id="addModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+  <div class="relative w-full max-w-3xl bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+
+    <!-- Modal header -->
+    <div class="bg-gradient-to-r from-[#6b0a3a] via-[#8c0c4c] to-[#c41e73] px-7 py-5 relative overflow-hidden">
+      <div class="absolute inset-0 opacity-[.07]" style="background-image:radial-gradient(circle at 2px 2px,white 1px,transparent 0);background-size:18px 18px;"></div>
+      <div class="relative flex justify-between items-start">
+        <div>
+          <h3 class="text-xl font-bold text-white">Tambah Karya Ilmiah Baru</h3>
+          <p class="text-pink-100/75 text-xs mt-1">Lengkapi data artikel sesuai standar metadata jurnal akademik</p>
+        </div>
+        <button onclick="document.getElementById('addModal').classList.add('hidden')" class="text-white/70 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all ml-4">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal body -->
+    <form action="aksi_publikasi" method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="action" value="insert">
+      <input type="hidden" name="mahasiswa_id" value="<?= $mhsId ?>">
+
+      <!-- ✨ DOI Quick-Fill Banner --> 
+      <div class="px-7 sm:px-8 pt-5 pb-0">
+        <div class="bg-gradient-to-r from-[#8c0c4c]/8 to-purple-500/5 dark:from-[#8c0c4c]/20 dark:to-purple-900/10 border border-[#8c0c4c]/20 dark:border-[#8c0c4c]/30 rounded-2xl p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-[#8c0c4c] to-[#c41e73] flex items-center justify-center flex-shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <p class="text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4]">Isi Otomatis via DOI</p>
+            <span class="ml-auto text-[10px] text-slate-400 dark:text-slate-500 font-medium">Opsional — lewati jika tidak punya DOI</span>
           </div>
-          <button onclick="document.getElementById('addModal').classList.add('hidden')" class="text-white/70 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all ml-4">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 pl-8">Tempel DOI artikel lalu klik <strong>Tarik Data</strong>. Judul, jurnal, penulis, tahun, abstrak, dan referensi akan terisi otomatis.</p>
+          <div class="flex gap-2 pl-8">
+            <input type="text" id="doi_input" name="doi" placeholder="Contoh: 10.1016/j.jbusres.2023.114132" 
+              class="flex-1 bg-white dark:bg-slate-800 border border-[#8c0c4c]/25 dark:border-[#8c0c4c]/40 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:border-[#8c0c4c] focus:ring-2 focus:ring-[#8c0c4c]/15 transition-all">
+            <button type="button" id="btnFetchDoi" class="px-5 py-2.5 bg-gradient-to-r from-[#8c0c4c] to-[#c41e73] hover:from-[#a3155b] hover:to-[#d4217f] text-white rounded-xl text-xs font-bold transition-all flex-shrink-0 flex items-center gap-1.5 shadow-md hover:shadow-lg hover:-translate-y-0.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Tarik Data
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Modal body -->
-      <form action="aksi_publikasi" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="action" value="insert">
-        <input type="hidden" name="mahasiswa_id" value="<?= $mhsId ?>">
+      <div class="p-7 sm:p-8 space-y-6 max-h-[60vh] overflow-y-auto">
 
-        <!-- ✨ DOI Quick-Fill Banner --> 
-        <div class="px-7 sm:px-8 pt-5 pb-0">
-          <div class="bg-gradient-to-r from-[#8c0c4c]/8 to-purple-500/5 dark:from-[#8c0c4c]/20 dark:to-purple-900/10 border border-[#8c0c4c]/20 dark:border-[#8c0c4c]/30 rounded-2xl p-4">
-            <div class="flex items-center gap-2 mb-2">
-              <div class="w-6 h-6 rounded-full bg-gradient-to-br from-[#8c0c4c] to-[#c41e73] flex items-center justify-center flex-shrink-0">
-                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              </div>
-              <p class="text-xs font-bold text-[#8c0c4c] dark:text-[#f06ea4]">Isi Otomatis via DOI</p>
-              <span class="ml-auto text-[10px] text-slate-400 dark:text-slate-500 font-medium">Opsional — lewati jika tidak punya DOI</span>
-            </div>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 pl-8">Tempel DOI artikel lalu klik <strong>Tarik Data</strong>. Judul, jurnal, penulis, tahun, abstrak, dan referensi akan terisi otomatis.</p>
-            <div class="flex gap-2 pl-8">
-              <input type="text" id="doi_input" name="doi" placeholder="Contoh: 10.1016/j.jbusres.2023.114132" 
-                class="flex-1 bg-white dark:bg-slate-800 border border-[#8c0c4c]/25 dark:border-[#8c0c4c]/40 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:border-[#8c0c4c] focus:ring-2 focus:ring-[#8c0c4c]/15 transition-all">
-              <button type="button" id="btnFetchDoi" class="px-5 py-2.5 bg-gradient-to-r from-[#8c0c4c] to-[#c41e73] hover:from-[#a3155b] hover:to-[#d4217f] text-white rounded-xl text-xs font-bold transition-all flex-shrink-0 flex items-center gap-1.5 shadow-md hover:shadow-lg hover:-translate-y-0.5">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Tarik Data
-              </button>
-            </div>
-          </div>
-        </div>
+        <?php
+        $sections = [
+          'Identitas Artikel' => [
+            ['name'=>'judul_artikel',      'label'=>'Judul Artikel',            'type'=>'text',     'req'=>true,  'placeholder'=>'Judul lengkap artikel atau penelitian...', 'full'=>true],
+            ['name'=>'kategori_publikasi', 'label'=>'Kategori / Indeksasi Jurnal *', 'type'=>'select', 'req'=>true, 'options'=>array_combine(getKategoriPublikasiList(), getKategoriPublikasiList()), 'full'=>false],
+            ['name'=>'nama_jurnal',        'label'=>'Nama Jurnal / Prosiding',   'type'=>'text',     'req'=>false, 'placeholder'=>'Misal: Jurnal Ilmu Komputer SINTA 2', 'full'=>false],
+            ['name'=>'kata_kunci',         'label'=>'Kata Kunci',                'type'=>'text',     'req'=>false, 'placeholder'=>'Pisahkan dengan koma', 'full'=>false],
+            ['name'=>'link_artikel',       'label'=>'URL / Link Artikel',        'type'=>'url',      'req'=>false, 'placeholder'=>'https://...', 'full'=>false],
+            ['name'=>'status_publikasi',    'label'=>'Status Publikasi',         'type'=>'select',   'req'=>true,  'options'=>['Publish'=>'✅ Sudah Publish','ACC / Diterima'=>'🟦 ACC / Diterima','Sedang Review'=>'⏳ Sedang Review'], 'full'=>false],
+          ],
+          'Bibliografi' => [
+            ['name'=>'tahun_terbit','label'=>'Tahun Terbit',     'type'=>'number','req'=>false,'placeholder'=>date('Y'), 'full'=>false],
+            ['name'=>'volume',      'label'=>'Volume',           'type'=>'text',  'req'=>false,'placeholder'=>'Misal: Vol. 11', 'full'=>false],
+            ['name'=>'nomor_terbit','label'=>'Nomor Terbit',     'type'=>'text',  'req'=>false,'placeholder'=>'Misal: No. 2', 'full'=>false],
+            ['name'=>'halaman',     'label'=>'Halaman',          'type'=>'text',  'req'=>false,'placeholder'=>'Misal: 145-162', 'full'=>false],
+          ],
+          'Penulis' => [
+            ['name'=>'dosen_pendamping','label'=>'Dosen Pembimbing (opsional)','type'=>'dosen_select','req'=>false, 'placeholder'=>'Nama dosen pembimbing', 'full'=>true],
+            ['name'=>'rekan_penulis',  'label'=>'Daftar Penulis',   'type'=>'dynamic_authors','req'=>false,'placeholder'=>'', 'full'=>false],
+          ],
+        ];
 
-        <div class="p-7 sm:p-8 space-y-6 max-h-[60vh] overflow-y-auto">
+        $inputCls = 'w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:border-[#8c0c4c] focus:ring-2 focus:ring-[#8c0c4c]/15 transition-all';
 
-          <?php
-          $sections = [
-            'Identitas Artikel' => [
-              ['name'=>'judul_artikel',  'label'=>'Judul Artikel',            'type'=>'text',     'req'=>true,  'placeholder'=>'Judul lengkap artikel atau penelitian...', 'full'=>true],
-              ['name'=>'nama_jurnal',    'label'=>'Nama Jurnal / Prosiding',   'type'=>'text',     'req'=>false, 'placeholder'=>'Misal: Jurnal Ilmu Komputer SINTA 2', 'full'=>false],
-              ['name'=>'kata_kunci',     'label'=>'Kata Kunci',                'type'=>'text',     'req'=>false, 'placeholder'=>'Pisahkan dengan koma', 'full'=>false],
-              ['name'=>'link_artikel',   'label'=>'URL / Link Artikel',        'type'=>'url',      'req'=>false, 'placeholder'=>'https://...', 'full'=>false],
-              ['name'=>'status_publikasi','label'=>'Status Publikasi',         'type'=>'select',   'req'=>true,  'options'=>['Publish'=>'✅ Sudah Publish','ACC / Diterima'=>'🟦 ACC / Diterima','Sedang Review'=>'⏳ Sedang Review'], 'full'=>false],
-            ],
-            'Bibliografi' => [
-              ['name'=>'tahun_terbit','label'=>'Tahun Terbit',     'type'=>'number','req'=>false,'placeholder'=>date('Y'), 'full'=>false],
-              ['name'=>'volume',      'label'=>'Volume',           'type'=>'text',  'req'=>false,'placeholder'=>'Misal: Vol. 11', 'full'=>false],
-              ['name'=>'nomor_terbit','label'=>'Nomor Terbit',     'type'=>'text',  'req'=>false,'placeholder'=>'Misal: No. 2', 'full'=>false],
-              ['name'=>'halaman',     'label'=>'Halaman',          'type'=>'text',  'req'=>false,'placeholder'=>'Misal: 145-162', 'full'=>false],
-            ],
-            'Penulis' => [
-              ['name'=>'dosen_pendamping','label'=>'Dosen Pembimbing (opsional)','type'=>'dosen_select','req'=>false, 'placeholder'=>'Nama dosen pembimbing', 'full'=>true],
-              ['name'=>'rekan_penulis',  'label'=>'Daftar Penulis',   'type'=>'dynamic_authors','req'=>false,'placeholder'=>'', 'full'=>false],
-            ],
-          ];
-
-          $inputCls = 'w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:border-[#8c0c4c] focus:ring-2 focus:ring-[#8c0c4c]/15 transition-all';
-
-          foreach ($sections as $sectionTitle => $fields):
-          ?>
-          <div>
-            <p class="text-[10px] font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-widest mb-4 flex items-center gap-2">
-              <span class="flex-1 h-px bg-[#8c0c4c]/20"></span> <?= $sectionTitle ?> <span class="flex-1 h-px bg-[#8c0c4c]/20"></span>
-            </p>
-            <div class="grid grid-cols-2 gap-4">
-              <?php foreach ($fields as $f): ?>
+        foreach ($sections as $sectionTitle => $fields):
+        ?>
+        <div>
+          <p class="text-[10px] font-bold text-[#8c0c4c] dark:text-[#f06ea4] uppercase tracking-widest mb-4 flex items-center gap-2">
+            <span class="flex-1 h-px bg-[#8c0c4c]/20"></span> <?= $sectionTitle ?> <span class="flex-1 h-px bg-[#8c0c4c]/20"></span>
+          </p>
+          <div class="grid grid-cols-2 gap-4">
+            <?php foreach ($fields as $f): ?>
               <div class="<?= ($f['full'] ?? false) ? 'col-span-2' : '' ?>">
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                   <?= $f['label'] ?> <?= ($f['req']??false) ? '<span class="text-red-500 normal-case font-normal">*</span>' : '' ?>

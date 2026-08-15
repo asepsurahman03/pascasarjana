@@ -8,17 +8,19 @@ require_once __DIR__ . '/../includes/functions.php';
 requireLogin();
 
 // Filter opsional (URL params)
-$filterStatus = $_GET['status'] ?? '';
-$filterProdi  = (int)($_GET['prodi_id'] ?? 0);
-$filterTahun  = $_GET['tahun']  ?? '';
-$searchQ      = trim($_GET['q'] ?? '');
+$filterStatus   = $_GET['status']   ?? '';
+$filterProdi    = (int)($_GET['prodi_id'] ?? 0);
+$filterTahun    = $_GET['tahun']    ?? '';
+$filterKategori = $_GET['kategori'] ?? '';
+$searchQ        = trim($_GET['q']   ?? '');
 
 $params = [];
 $where  = ['1=1'];
-if ($filterStatus) { $where[] = 'mp.status_publikasi = ?'; $params[] = $filterStatus; }
-if ($filterProdi)  { $where[] = 'm.prodi_id = ?';          $params[] = $filterProdi;  }
-if ($filterTahun)  { $where[] = 'mp.tahun_terbit = ?';     $params[] = (int)$filterTahun; }
-if ($searchQ)      { $where[] = '(mp.judul_artikel LIKE ? OR mp.nama_jurnal LIKE ? OR m.nama LIKE ?)'; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; }
+if ($filterStatus)   { $where[] = 'mp.status_publikasi = ?'; $params[] = $filterStatus; }
+if ($filterProdi)    { $where[] = 'm.prodi_id = ?';          $params[] = $filterProdi;  }
+if ($filterTahun)    { $where[] = 'mp.tahun_terbit = ?';     $params[] = (int)$filterTahun; }
+if ($filterKategori) { $where[] = 'mp.kategori_publikasi LIKE ?'; $params[] = "%$filterKategori%"; }
+if ($searchQ)        { $where[] = '(mp.judul_artikel LIKE ? OR mp.nama_jurnal LIKE ? OR mp.kategori_publikasi LIKE ? OR m.nama LIKE ?)'; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; $params[] = "%$searchQ%"; }
 
 $sql = "SELECT mp.*, m.nama AS mhs_nama, m.nim AS mhs_nim, p.nama AS prodi_nama
         FROM mahasiswa_publikasi mp
@@ -32,7 +34,7 @@ $pubs = dbQuery($sql, $params);
 // ─── Header kolom ────────────────────────────────────────────────────────────
 $headers = [
     'No', 'NIM', 'Nama Mahasiswa', 'Program Studi',
-    'Judul Artikel', 'Nama Jurnal', 'Penulis / Rekan',
+    'Judul Artikel', 'Kategori / Indeksasi', 'Nama Jurnal', 'Penulis / Rekan',
     'Dosen Pembimbing', 'DOI', 'Tahun Terbit',
     'Volume', 'Nomor Terbit', 'Halaman',
     'Status Publikasi', 'Kata Kunci', 'Link Artikel',
@@ -63,29 +65,30 @@ $rows = [];
 foreach ($pubs as $i => $p) {
     $rows[] = [
         $i + 1,
-        $p['mhs_nim']          ?? '',
-        $p['mhs_nama']         ?? '',
-        $p['prodi_nama']       ?? '',
-        $p['judul_artikel']    ?? '',
-        $p['nama_jurnal']      ?? '',
-        $p['rekan_penulis']    ?? '',
-        $p['dosen_pendamping'] ?? '',
-        $p['doi']              ?? '',
+        $p['mhs_nim']            ?? '',
+        $p['mhs_nama']           ?? '',
+        $p['prodi_nama']         ?? '',
+        $p['judul_artikel']      ?? '',
+        $p['kategori_publikasi'] ?? 'Lainnya',
+        $p['nama_jurnal']        ?? '',
+        $p['rekan_penulis']      ?? '',
+        $p['dosen_pendamping']   ?? '',
+        $p['doi']                ?? '',
         (int)($p['tahun_terbit'] ?? 0) ?: '',
-        $p['volume']           ?? '',
-        $p['nomor_terbit']     ?? '',
-        $p['halaman']          ?? '',
-        $p['status_publikasi'] ?? '',
-        $p['kata_kunci']       ?? '',
-        $p['link_artikel']     ?? '',
-        $p['abstrak']          ?? '',
+        $p['volume']             ?? '',
+        $p['nomor_terbit']       ?? '',
+        $p['halaman']            ?? '',
+        $p['status_publikasi']   ?? '',
+        $p['kata_kunci']         ?? '',
+        $p['link_artikel']       ?? '',
+        $p['abstrak']            ?? '',
         date('d/m/Y', strtotime($p['created_at'])),
     ];
 }
-// Numeric cols: 0 (No), 9 (Tahun)
+// Numeric cols: 0 (No), 10 (Tahun)
 foreach ($rows as $row) {
     foreach ($row as $ci => $val) {
-        if ($ci !== 0 && $ci !== 9) { $strIdx((string)$val); }
+        if ($ci !== 0 && $ci !== 10) { $strIdx((string)$val); }
     }
 }
 

@@ -40,6 +40,7 @@ $pubs = dbQuery(
 $headers = [
     'No',
     'Judul Artikel',
+    'Kategori / Indeksasi',
     'Nama Jurnal / Prosiding',
     'Penulis / Rekan Penulis',
     'Dosen Pembimbing',
@@ -87,27 +88,28 @@ foreach ($pubs as $i => $p) {
 
     $rows[] = [
         $i + 1,                                       // 0  No (numeric)
-        $p['judul_artikel']    ?? '',                 // 1
-        $p['nama_jurnal']      ?? '',                 // 2
-        $penulisStr,                                  // 3
-        $p['dosen_pendamping'] ?? '',                 // 4
-        $p['doi']              ?? '',                 // 5
-        (int)($p['tahun_terbit'] ?? 0) ?: '',         // 6  Tahun (numeric)
-        $p['volume']           ?? '',                 // 7
-        $p['nomor_terbit']     ?? '',                 // 8
-        $p['halaman']          ?? '',                 // 9
-        $p['status_publikasi'] ?? '',                 // 10
-        $p['kata_kunci']       ?? '',                 // 11
-        $p['link_artikel']     ?? '',                 // 12
-        $p['abstrak']          ?? '',                 // 13
-        date('d/m/Y', strtotime($p['created_at'])),  // 14
+        $p['judul_artikel']      ?? '',               // 1
+        $p['kategori_publikasi'] ?? 'Lainnya',        // 2
+        $p['nama_jurnal']        ?? '',               // 3
+        $penulisStr,                                  // 4
+        $p['dosen_pendamping']   ?? '',               // 5
+        $p['doi']                ?? '',               // 6
+        (int)($p['tahun_terbit'] ?? 0) ?: '',         // 7  Tahun (numeric)
+        $p['volume']             ?? '',               // 8
+        $p['nomor_terbit']       ?? '',               // 9
+        $p['halaman']            ?? '',               // 10
+        $p['status_publikasi']   ?? '',               // 11
+        $p['kata_kunci']         ?? '',               // 12
+        $p['link_artikel']       ?? '',               // 13
+        $p['abstrak']            ?? '',               // 14
+        date('d/m/Y', strtotime($p['created_at'])),  // 15
     ];
 }
 
 // Pre-load all string cells
 foreach ($rows as $row) {
     foreach ($row as $ci => $val) {
-        if ($ci !== 0 && $ci !== 6) {   // skip numeric cols
+        if ($ci !== 0 && $ci !== 7) {   // skip numeric cols
             $strIdx((string)$val);
         }
     }

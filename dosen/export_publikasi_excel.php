@@ -38,6 +38,7 @@ $pubs = dbQuery(
 $headers = [
     'No',
     'Judul Artikel',
+    'Kategori / Indeksasi',
     'Nama Jurnal / Prosiding',
     'Penulis',
     'DOI',
@@ -84,21 +85,22 @@ $rows = [];
 foreach ($pubs as $i => $p) {
     $rows[] = [
         $i + 1,                                       // 0  No (numeric)
-        $p['judul_artikel']    ?? '',                 // 1
-        $p['nama_jurnal']      ?? '',                 // 2
-        $p['penulis']          ?? '',                 // 3
-        $p['doi']              ?? '',                 // 4
-        (int)($p['tahun_terbit'] ?? 0) ?: '',         // 5  Tahun (numeric)
-        $p['status_publikasi'] ?? '',                 // 6
-        $p['kata_kunci']       ?? '',                 // 7
-        $p['link_artikel']     ?? '',                 // 8
-        $p['abstrak']          ?? '',                 // 9
-        date('d/m/Y', strtotime($p['created_at'])),  // 10
+        $p['judul_artikel']      ?? '',               // 1
+        $p['kategori_publikasi'] ?? 'Lainnya',        // 2
+        $p['nama_jurnal']        ?? '',               // 3
+        $p['penulis']            ?? '',               // 4
+        $p['doi']                ?? '',               // 5
+        (int)($p['tahun_terbit'] ?? 0) ?: '',         // 6  Tahun (numeric)
+        $p['status_publikasi']   ?? '',               // 7
+        $p['kata_kunci']         ?? '',               // 8
+        $p['link_artikel']       ?? '',               // 9
+        $p['abstrak']            ?? '',               // 10
+        date('d/m/Y', strtotime($p['created_at'])),  // 11
     ];
 }
 foreach ($rows as $row) {
     foreach ($row as $ci => $val) {
-        if ($ci !== 0 && $ci !== 5) { $strIdx((string)$val); }
+        if ($ci !== 0 && $ci !== 6) { $strIdx((string)$val); }
     }
 }
 

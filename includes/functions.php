@@ -191,3 +191,41 @@ function svgIcon(string $name): string {
     $p=$icons[$name]??'';
     return "<svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='$p'/></svg>";
 }
+
+/** Daftar Kategori & Indeksasi Publikasi */
+function getKategoriPublikasiList(): array {
+    return [
+        'Scopus Q1', 'Scopus Q2', 'Scopus Q3', 'Scopus Q4', 'Scopus (Non-Q)',
+        'SINTA 1', 'SINTA 2', 'SINTA 3', 'SINTA 4', 'SINTA 5', 'SINTA 6',
+        'Jurnal Internasional Bereputasi (WoS/Scopus)',
+        'Jurnal Internasional Terindeks',
+        'Jurnal Nasional Terakreditasi',
+        'Jurnal Nasional Tidak Terakreditasi',
+        'Prosiding Internasional (Scopus/IEEE)',
+        'Prosiding Nasional',
+        'Buku / Book Chapter',
+        'HKI / Hak Cipta / Paten',
+        'Lainnya'
+    ];
+}
+
+/** Render Badge Kategori Publikasi */
+function getKategoriBadge(?string $kat): string {
+    $k = trim((string)$kat);
+    if (empty($k) || $k === 'Lainnya') {
+        return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">Lainnya</span>';
+    }
+    if (stripos($k, 'scopus') !== false || stripos($k, 'wos') !== false) {
+        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 shadow-xs"><svg class="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>' . htmlspecialchars($k) . '</span>';
+    }
+    if (stripos($k, 'sinta') !== false) {
+        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700/60 shadow-xs">' . htmlspecialchars($k) . '</span>';
+    }
+    if (stripos($k, 'prosiding') !== false) {
+        return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700/60">' . htmlspecialchars($k) . '</span>';
+    }
+    if (stripos($k, 'buku') !== false || stripos($k, 'hki') !== false || stripos($k, 'paten') !== false) {
+        return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60">' . htmlspecialchars($k) . '</span>';
+    }
+    return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60">' . htmlspecialchars($k) . '</span>';
+}

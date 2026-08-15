@@ -89,6 +89,7 @@ $citationHtml = buildCitation($pub, $coAuthors, $dosenNama);
 
     <!-- Journal Source Line (like ScienceDirect "source info" at top) -->
     <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400 mb-4">
+      <?= getKategoriBadge($pub['kategori_publikasi'] ?? 'Lainnya') ?>
       <?php if ($pub['nama_jurnal']): ?>
       <span class="font-bold text-[#8c0c4c] dark:text-[#f06ea4]"><?= htmlspecialchars($pub['nama_jurnal']) ?></span>
       <?php if ($pub['tahun_terbit']): ?><span>•</span><span><?= $pub['tahun_terbit'] ?></span><?php endif; ?>

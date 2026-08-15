@@ -68,11 +68,13 @@ if ($action === 'insert') {
         }
     }
 
+    $kategori= trim($_POST['kategori_publikasi'] ?? 'Lainnya');
+
     $pdo->prepare("INSERT INTO dosen_publikasi 
-        (dosen_id, judul_artikel, nama_jurnal, kata_kunci, doi, link_artikel, status_publikasi, 
+        (dosen_id, judul_artikel, nama_jurnal, kategori_publikasi, kata_kunci, doi, link_artikel, status_publikasi, 
          abstrak, penulis, tahun_terbit, referensi, file_jurnal, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())")
-        ->execute([$dosenId, $judul, $jurnal ?: null, $kw ?: null, $doi ?: null, $link ?: null,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())")
+        ->execute([$dosenId, $judul, $jurnal ?: null, $kategori ?: 'Lainnya', $kw ?: null, $doi ?: null, $link ?: null,
                    $status, $abstrak ?: null, $penulis ?: null, $tahun, $ref ?: null, $fileJurnal]);
 
     setFlash('success', 'Publikasi berhasil ditambahkan ke portofolio Anda.');

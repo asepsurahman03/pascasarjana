@@ -21,16 +21,17 @@ $dosenId = $dosenRow['id'] ?? 0;
 $flash = getFlash();
 
 // --- Filter & Search ---
-$searchQ     = trim($_GET['q'] ?? '');
-$filterYear  = (int)($_GET['year'] ?? 0);
-$filterStatus= trim($_GET['status'] ?? '');
+$searchQ        = trim($_GET['q'] ?? '');
+$filterYear     = (int)($_GET['year'] ?? 0);
+$filterStatus   = trim($_GET['status'] ?? '');
+$filterKategori = trim($_GET['kategori'] ?? '');
 
 // --- Build query ---
 $where = ['dosen_id = ?'];
 $params = [$dosenId];
 if ($searchQ) {
-    $where[] = '(judul_artikel LIKE ? OR nama_jurnal LIKE ? OR kata_kunci LIKE ? OR penulis LIKE ?)';
-    $params = array_merge($params, ["%$searchQ%", "%$searchQ%", "%$searchQ%", "%$searchQ%"]);
+    $where[] = '(judul_artikel LIKE ? OR nama_jurnal LIKE ? OR kata_kunci LIKE ? OR penulis LIKE ? OR kategori_publikasi LIKE ?)';
+    $params = array_merge($params, ["%$searchQ%", "%$searchQ%", "%$searchQ%", "%$searchQ%", "%$searchQ%"]);
 }
 if ($filterYear) {
     $where[] = 'tahun_terbit = ?';
@@ -40,15 +41,21 @@ if ($filterStatus) {
     $where[] = 'LOWER(status_publikasi) LIKE ?';
     $params[] = "%$filterStatus%";
 }
+if ($filterKategori) {
+    $where[] = 'LOWER(kategori_publikasi) LIKE ?';
+    $params[] = "%" . strtolower($filterKategori) . "%";
+}
 $whereStr = implode(' AND ', $where);
 
 $publikasi = dbQuery("SELECT * FROM dosen_publikasi WHERE $whereStr ORDER BY tahun_terbit DESC, created_at DESC", $params);
 
 // --- Stats ---
-$total   = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=?", [$dosenId])['c'] ?? 0;
-$publish = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=? AND LOWER(status_publikasi) LIKE 'publish%'", [$dosenId])['c'] ?? 0;
-$acc     = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=? AND LOWER(status_publikasi) LIKE 'acc%'", [$dosenId])['c'] ?? 0;
-$review  = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=? AND LOWER(status_publikasi) LIKE '%review%'", [$dosenId])['c'] ?? 0;
+$total       = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=?", [$dosenId])['c'] ?? 0;
+$publish     = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=? AND LOWER(status_publikasi) LIKE 'publish%'", [$dosenId])['c'] ?? 0;
+$acc         = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=? AND LOWER(status_publikasi) LIKE 'acc%'", [$dosenId])['c'] ?? 0;
+$review      = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=? AND LOWER(status_publikasi) LIKE '%review%'", [$dosenId])['c'] ?? 0;
+$scopusCount = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=? AND LOWER(kategori_publikasi) LIKE '%scopus%'", [$dosenId])['c'] ?? 0;
+$sintaCount  = dbQueryOne("SELECT COUNT(*) c FROM dosen_publikasi WHERE dosen_id=? AND LOWER(kategori_publikasi) LIKE '%sinta%'", [$dosenId])['c'] ?? 0;
 
 // --- Years for filter ---
 $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_id=? AND tahun_terbit IS NOT NULL ORDER BY tahun_terbit DESC", [$dosenId]);
@@ -74,15 +81,22 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
       <h1 class="text-2xl font-display font-bold text-slate-800 dark:text-white">Penelitian & Publikasi</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Kelola daftar karya ilmiah dan publikasi akademik Anda</p>
     </div>
-    <div class="flex items-center gap-3 flex-wrap">
+    <div class="flex items-center gap-2.5 flex-wrap">
       <!-- Stats pills -->
-      <span class="text-xs font-bold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full"><?= $total ?> Total</span>
-      <span class="text-xs font-bold px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full"><?= $publish ?> Publish</span>
+      <span class="text-xs font-bold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full border border-slate-200 dark:border-slate-700"><?= $total ?> Total</span>
+      <span class="text-xs font-bold px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded-full border border-amber-300 dark:border-amber-700/60 shadow-xs flex items-center gap-1">
+        ⭐ Scopus: <strong><?= $scopusCount ?></strong>
+      </span>
+      <span class="text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 rounded-full border border-blue-300 dark:border-blue-700/60 shadow-xs flex items-center gap-1">
+        🏅 SINTA: <strong><?= $sintaCount ?></strong>
+      </span>
+      <span class="text-xs font-bold px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-800/50"><?= $publish ?> Publish</span>
+      
       <?php if ($total > 0): ?>
-      <a href="export_publikasi_excel<?= ($searchQ||$filterYear||$filterStatus) ? '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'status'=>$filterStatus])) : '' ?>"
+      <a href="export_publikasi_excel<?= ($searchQ||$filterYear||$filterStatus||$filterKategori) ? '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'status'=>$filterStatus,'kategori'=>$filterKategori])) : '' ?>"
          id="btnExportExcelDosen"
          target="_blank" rel="noopener"
-         class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white text-sm transition hover:shadow-lg hover:-translate-y-0.5 bg-emerald-600 hover:bg-emerald-700"
+         class="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-white text-xs transition hover:shadow-lg hover:-translate-y-0.5 bg-emerald-600 hover:bg-emerald-700 ml-1"
          title="Download data publikasi sebagai file Excel (.xlsx)">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -92,7 +106,7 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
       </a>
       <?php endif; ?>
       <button onclick="document.getElementById('addModal').classList.remove('hidden')"
-              class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white text-sm transition hover:shadow-lg hover:-translate-y-0.5 bg-gradient-to-r from-[#8c0c4c] to-[#c41e73]">
+              class="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-white text-xs transition hover:shadow-lg hover:-translate-y-0.5 bg-gradient-to-r from-[#8c0c4c] to-[#c41e73]">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Tambah Publikasi
       </button>
@@ -103,11 +117,11 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
   <form method="GET" class="mt-4 flex gap-2">
     <div class="relative flex-1 max-w-lg">
       <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-      <input type="text" name="q" value="<?= htmlspecialchars($searchQ) ?>" placeholder="Cari judul, jurnal, kata kunci, penulis..."
+      <input type="text" name="q" value="<?= htmlspecialchars($searchQ) ?>" placeholder="Cari judul, jurnal, kata kunci, penulis, indeksasi..."
              class="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#8c0c4c] focus:ring-2 focus:ring-[#8c0c4c]/15 transition">
     </div>
     <button type="submit" class="px-4 py-2.5 bg-[#8c0c4c] text-white rounded-xl text-sm font-bold hover:bg-[#a3155b] transition">Cari</button>
-    <?php if ($searchQ || $filterYear || $filterStatus): ?>
+    <?php if ($searchQ || $filterYear || $filterStatus || $filterKategori): ?>
     <a href="penelitian" class="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-200 transition">Reset</a>
     <?php endif; ?>
   </form>
@@ -117,29 +131,62 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
 <div class="flex gap-6 items-start">
 
   <!-- Sidebar Filter -->
-  <aside class="hidden lg:block w-52 shrink-0 sticky top-4">
+  <aside class="hidden lg:block w-56 shrink-0 sticky top-4">
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm mb-4">
-      <div class="bg-[#8c0c4c] px-4 py-3">
+      <div class="bg-[#8c0c4c] px-4 py-3 flex items-center justify-between">
         <h3 class="text-white text-sm font-bold uppercase tracking-wide">Filter</h3>
+        <?php if ($filterStatus || $filterKategori || $filterYear): ?>
+        <a href="penelitian" class="text-[11px] text-white/80 hover:text-white underline">Reset</a>
+        <?php endif; ?>
       </div>
+
+      <!-- By Indeksasi / Kategori -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-700">
+        <h4 class="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+          <span>Indeksasi</span>
+          <span class="text-[10px] text-slate-400 font-normal">Kategori</span>
+        </h4>
+        <div class="space-y-1">
+          <?php
+          $kats = [
+            ['val'=>'',        'label'=>'Semua Indeksasi'],
+            ['val'=>'scopus',  'label'=>'⭐ Scopus'],
+            ['val'=>'sinta',   'label'=>'🏅 SINTA'],
+            ['val'=>'internasional','label'=>'🌐 Jurnal Internasional'],
+            ['val'=>'nasional', 'label'=>'🏛️ Jurnal Nasional'],
+            ['val'=>'prosiding','label'=>'📑 Prosiding'],
+            ['val'=>'hki',      'label'=>'💡 HKI / Paten / Buku'],
+          ];
+          foreach ($kats as $kt):
+            $active = ($filterKategori === $kt['val']);
+            $href   = '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'status'=>$filterStatus,'kategori'=>$kt['val']]));
+          ?>
+          <a href="<?= $href ?>" class="flex items-center justify-between group rounded-lg px-2.5 py-1.5 <?= $active ? 'bg-[#8c0c4c]/10 dark:bg-[#f06ea4]/15 text-[#8c0c4c] dark:text-[#f06ea4] font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60' ?> text-xs transition-colors">
+            <span><?= $kt['label'] ?></span>
+            <?php if ($active): ?><span class="w-1.5 h-1.5 rounded-full bg-[#8c0c4c] dark:bg-[#f06ea4]"></span><?php endif; ?>
+          </a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
       <!-- By Status -->
       <div class="p-4 border-b border-slate-100 dark:border-slate-700">
         <h4 class="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Status</h4>
         <div class="space-y-1.5">
           <?php
           $statuses = [
-            ['val'=>'',       'label'=>'Semua',         'count'=>$total,   'col'=>'text-slate-600'],
+            ['val'=>'',       'label'=>'Semua Status',  'count'=>$total,   'col'=>'text-slate-600'],
             ['val'=>'publish','label'=>'Sudah Publish',  'count'=>$publish, 'col'=>'text-emerald-600'],
             ['val'=>'acc',    'label'=>'ACC / Diterima', 'count'=>$acc,     'col'=>'text-blue-600'],
             ['val'=>'review', 'label'=>'Sedang Review',  'count'=>$review,  'col'=>'text-amber-600'],
           ];
           foreach ($statuses as $st):
             $active = ($filterStatus === $st['val']);
-            $href   = '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'status'=>$st['val']]));
+            $href   = '?'.http_build_query(array_filter(['q'=>$searchQ,'year'=>$filterYear,'kategori'=>$filterKategori,'status'=>$st['val']]));
           ?>
-          <a href="<?= $href ?>" class="flex items-center justify-between group rounded-lg px-2.5 py-2 <?= $active ? 'bg-[#8c0c4c]/8 dark:bg-[#f06ea4]/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700' ?> transition-colors">
-            <span class="text-sm <?= $active ? 'font-bold text-[#8c0c4c] dark:text-[#f06ea4]' : 'text-slate-600 dark:text-slate-400' ?>"><?= $st['label'] ?></span>
-            <span class="text-xs font-bold <?= $active ? 'text-[#8c0c4c] dark:text-[#f06ea4]' : $st['col'] ?> bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full"><?= $st['count'] ?></span>
+          <a href="<?= $href ?>" class="flex items-center justify-between group rounded-lg px-2.5 py-1.5 <?= $active ? 'bg-[#8c0c4c]/10 dark:bg-[#f06ea4]/15 text-[#8c0c4c] dark:text-[#f06ea4] font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60' ?> text-xs transition-colors">
+            <span><?= $st['label'] ?></span>
+            <span class="text-[11px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 <?= $st['col'] ?> font-bold"><?= $st['count'] ?></span>
           </a>
           <?php endforeach; ?>
         </div>
@@ -191,9 +238,10 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
     ?>
     <article class="sd-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 hover:border-[#8c0c4c]/40 dark:hover:border-[#8c0c4c]/50 hover:shadow-md transition-all">
       <!-- Row 1: Meta -->
-      <div class="flex items-center gap-3 mb-3">
+      <div class="flex items-center gap-2.5 mb-3 flex-wrap">
+        <?= getKategoriBadge($pub['kategori_publikasi'] ?? 'Lainnya') ?>
         <?php if ($pub['nama_jurnal']): ?>
-        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[60%]"><?= htmlspecialchars($pub['nama_jurnal']) ?></span>
+        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[50%]"><?= htmlspecialchars($pub['nama_jurnal']) ?></span>
         <?php endif; ?>
         <?php if ($pub['tahun_terbit']): ?>
         <span class="text-xs text-slate-400">• <?= $pub['tahun_terbit'] ?></span>
@@ -337,11 +385,12 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
         $inputCls = 'w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:border-[#8c0c4c] focus:ring-2 focus:ring-[#8c0c4c]/15 transition-all';
         $sections = [
           'Identitas Artikel' => [
-            ['name'=>'judul_artikel',  'label'=>'Judul Artikel *', 'type'=>'text', 'req'=>true, 'placeholder'=>'Judul lengkap artikel...', 'full'=>true],
-            ['name'=>'nama_jurnal',    'label'=>'Nama Jurnal / Prosiding', 'type'=>'text', 'req'=>false, 'placeholder'=>'Nama jurnal termasuk Volume & Issue', 'full'=>false],
-            ['name'=>'kata_kunci',     'label'=>'Kata Kunci', 'type'=>'text', 'req'=>false, 'placeholder'=>'Pisahkan dengan koma', 'full'=>false],
-            ['name'=>'link_artikel',   'label'=>'URL / Link Artikel', 'type'=>'url', 'req'=>false, 'placeholder'=>'https://...', 'full'=>false],
-            ['name'=>'status_publikasi','label'=>'Status Publikasi', 'type'=>'select', 'req'=>true, 'options'=>['Publish'=>'✅ Sudah Publish','ACC / Diterima'=>'🟦 ACC / Diterima','Sedang Review'=>'⏳ Sedang Review'], 'full'=>false],
+            ['name'=>'judul_artikel',      'label'=>'Judul Artikel *', 'type'=>'text', 'req'=>true, 'placeholder'=>'Judul lengkap artikel...', 'full'=>true],
+            ['name'=>'kategori_publikasi', 'label'=>'Kategori / Indeksasi Jurnal *', 'type'=>'select', 'req'=>true, 'options'=>array_combine(getKategoriPublikasiList(), getKategoriPublikasiList()), 'full'=>false],
+            ['name'=>'nama_jurnal',        'label'=>'Nama Jurnal / Prosiding', 'type'=>'text', 'req'=>false, 'placeholder'=>'Nama jurnal termasuk Volume & Issue', 'full'=>false],
+            ['name'=>'kata_kunci',         'label'=>'Kata Kunci', 'type'=>'text', 'req'=>false, 'placeholder'=>'Pisahkan dengan koma', 'full'=>false],
+            ['name'=>'link_artikel',       'label'=>'URL / Link Artikel', 'type'=>'url', 'req'=>false, 'placeholder'=>'https://...', 'full'=>false],
+            ['name'=>'status_publikasi',    'label'=>'Status Publikasi', 'type'=>'select', 'req'=>true, 'options'=>['Publish'=>'✅ Sudah Publish','ACC / Diterima'=>'🟦 ACC / Diterima','Sedang Review'=>'⏳ Sedang Review'], 'full'=>false],
           ],
           'Bibliografi' => [
             ['name'=>'tahun_terbit', 'label'=>'Tahun Terbit', 'type'=>'number', 'req'=>false, 'placeholder'=>date('Y'), 'full'=>false, 'min'=>1900, 'max'=>(int)date('Y')+2],
