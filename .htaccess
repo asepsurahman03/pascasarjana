@@ -2,22 +2,20 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /
 
-  # 1. Jika request mengarah ke file atau folder fisik nyata, lewati rewrite
+  # 1. Jika request langsung ke file atau folder fisik nyata, jangan diubah
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # 2. Rewrite otomatis untuk semua URL (root, /pages/..., /mhs/..., /dosen/...)
-  # Contoh: /pages/raport_dosen -> pages/raport_dosen.php
-  # Contoh: /login -> login.php
-  # Contoh: /mhs/index -> mhs/index.php
+  # 2. Rewrite URL .php langsung (contoh: login -> login.php, mhs/index -> mhs/index.php, pages/raport_dosen -> pages/raport_dosen.php)
   RewriteCond %{REQUEST_FILENAME}.php -f
   RewriteRule ^(.*)$ $1.php [L,QSA]
 
-  # 3. Fallback jika halaman di folder pages diakses tanpa prefix /pages/
-  RewriteCond %{DOCUMENT_ROOT}/pages/$1.php -f
+  # 3. Rewrite jika file berada di dalam subfolder pages/ (contoh: dashboard -> pages/dashboard.php)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond pages/$1.php -f
   RewriteRule ^(.*)$ pages/$1.php [L,QSA]
 </IfModule>
 
