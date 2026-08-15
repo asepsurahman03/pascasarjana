@@ -685,29 +685,46 @@ document.addEventListener('DOMContentLoaded', function() {
                     csl?.ISSN?.[0] || ''
                 ).replace(/[^0-9X]/gi, '').replace(/(.{4})(.{4})/, '$1-$2');
 
-                const sintaQuery = issn || (item?.['container-title']?.[0] || oaw?.primary_location?.source?.display_name || s2?.publicationVenue?.name || csl?.['container-title'] || '');
+                const jName = (item?.['container-title']?.[0] || oaw?.primary_location?.source?.display_name || s2?.publicationVenue?.name || csl?.['container-title'] || '');
+                const sintaQuery = issn || jName;
 
-                if (sintaQuery && sintaQuery.length > 3) {
+                <?php
+                $baseUrl = rtrim(dirname(dirname($_SERVER['PHP_SELF'] ?? '/dosen/penelitian.php')), '/');
+                ?>
+                const SINTA_API_URL = '<?= $baseUrl ?>/api/check_sinta.php';
+
+                if (sintaQuery && sintaQuery.length > 2) {
                     if (noteEl) {
                         noteEl.className = 'mt-2 text-xs font-semibold text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/60';
-                        noteEl.innerHTML = '🔄 Memeriksa ke database SINTA Kemdikbud...';
+                        noteEl.innerHTML = '🔄 Memeriksa tingkat SINTA jurnal...';
                     }
-                    const sintaParam = issn ? `issn=${encodeURIComponent(issn)}` : `q=${encodeURIComponent(sintaQuery)}`;
-                    fetch(`<?= rtrim(str_replace(DIRECTORY_SEPARATOR, '/', str_replace($_SERVER['DOCUMENT_ROOT'] ?? '', '', dirname(__DIR__))), '/') ?>/api/check_sinta.php?${sintaParam}`)
-                        .then(r => r.json())
+                    const params = new URLSearchParams();
+                    if (issn) params.set('issn', issn);
+                    if (jName) params.set('q', jName.toLowerCase());
+
+                    fetch(SINTA_API_URL + '?' + params.toString())
+                        .then(r => {
+                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                            return r.json();
+                        })
                         .then(data => {
+                            console.log('[SINTA Check Dosen]', data);
                             if (data.sinta_rank && /^SINTA\s*[1-6]$/i.test(data.sinta_rank.trim())) {
                                 applyKategori(data.sinta_rank.trim(), 'sinta');
-                            } else if (detectedKategori && /^SINTA/i.test(detectedKategori)) {
-                                // Sudah ada rekomendasi lokal SINTA, tidak perlu ubah
-                            } else if (data.error) {
-                                if (noteEl && !detectedKategori) {
+                            } else {
+                                if (noteEl) {
                                     noteEl.className = 'mt-2 text-xs font-semibold text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60';
-                                    noteEl.innerHTML = '⚠️ Tidak dapat memeriksa SINTA. Silakan cek manual di <a href="https://sinta.kemdikbud.go.id/journals" target="_blank" class="underline font-bold">SINTA Kemdikbud ↗</a>';
+                                    noteEl.innerHTML = `⚠️ Jurnal tidak ditemukan otomatis di DB SINTA. Pilih level yang sesuai lalu verifikasi di <a href="https://sinta.kemdikbud.go.id/journals" target="_blank" class="underline font-bold">SINTA Kemdikbud ↗</a>`;
                                 }
                             }
                         })
-                        .catch(() => { /* silent fail */ });
+                        .catch(err => {
+                            console.warn('[SINTA Check Dosen] Error:', err);
+                            if (noteEl) {
+                                noteEl.className = 'mt-2 text-xs font-semibold text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60';
+                                noteEl.innerHTML = `⚠️ Tidak dapat mengecek SINTA. Pilih level yang sesuai lalu verifikasi di <a href="https://sinta.kemdikbud.go.id/journals" target="_blank" class="underline font-bold">SINTA Kemdikbud ↗</a>`;
+                            }
+                        });
                 }
 
                 // ── PENULIS (Authors) ──────────────────────────────────────

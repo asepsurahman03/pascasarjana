@@ -63,37 +63,56 @@ if ($issn) {
 
 // ── 2. Cek by nama jurnal ──────────────────────────────────────────────────
 if ($q) {
-    // Exact key match
-    if (isset($byName[$q])) {
-        echo json_encode([
-            'sinta_rank'   => $byName[$q],
-            'journal_name' => $q,
-            'source'       => 'local_db_name_exact',
-        ]);
-        exit;
+    // Ekstrak singkatan dari dalam tanda kurung misal "IJNMT (International...)" → coba "ijnmt" juga
+    $abbreviations = [];
+    if (preg_match_all('/\(([A-Z][A-Z0-9\-]+)\)/i', $q, $abbrMatches)) {
+        foreach ($abbrMatches[1] as $abbr) {
+            $abbreviations[] = strtolower(trim($abbr));
+        }
     }
-    // Substring match: cek apakah query mengandung nama di db atau sebaliknya
-    foreach ($byName as $dbName => $rank) {
-        if (str_contains($q, $dbName) || str_contains($dbName, $q)) {
+    // Ambil kata pertama jika ada (kemungkinan singkatan)
+    $firstWord = strtolower(explode(' ', trim($q))[0]);
+    $allQueries = array_unique(array_filter([$q, $firstWord, ...$abbreviations]));
+
+    foreach ($allQueries as $queryVariant) {
+        // Exact key match
+        if (isset($byName[$queryVariant])) {
             echo json_encode([
-                'sinta_rank'   => $rank,
-                'journal_name' => $dbName,
-                'source'       => 'local_db_name_partial',
+                'sinta_rank'   => $byName[$queryVariant],
+                'journal_name' => $queryVariant,
+                'source'       => 'local_db_name_exact',
             ]);
             exit;
         }
     }
-    // Cek juga di ISSN entries by name
-    foreach ($byIssn as $dbIssn => $item) {
-        $dbNameLow = strtolower($item['name'] ?? '');
-        if ($dbNameLow && (str_contains($q, $dbNameLow) || str_contains($dbNameLow, $q))) {
-            echo json_encode([
-                'sinta_rank'   => $item['rank'],
-                'journal_name' => $item['name'],
-                'issn'         => $dbIssn,
-                'source'       => 'local_db_name_in_issn',
-            ]);
-            exit;
+
+    // Substring match semua variant
+    foreach ($allQueries as $queryVariant) {
+        foreach ($byName as $dbName => $rank) {
+            if (str_contains($queryVariant, $dbName) || str_contains($dbName, $queryVariant)) {
+                echo json_encode([
+                    'sinta_rank'   => $rank,
+                    'journal_name' => $dbName,
+                    'source'       => 'local_db_name_partial',
+                ]);
+                exit;
+            }
+        }
+    }
+
+    // Cek di ISSN entries by name (nama lengkap)
+    foreach ($allQueries as $queryVariant) {
+        foreach ($byIssn as $dbIssn => $item) {
+            $dbNameLow = strtolower($item['name'] ?? '');
+            if ($dbNameLow && (str_contains($queryVariant, $dbNameLow) || str_contains($dbNameLow, $queryVariant))) {
+                echo json_encode([
+                    'sinta_rank'   => $item['rank'],
+                    'journal_name' => $item['name'],
+                    'issn'         => $dbIssn,
+                    'source'       => 'local_db_name_in_issn',
+                ]);
+                exit;
+            }
         }
     }
 }
