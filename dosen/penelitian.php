@@ -386,7 +386,7 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
         $sections = [
           'Identitas Artikel' => [
             ['name'=>'judul_artikel',      'label'=>'Judul Artikel *', 'type'=>'text', 'req'=>true, 'placeholder'=>'Judul lengkap artikel...', 'full'=>true],
-            ['name'=>'kategori_publikasi', 'label'=>'Kategori / Indeksasi Jurnal *', 'type'=>'select', 'req'=>true, 'options'=>array_combine(getKategoriPublikasiList(), getKategoriPublikasiList()), 'full'=>false],
+            ['name'=>'kategori_publikasi', 'label'=>'Kategori / Indeksasi Jurnal *', 'type'=>'select', 'req'=>true, 'options'=>[''=>'-- Pilih Kategori / Indeksasi Yang Sesuai --'] + array_combine(getKategoriPublikasiList(), getKategoriPublikasiList()), 'full'=>false],
             ['name'=>'nama_jurnal',        'label'=>'Nama Jurnal / Prosiding', 'type'=>'text', 'req'=>false, 'placeholder'=>'Nama jurnal termasuk Volume & Issue', 'full'=>false],
             ['name'=>'kata_kunci',         'label'=>'Kata Kunci', 'type'=>'text', 'req'=>false, 'placeholder'=>'Pisahkan dengan koma', 'full'=>false],
             ['name'=>'link_artikel',       'label'=>'URL / Link Artikel', 'type'=>'url', 'req'=>false, 'placeholder'=>'https://...', 'full'=>false],
@@ -416,6 +416,15 @@ $years = dbQuery("SELECT DISTINCT tahun_terbit FROM dosen_publikasi WHERE dosen_
               <option value="<?= $val ?>"><?= $lbl ?></option>
               <?php endforeach; ?>
             </select>
+            <?php if ($f['name'] === 'kategori_publikasi'): ?>
+            <div class="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+              <span>Verifikasi resmi:</span>
+              <a href="https://sinta.kemdikbud.go.id/journals" target="_blank" rel="noopener" class="font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5">🔍 Cek di SINTA Kemdikbud ↗</a>
+              <span>·</span>
+              <a href="https://www.scimagojr.com" target="_blank" rel="noopener" class="font-semibold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-0.5">🔍 Cek di ScimagoJR ↗</a>
+            </div>
+            <div id="kategoriHelperNoteDosen" class="mt-2 text-xs font-semibold text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 hidden"></div>
+            <?php endif; ?>
             <?php elseif ($f['type'] === 'dynamic_authors'): ?>
             <div x-data="{ authors: [''] }" @set-authors-dosen.window="authors = $event.detail.length ? $event.detail : ['']">
               <template x-for="(author, index) in authors" :key="index">
@@ -649,10 +658,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const detectedKategori = detectKategori(item, oaw, s2, dcAttr, csl, doi);
                 const elKategori = document.querySelector('select[name="kategori_publikasi"]');
+                const noteEl = document.getElementById('kategoriHelperNoteDosen');
                 if (elKategori && detectedKategori) {
                     elKategori.value = detectedKategori;
                     elKategori.classList.add('ring-2', 'ring-[#8c0c4c]');
                     setTimeout(() => elKategori.classList.remove('ring-2', 'ring-[#8c0c4c]'), 2500);
+
+                    if (noteEl) {
+                        noteEl.innerHTML = `💡 <strong>Rekomendasi Indeksasi:</strong> Terpilih otomatis <u>${detectedKategori}</u>. Harap pastikan dan sesuaikan tingkatan Kuartil Scopus (Q1–Q4) atau SINTA (1–6) sesuai sertifikat resmi jurnal Anda.`;
+                        noteEl.classList.remove('hidden');
+                    }
                 }
 
                 // ── PENULIS (Authors) ──────────────────────────────────────
