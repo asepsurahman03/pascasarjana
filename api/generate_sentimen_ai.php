@@ -95,29 +95,15 @@ if (empty($feedbackText)) {
     exit;
 }
 
-$geminiKey = getSetting('gemini_api_key');
-$groqKey   = getSetting('groq_api_key');
+$geminiKey = trim(getSetting('gemini_api_key'));
+$groqKey   = trim(getSetting('groq_api_key'));
 
-$apiKey = '';
-$isGroq = false;
+// Deteksi key mana yang bertipe Groq (gsk_) dan mana yang Gemini
+$actualGroqKey   = str_starts_with($groqKey, 'gsk_') ? $groqKey : (str_starts_with($geminiKey, 'gsk_') ? $geminiKey : '');
+$actualGeminiKey = (!empty($geminiKey) && !str_starts_with($geminiKey, 'gsk_')) ? $geminiKey : ((!empty($groqKey) && !str_starts_with($groqKey, 'gsk_')) ? $groqKey : '');
 
-// Deteksi tipe key secara cerdas: untuk analisis sentimen, prefer Gemini (non-gsk_) karena limit token besar
-if (!empty($geminiKey) && !str_starts_with($geminiKey, 'gsk_')) {
-    $apiKey = $geminiKey;
-    $isGroq = false;
-} elseif (!empty($groqKey) && str_starts_with($groqKey, 'gsk_')) {
-    $apiKey = $groqKey;
-    $isGroq = true;
-} elseif (!empty($geminiKey) && str_starts_with($geminiKey, 'gsk_')) {
-    // Jika user salah memasukkan key Groq di kolom Gemini
-    $apiKey = $geminiKey;
-    $isGroq = true;
-} elseif (!empty($groqKey) && !str_starts_with($groqKey, 'gsk_')) {
-    // Jika user salah memasukkan key Gemini di kolom Groq
-    $apiKey = $groqKey;
-    $isGroq = false;
-} else {
-    echo json_encode(['error' => 'API Key belum diatur. Silakan isi di pengaturan.']);
+if (empty($actualGroqKey) && empty($actualGeminiKey)) {
+    echo json_encode(['error' => 'API Key belum diatur. Silakan masukkan Groq API Key (gsk_...) atau Gemini API Key di menu Pengaturan.']);
     exit;
 }
 
@@ -188,14 +174,13 @@ if (mb_strlen($feedbackText) > $maxCharLimit) {
 $userMsg = "Berikut adalah daftar Kesan dan Pesan dari mahasiswa:\n" . $feedbackText;
 
 $resultJson = null;
-$isGroq = str_starts_with($apiKey, 'gsk_');
 $lastError = '';
 
-if ($isGroq) {
-    // ============================================================
-    // Coba Groq API
-    // ============================================================
-    $groqModels = ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'llama-3.1-8b-instant', 'gemma2-9b-it'];
+// ============================================================
+// 1. Coba GROQ API jika key tersedia
+// ============================================================
+if (!empty($actualGroqKey)) {
+    $groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it'];
     foreach ($groqModels as $model) {
         $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
         $postFields = json_encode([
@@ -220,7 +205,7 @@ if ($isGroq) {
             CURLOPT_POST           => true,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_TIMEOUT        => 45,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Authorization: Bearer ' . $apiKey],
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Authorization: Bearer ' . $actualGroqKey],
             CURLOPT_POSTFIELDS     => $postFields,
         ]);
         $resp = curl_exec($ch);
@@ -229,7 +214,7 @@ if ($isGroq) {
         curl_close($ch);
 
         if ($cerr) {
-            $lastError = "Curl error: " . $cerr;
+            $lastError = "Groq curl error: " . $cerr;
             continue;
         }
         
@@ -240,23 +225,22 @@ if ($isGroq) {
         }
         
         $msg = $d['error']['message'] ?? "HTTP $code";
-        $lastError = "Groq API Error ($code) via $model: $msg";
-        
-        if ($code === 404 || $code === 503 || $code === 429 || $code === 413) continue;
-        break; // Jika error fatal seperti 400 (Bad Request), tidak perlu coba model lain
+        $lastError = "Groq Error ($code) via $model: $msg";
     }
-} else {
-    // ============================================================
-    // Coba Gemini API
-    // ============================================================
-    $geminiModels = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-1.5-flash', 'gemini-pro-latest'];
+}
+
+// ============================================================
+// 2. Fallback ke GEMINI API jika Groq gagal atau key Gemini diisi
+// ============================================================
+if ($resultJson === null && !empty($actualGeminiKey)) {
+    $geminiModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
     foreach ($geminiModels as $gmodel) {
-        $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/{$gmodel}:generateContent?key={$apiKey}");
+        $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/{$gmodel}:generateContent?key={$actualGeminiKey}");
         $postFields = json_encode([
             'contents'         => [['parts' => [['text' => $sysMsg . "\n\n" . $userMsg]]]],
             'generationConfig' => [
-                'temperature' => 0.2, 
-                'maxOutputTokens' => 3000,
+                'temperature'      => 0.2, 
+                'maxOutputTokens'  => 3000,
                 'responseMimeType' => 'application/json'
             ],
         ], JSON_INVALID_UTF8_SUBSTITUTE);
@@ -271,21 +255,20 @@ if ($isGroq) {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_TIMEOUT        => 45,
+            CURLOPT_TIMEOUT        => 35,
             CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
             CURLOPT_POSTFIELDS     => $postFields,
         ]);
-        
         $resp = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $cerr = curl_error($ch);
         curl_close($ch);
         
         if ($cerr) {
-            $lastError = "Curl error: " . $cerr;
+            $lastError = "Gemini curl error: " . $cerr;
             continue;
         }
-
+        
         $d = json_decode($resp, true);
         if ($code === 200 && !empty($d['candidates'][0]['content']['parts'][0]['text'])) {
             $resultJson = $d['candidates'][0]['content']['parts'][0]['text'];
@@ -293,16 +276,12 @@ if ($isGroq) {
         }
         
         $msg = $d['error']['message'] ?? "HTTP $code";
-        $lastError = "Gemini API Error ($code) via $gmodel: $msg";
-        
-        if ($code === 404) continue;
-        break;
+        $lastError = "Gemini Error ($code) via $gmodel: $msg";
     }
 }
 
 if ($resultJson === null) {
-    $serviceName = $isGroq ? "Groq" : "Gemini";
-    echo json_encode(['error' => "Gagal menggunakan API $serviceName. Detail error: " . $lastError]);
+    echo json_encode(['error' => "Gagal menganalisis dengan AI. Detail error: " . $lastError]);
     exit;
 }
 

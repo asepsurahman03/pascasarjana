@@ -5,10 +5,59 @@ $allProdi=getAllProdi();
 $cur=dbQueryOne("SELECT * FROM users WHERE id=?",[$_SESSION['user_id']]);
 if($_SERVER['REQUEST_METHOD']==='POST'){
     $a=$_POST['action']??'';
-    if($a==='profil'){$n=trim($_POST['nama']);$e=trim($_POST['email']);dbExecute("UPDATE users SET nama=?,email=? WHERE id=?",[$n,$e,$_SESSION['user_id']]);if(!empty($_POST['pw_baru'])){if(!password_verify($_POST['pw_lama'],$cur['password_hash'])){$_SESSION['flash']=['type'=>'error','message'=>'Password lama salah.'];header('Location: settings?tab=profil');exit;}dbExecute("UPDATE users SET password_hash=? WHERE id=?",[password_hash($_POST['pw_baru'],PASSWORD_BCRYPT),$_SESSION['user_id']]);} $_SESSION['nama']=$n;$_SESSION['flash']=['type'=>'success','message'=>'Profil berhasil diperbarui.'];header('Location: settings?tab=profil');exit;}
-    if($a==='sistem'&&isSuperAdmin()){foreach(['nama_universitas','tahun_akademik','semester_aktif','format_nomor_surat','gemini_api_key','groq_api_key','google_client_id','google_client_secret'] as $k){if(isset($_POST[$k]))dbExecute("INSERT INTO settings(key_name,value)VALUES(?,?)ON DUPLICATE KEY UPDATE value=?",[$k,$_POST[$k],$_POST[$k]]);}$_SESSION['flash']=['type'=>'success','message'=>'Konfigurasi sistem disimpan.'];header('Location: settings?tab=sistem');exit;}
-    if($a==='wa'&&isSuperAdmin()){foreach(['wa_api_key','wa_nomor_pengirim','wa_gateway'] as $k)dbExecute("INSERT INTO settings(key_name,value)VALUES(?,?)ON DUPLICATE KEY UPDATE value=?",[$k,$_POST[$k]??'',$_POST[$k]??'']);$_SESSION['flash']=['type'=>'success','message'=>'Konfigurasi WhatsApp disimpan.'];header('Location: settings?tab=wa');exit;}
-    if($a==='drive'&&isSuperAdmin()){
+    if($a==='profil'){
+        $n=trim($_POST['nama']);
+        $e=trim($_POST['email']);
+        dbExecute("UPDATE users SET nama=?,email=? WHERE id=?",[$n,$e,$_SESSION['user_id']]);
+        if(!empty($_POST['pw_baru'])){
+            if(!password_verify($_POST['pw_lama'],$cur['password_hash'])){
+                $_SESSION['flash']=['type'=>'error','message'=>'Password lama salah.'];
+                header('Location: settings.php?tab=profil');
+                exit;
+            }
+            dbExecute("UPDATE users SET password_hash=? WHERE id=?",[password_hash($_POST['pw_baru'],PASSWORD_BCRYPT),$_SESSION['user_id']]);
+        }
+        $_SESSION['nama']=$n;
+        $_SESSION['flash']=['type'=>'success','message'=>'Profil berhasil diperbarui.'];
+        header('Location: settings.php?tab=profil');
+        exit;
+    }
+    if($a==='sistem'){
+        if(!isSuperAdmin()){
+            $_SESSION['flash']=['type'=>'error','message'=>'Hanya Super Admin yang memiliki hak akses untuk mengubah konfigurasi sistem.'];
+            header('Location: settings.php?tab=sistem');
+            exit;
+        }
+        foreach(['nama_universitas','tahun_akademik','semester_aktif','format_nomor_surat','gemini_api_key','groq_api_key','google_client_id','google_client_secret'] as $k){
+            if(isset($_POST[$k])){
+                $v = trim($_POST[$k]);
+                dbExecute("INSERT INTO settings(key_name,value)VALUES(?,?)ON DUPLICATE KEY UPDATE value=?",[$k,$v,$v]);
+            }
+        }
+        $_SESSION['flash']=['type'=>'success','message'=>'Konfigurasi sistem berhasil disimpan.'];
+        header('Location: settings.php?tab=sistem');
+        exit;
+    }
+    if($a==='wa'){
+        if(!isSuperAdmin()){
+            $_SESSION['flash']=['type'=>'error','message'=>'Hanya Super Admin yang memiliki hak akses untuk mengubah konfigurasi WhatsApp.'];
+            header('Location: settings.php?tab=wa');
+            exit;
+        }
+        foreach(['wa_api_key','wa_nomor_pengirim','wa_gateway'] as $k){
+            $v = trim($_POST[$k]??'');
+            dbExecute("INSERT INTO settings(key_name,value)VALUES(?,?)ON DUPLICATE KEY UPDATE value=?",[$k,$v,$v]);
+        }
+        $_SESSION['flash']=['type'=>'success','message'=>'Konfigurasi WhatsApp berhasil disimpan.'];
+        header('Location: settings.php?tab=wa');
+        exit;
+    }
+    if($a==='drive'){
+        if(!isSuperAdmin()){
+            $_SESSION['flash']=['type'=>'error','message'=>'Hanya Super Admin yang memiliki hak akses untuk mengubah konfigurasi Google Drive.'];
+            header('Location: settings.php?tab=drive');
+            exit;
+        }
         $fid=trim($_POST['google_drive_folder_id']??'');
         if($fid) dbExecute("INSERT INTO settings(key_name,value)VALUES(?,?)ON DUPLICATE KEY UPDATE value=?",['google_drive_folder_id',$fid,$fid]);
         // Handle JSON file upload
@@ -17,12 +66,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             $parsed=json_decode($jsonContent,true);
             if($parsed && ($parsed['type']??'')!=='service_account'){
                 $_SESSION['flash']=['type'=>'error','message'=>'File JSON bukan tipe service_account yang valid.'];
-                header('Location: settings?tab=drive');exit;
+                header('Location: settings.php?tab=drive');
+                exit;
             }
             dbExecute("INSERT INTO settings(key_name,value)VALUES(?,?)ON DUPLICATE KEY UPDATE value=?",['google_drive_service_account',$jsonContent,$jsonContent]);
         }
-        $_SESSION['flash']=['type'=>'success','message'=>'Konfigurasi Google Drive disimpan.'];
-        header('Location: settings?tab=drive');exit;
+        $_SESSION['flash']=['type'=>'success','message'=>'Konfigurasi Google Drive berhasil disimpan.'];
+        header('Location: settings.php?tab=drive');
+        exit;
     }
 }
 $cfg=array_column(dbQuery("SELECT key_name,value FROM settings"),'value','key_name');

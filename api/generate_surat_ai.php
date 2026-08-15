@@ -17,27 +17,15 @@ if (empty($prompt)) {
     exit;
 }
 
-$geminiKey = getSetting('gemini_api_key');
-$groqKey   = getSetting('groq_api_key');
+$geminiKey = trim(getSetting('gemini_api_key'));
+$groqKey   = trim(getSetting('groq_api_key'));
 
-$apiKey = '';
-$isGroq = false;
+// Deteksi key mana yang bertipe Groq (gsk_) dan mana yang Gemini
+$actualGroqKey   = str_starts_with($groqKey, 'gsk_') ? $groqKey : (str_starts_with($geminiKey, 'gsk_') ? $geminiKey : '');
+$actualGeminiKey = (!empty($geminiKey) && !str_starts_with($geminiKey, 'gsk_')) ? $geminiKey : ((!empty($groqKey) && !str_starts_with($groqKey, 'gsk_')) ? $groqKey : '');
 
-// Deteksi tipe key secara cerdas: untuk surat, prefer Groq (starts_with gsk_) karena cepat
-if (!empty($groqKey) && str_starts_with($groqKey, 'gsk_')) {
-    $apiKey = $groqKey;
-    $isGroq = true;
-} elseif (!empty($geminiKey) && str_starts_with($geminiKey, 'gsk_')) {
-    $apiKey = $geminiKey;
-    $isGroq = true;
-} elseif (!empty($geminiKey) && !str_starts_with($geminiKey, 'gsk_')) {
-    $apiKey = $geminiKey;
-    $isGroq = false;
-} elseif (!empty($groqKey) && !str_starts_with($groqKey, 'gsk_')) {
-    $apiKey = $groqKey;
-    $isGroq = false;
-} else {
-    echo json_encode(['error' => 'API Key belum diatur. Silakan isi di pengaturan.']);
+if (empty($actualGroqKey) && empty($actualGeminiKey)) {
+    echo json_encode(['error' => 'API Key belum diatur. Silakan masukkan Groq API Key (gsk_...) atau Gemini API Key di menu Pengaturan.']);
     exit;
 }
 
@@ -69,7 +57,7 @@ $sysMsg  = $systemPrompt . "\n\n(INFO SISTEM: Hari ini adalah tanggal " . $curre
 "• 'buat lebih singkat / padat' → Pangkas kalimat berulang, satukan paragraf yang membahas hal sama, buang basa-basi berlebihan\n" .
 "• 'buat lebih lengkap / detail / elaborasi' → Tambahkan alasan/latar belakang yang kuat, rincian kegiatan, dampak yang diharapkan\n" .
 "• 'buat lebih sopan / ramah / hangat' → Tambahkan ungkapan penghargaan, gunakan sapaan hormat yang lebih personal\n" .
-"• 'buat lebih tegas / lugas' → Langsung ke inti, gunakan kalimat aktif, hindari ungkapan ragu-ragu\n" .
+"• 'buat lebih tegas / lugas' → Langsung ke inti, gunakan kalimat aktif, hilangkan keraguan\n" .
 "• 'sesuaikan / update / refresh / tingkatkan' → Kombinasi: perbaiki diksi + perkuat argumen + rapikan struktur\n\n" .
 "=== ATURAN WAJIB PENULISAN ===\n" .
 "1. JANGAN cantumkan 'Kepada Yth', 'Dengan hormat', 'Hormat kami', nama Kaprodi, atau NIDN — sudah ada otomatis di sistem.\n" .
@@ -85,7 +73,7 @@ $sysMsg  = $systemPrompt . "\n\n(INFO SISTEM: Hari ini adalah tanggal " . $curre
 "  \"jenis_surat\": \"Kategorikan: (Surat Undangan, Surat Tugas, Surat Keterangan, Surat Pemberitahuan, Surat Rekomendasi, Lainnya)\",\n" .
 "  \"penerima\": \"Nama target penerima surat (asumsikan dari konteks jika tidak eksplisit)\",\n" .
 "  \"prodi\": \"Nama prodi yang disebutkan. Kosongkan jika tidak ada.\",\n" .
-"  \"ai_reply\": \"Penjelasan singkat apa yang Anda lakukan/ubah dalam bahasa Indonesia yang natural dan ramah (1-2 kalimat). Contoh: 'Saya telah memperbaiki diksi dan memperkuat argumentasi pada seluruh paragraf.' atau 'Waktu pelaksanaan telah diperbarui menjadi pukul 12.00 WIB.'\",\n" .
+"  \"ai_reply\": \"Penjelasan singkat apa yang Anda lakukan/ubah dalam bahasa Indonesia yang natural dan ramah (1-2 kalimat).\",\n" .
 "  \"html\": \"Isi draf surat formal dalam format HTML mentah (gunakan tag p, strong, em, ul, table jika perlu).\"\n" .
 "}";
 
@@ -100,74 +88,62 @@ function enrichRevisionPrompt(string $userPrompt): string {
     $p = mb_strtolower(trim($userPrompt));
 
     $intents = [
-        // Redaksi / bahasa
         ['keywords' => ['redaksi','kalimat','bahasa','tulisan','kata','diksi','phrasing'],
          'enrichment' => "Perbaiki diksi, gunakan kata-kata akademis yang lebih kuat dan elegan, susun ulang kalimat agar mengalir lebih baik, hilangkan kata mubazir/repetisi."],
-        // Formal
         ['keywords' => ['formal','resmi','akademis','profesional','berwibawa'],
          'enrichment' => "Tingkatkan register bahasa ke level birokrasi/akademis tertinggi, hindari ekspresi informal, gunakan ungkapan yang berwibawa."],
-        // Singkat/padat
         ['keywords' => ['singkat','padat','ringkas','pendek','efisien'],
          'enrichment' => "Pangkas pengulangan dan basa-basi, padatkan kalimat menjadi lebih efisien tanpa kehilangan substansi."],
-        // Detail/lengkap
         ['keywords' => ['detail','lengkap','elaborasi','panjang','komprehensif','kembangkan'],
          'enrichment' => "Tambahkan latar belakang yang kuat, elaborasi rincian kegiatan/tujuan, dan perkuat setiap paragraf dengan argumen yang lebih menyeluruh."],
-        // Sopan/ramah
         ['keywords' => ['sopan','ramah','halus','santun','hormat'],
          'enrichment' => "Tambahkan ungkapan penghargaan yang tulus, gunakan sapaan yang lebih personal dan hangat, perhalus diksi."],
-        // Tegas/lugas
         ['keywords' => ['tegas','lugas','langsung','to the point','clear','jelas'],
          'enrichment' => "Gunakan kalimat aktif yang tegas, langsung ke inti pesan, hindari ungkapan yang terkesan ragu-ragu."],
-        // Umum: perbaiki/update/sesuaikan
-        ['keywords' => ['perbaiki','sesuaikan','update','tingkatkan','improve','refresh','lebih baik','bagus','sempurnakan','revisi','ulas','poles'],
-         'enrichment' => "Lakukan perbaikan menyeluruh: perbaiki diksi dan gaya bahasa, perkuat argumentasi, rapikan alur paragraf, dan pastikan setiap kalimat memberi nilai tambah yang nyata."],
+        ['keywords' => ['perbaiki','benerin','rapikan','sempurnakan','baguskan','tingkatkan'],
+         'enrichment' => "Lakukan peningkatan menyeluruh: perbaiki diksi, perkuat struktur alinea, pertegas tujuan surat, dan pastikan ejaan bahasa Indonesia resmi yang sempurna."],
+        ['keywords' => ['sesuaikan','update','ubah','ganti'],
+         'enrichment' => "Perbarui substansi dan redaksi surat sesuai poin-poin yang diminta secara presisi dan menyeluruh."],
     ];
 
     $matched = [];
     foreach ($intents as $intent) {
         foreach ($intent['keywords'] as $kw) {
-            if (str_contains($p, $kw)) {
+            if (mb_strpos($p, $kw) !== false) {
                 $matched[] = $intent['enrichment'];
                 break;
             }
         }
     }
 
-    if (empty($matched)) {
-        return $userPrompt; // instruksi sudah spesifik, tidak perlu enrichment
+    if (!empty($matched)) {
+        return $userPrompt . "\n[PANDUAN EKSEKUSI AI: " . implode(" ", array_unique($matched)) . "]";
     }
-
-    $enriched = $userPrompt . "\n\n[PANDUAN EKSEKUSI OTOMATIS — WAJIB DIIKUTI]:\n";
-    foreach (array_unique($matched) as $m) {
-        $enriched .= "• " . $m . "\n";
-    }
-    $enriched .= "\nTerapkan seluruh panduan di atas secara nyata pada seluruh isi surat. Pastikan perubahan terasa jelas dan signifikan, bukan sekadar mengulang versi sebelumnya.";
-    return $enriched;
+    return $userPrompt;
 }
 
-// Bangun messages multi-turn untuk Groq
-$messages = [['role' => 'system', 'content' => $sysMsg]];
+$messages = [
+    ['role' => 'system', 'content' => $sysMsg]
+];
 
-if (!empty($chatHistory)) {
-    foreach ($chatHistory as $turn) {
-        $role    = ($turn['role'] === 'user') ? 'user' : 'assistant';
-        $content = trim($turn['content'] ?? '');
-        if ($content === '') continue;
-        $messages[] = ['role' => $role, 'content' => $content];
+// Masukkan histori chat sebelumnya (maks 8 turn terakhir)
+if (!empty($chatHistory) && is_array($chatHistory)) {
+    $recentHistory = array_slice($chatHistory, -8);
+    foreach ($recentHistory as $msg) {
+        $role    = ($msg['sender'] ?? '') === 'user' ? 'user' : 'assistant';
+        $content = trim($msg['text'] ?? '');
+        if (!empty($content)) {
+            $messages[] = ['role' => $role, 'content' => $content];
+        }
     }
-    $enrichedPrompt = enrichRevisionPrompt($prompt);
-    $enrichedPrompt = enrichRevisionPrompt($prompt);
-    $messages[] = ['role' => 'user', 'content' =>
-        "REVISI DRAF SURAT TERAKHIR BERDASARKAN INSTRUKSI BERIKUT:\n\"$enrichedPrompt\"\n\n" .
-        "PENTING: Anda HARUS MENGUBAH isi teks surat sesuai instruksi. JANGAN HANYA MENGCOPAS SURAT SEBELUMNYA.\n" .
-        "Keluarkan KESELURUHAN draf yang sudah direvisi secara utuh. Pertahankan struktur HTML-nya, tetapi UBAH ISINYA agar lebih baik dan sesuai instruksi. " .
-        "Isi field 'ai_reply' dengan penjelasan tindakan apa saja yang Anda lakukan pada revisi ini."
-    ];
-} elseif (!empty($previous_html)) {
+}
+
+// Tambahkan pesan user saat ini
+if (!empty($previous_html)) {
     $enrichedPrompt = enrichRevisionPrompt($prompt);
     $messages[] = ['role' => 'user', 'content' =>
-        "Ini adalah draf surat saat ini (HTML):\n\n" . $previous_html .
-        "\n\nTOLONG REVISI DRAF DI ATAS BERDASARKAN INSTRUKSI BERIKUT:\n\"$enrichedPrompt\"\n\n" .
+        "DRAF SURAT SEBELUMNYA:\n```html\n" . $previous_html . "\n```\n\n" .
+        "TOLONG REVISI DRAF DI ATAS BERDASARKAN INSTRUKSI BERIKUT:\n\"$enrichedPrompt\"\n\n" .
         "PENTING: Anda HARUS MENGUBAH isi teks surat sesuai instruksi. JANGAN HANYA MENGCOPAS SURAT SEBELUMNYA.\n" .
         "Keluarkan KESELURUHAN draf yang sudah direvisi secara utuh. Isi field 'ai_reply' dengan penjelasan tindakan apa saja yang Anda lakukan."
     ];
@@ -178,18 +154,15 @@ if (!empty($chatHistory)) {
     ];
 }
 
-// userMsg hanya untuk Gemini fallback (single-turn)
 $userMsg = end($messages)['content'];
-
 $resultJson = null;
-$isGroq = str_starts_with($apiKey, 'gsk_');
 $lastError = '';
 
-if ($isGroq) {
-    // ============================================================
-    // Coba Groq API
-    // ============================================================
-    $groqModels = ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'llama-3.1-8b-instant', 'gemma2-9b-it'];
+// ============================================================
+// 1. Coba GROQ API jika key tersedia
+// ============================================================
+if (!empty($actualGroqKey)) {
+    $groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it'];
     foreach ($groqModels as $model) {
         $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
         $postFields = json_encode([
@@ -211,7 +184,7 @@ if ($isGroq) {
             CURLOPT_POST           => true,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_TIMEOUT        => 45,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Authorization: Bearer ' . $apiKey],
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Authorization: Bearer ' . $actualGroqKey],
             CURLOPT_POSTFIELDS     => $postFields,
         ]);
         $resp = curl_exec($ch);
@@ -220,7 +193,7 @@ if ($isGroq) {
         curl_close($ch);
 
         if ($cerr) {
-            $lastError = "Curl error: " . $cerr;
+            $lastError = "Groq curl error: " . $cerr;
             continue;
         }
         
@@ -231,23 +204,22 @@ if ($isGroq) {
         }
         
         $msg = $d['error']['message'] ?? "HTTP $code";
-        $lastError = "Groq API Error ($code) via $model: $msg";
-        
-        if ($code === 404 || $code === 503 || $code === 429 || $code === 413) continue;
-        break; // Jika error fatal seperti 400, tidak perlu coba model lain
+        $lastError = "Groq Error ($code) via $model: $msg";
     }
-} else {
-    // ============================================================
-    // Coba Gemini API
-    // ============================================================
-    $geminiModels = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-1.5-flash', 'gemini-pro-latest'];
+}
+
+// ============================================================
+// 2. Fallback ke GEMINI API jika Groq gagal atau key Gemini diisi
+// ============================================================
+if ($resultJson === null && !empty($actualGeminiKey)) {
+    $geminiModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
     foreach ($geminiModels as $gmodel) {
-        $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/{$gmodel}:generateContent?key={$apiKey}");
+        $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/{$gmodel}:generateContent?key={$actualGeminiKey}");
         $postFields = json_encode([
             'contents'         => [['parts' => [['text' => $sysMsg . "\n\n" . $userMsg]]]],
             'generationConfig' => [
-                'temperature' => 0.7, 
-                'maxOutputTokens' => 2000,
+                'temperature'      => 0.7, 
+                'maxOutputTokens'  => 3000,
                 'responseMimeType' => 'application/json'
             ],
         ], JSON_INVALID_UTF8_SUBSTITUTE);
@@ -262,7 +234,7 @@ if ($isGroq) {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_TIMEOUT        => 35,
             CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
             CURLOPT_POSTFIELDS     => $postFields,
         ]);
@@ -272,7 +244,7 @@ if ($isGroq) {
         curl_close($ch);
         
         if ($cerr) {
-            $lastError = "Curl error: " . $cerr;
+            $lastError = "Gemini curl error: " . $cerr;
             continue;
         }
         
@@ -283,16 +255,12 @@ if ($isGroq) {
         }
         
         $msg = $d['error']['message'] ?? "HTTP $code";
-        $lastError = "Gemini API Error ($code) via $gmodel: $msg";
-        
-        if ($code === 404) continue;
-        break;
+        $lastError = "Gemini Error ($code) via $gmodel: $msg";
     }
 }
 
 if ($resultJson === null) {
-    $serviceName = $isGroq ? "Groq" : "Gemini";
-    echo json_encode(['error' => "Gagal menggunakan API $serviceName. Detail error: " . $lastError]);
+    echo json_encode(['error' => "Gagal memproses dengan AI. Detail error: " . $lastError]);
     exit;
 }
 
