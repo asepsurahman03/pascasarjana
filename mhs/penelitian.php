@@ -737,6 +737,63 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (el) el.value = url;
                 }
 
+                // ── DETEKSI KATEGORI / INDEKSASI (SCOPUS / SINTA / PROSIDING) ──
+                function detectKategori(crItem, oaWork, s2Work, dcWork, cslWork) {
+                    const type = (crItem?.type || oaWork?.type || cslWork?.type || '').toLowerCase();
+                    const pubName = (crItem?.['container-title']?.[0] || oaWork?.primary_location?.source?.display_name || s2Work?.publicationVenue?.name || cslWork?.['container-title'] || '').toLowerCase();
+                    const publisher = (crItem?.publisher || oaWork?.primary_location?.source?.host_organization_name || dcWork?.publisher || cslWork?.publisher || '').toLowerCase();
+
+                    // 1. Prosiding / Conference
+                    if (type.includes('proceedings') || type.includes('conference') || pubName.includes('conference') || pubName.includes('proceeding') || pubName.includes('symposium') || pubName.includes('ieee') || pubName.includes('acm')) {
+                        if (pubName.includes('indonesia') || pubName.includes('nasional') || publisher.includes('indonesia')) {
+                            return 'Prosiding Nasional';
+                        }
+                        return 'Prosiding Internasional (Scopus/IEEE)';
+                    }
+
+                    // 2. Buku / Book Chapter
+                    if (type.includes('book') || type.includes('chapter') || type.includes('monograph')) {
+                        return 'Buku / Book Chapter';
+                    }
+
+                    // 3. Cek SINTA dari nama jurnal
+                    const sintaMatch = pubName.match(/sinta\s*([1-6])/i);
+                    if (sintaMatch) {
+                        return `SINTA ${sintaMatch[1]}`;
+                    }
+
+                    // 4. Publisher Internasional Bereputasi (WoS / Scopus)
+                    const reputablePublishers = [
+                        'elsevier', 'springer', 'nature', 'ieee', 'wiley', 'taylor & francis', 'taylor and francis',
+                        'routledge', 'oxford university press', 'cambridge university press', 'acm', 'sage',
+                        'emerald', 'mdpi', 'frontiers', 'iop publishing', 'aip publishing', 'inderscience',
+                        'plos', 'biomed central', 'sciencedirect', 'cell press', 'de gruyter', 'informs', 'wolters kluwer'
+                    ];
+                    const isReputable = reputablePublishers.some(p => publisher.includes(p) || pubName.includes(p));
+                    if (isReputable) {
+                        return 'Jurnal Internasional Bereputasi (WoS/Scopus)';
+                    }
+
+                    // 5. Cek Jurnal Nasional
+                    const isIndonesian = pubName.includes('jurnal') || pubName.includes('indonesia') || pubName.includes('nasional') || publisher.includes('universitas') || publisher.includes('institut') || publisher.includes('politeknik') || publisher.includes('asosi') || publisher.includes('perkumpulan');
+                    if (isIndonesian) {
+                        return 'Jurnal Nasional Terakreditasi';
+                    }
+
+                    if (pubName) {
+                        return 'Jurnal Internasional Terindeks';
+                    }
+                    return 'Lainnya';
+                }
+
+                const detectedKategori = detectKategori(item, oaw, s2, dcAttr, csl);
+                const elKategori = document.querySelector('select[name="kategori_publikasi"]');
+                if (elKategori && detectedKategori) {
+                    elKategori.value = detectedKategori;
+                    elKategori.classList.add('ring-2', 'ring-[#8c0c4c]');
+                    setTimeout(() => elKategori.classList.remove('ring-2', 'ring-[#8c0c4c]'), 2500);
+                }
+
                 // ── PENULIS (Authors) ──────────────────────────────────────
                 let parsedAuthors = [];
                 if (item?.author?.length) {
