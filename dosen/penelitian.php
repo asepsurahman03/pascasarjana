@@ -558,9 +558,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     const type = (crItem?.type || oaWork?.type || cslWork?.type || '').toLowerCase();
                     const pubName = (crItem?.['container-title']?.[0] || oaWork?.primary_location?.source?.display_name || s2Work?.publicationVenue?.name || cslWork?.['container-title'] || '').toLowerCase();
                     const publisher = (crItem?.publisher || oaWork?.primary_location?.source?.host_organization_name || dcWork?.publisher || cslWork?.publisher || '').toLowerCase();
+                    const title = (crItem?.title?.[0] || oaWork?.title || s2Work?.title || '').toLowerCase();
 
-                    // 1. Prosiding / Conference
-                    if (type.includes('proceedings') || type.includes('conference') || pubName.includes('conference') || pubName.includes('proceeding') || pubName.includes('symposium') || pubName.includes('ieee') || pubName.includes('acm')) {
+                    // 1. Cek Prosiding / Konferensi
+                    const isConference = type.includes('proceedings') || type.includes('conference') || pubName.includes('conference') || pubName.includes('proceeding') || pubName.includes('symposium') || pubName.includes('ieee') || pubName.includes('acm') || doiStr.includes('10.1109/') || doiStr.includes('10.1145/') || pubName.includes('proceedings of');
+                    if (isConference) {
                         if (pubName.includes('indonesia') || pubName.includes('nasional') || publisher.includes('indonesia')) {
                             return 'Prosiding Nasional';
                         }
@@ -572,44 +574,76 @@ document.addEventListener('DOMContentLoaded', function() {
                         return 'Buku / Book Chapter';
                     }
 
-                    // 3. Cek DOI Prefix Penerbit Bereputasi Internasional (Scopus / WoS)
-                    const scopusPrefixes = [
-                        '10.1016/', '10.1109/', '10.1007/', '10.1002/', '10.1080/', '10.1145/',
-                        '10.3390/', '10.1038/', '10.1088/', '10.1063/', '10.11591/', '10.1108/',
-                        '10.1371/', '10.1186/', '10.1093/', '10.1017/', '10.1177/', '10.1504/',
-                        '10.3389/', '10.1039/', '10.1021/', '10.1515/', '10.1006/', '10.1051/'
+                    // 3. Cek Jurnal Scopus Indonesia Terkenal
+                    const indoScopus = [
+                        'telkomnika', 'ijeecs', 'bulletin of electrical', 'joiv', 'ijaseit', 'ijtech',
+                        'international journal of technology', 'jurnal ilmu komputer dan informasi',
+                        'indonesian journal of electrical', 'indonesian journal of science and technology',
+                        'ijost', 'jurnal pendidikan ipa indonesia', 'jpii', 'biodiversitas', 'agrivita',
+                        'kukila', 'atom indonesia', 'acta medica indonesiana', 'indonesian journal of chemistry',
+                        'ijc', 'indonesian journal of biotechnology', 'medical journal of indonesia',
+                        'indonesian journal of applied linguistics', 'journal of engineering and technological sciences',
+                        'iaes'
                     ];
-                    const isScopusDoi = scopusPrefixes.some(pfx => doiStr.includes(pfx));
-
-                    // 4. Publisher Internasional Bereputasi (WoS / Scopus)
-                    const reputablePublishers = [
-                        'elsevier', 'springer', 'nature', 'ieee', 'wiley', 'taylor & francis', 'taylor and francis',
-                        'routledge', 'oxford university press', 'cambridge university press', 'acm', 'sage',
-                        'emerald', 'mdpi', 'frontiers', 'iop publishing', 'aip publishing', 'inderscience',
-                        'plos', 'biomed central', 'sciencedirect', 'cell press', 'de gruyter', 'informs', 'wolters kluwer',
-                        'royal society of chemistry', 'american chemical society', 'institute of physics', 'iaes'
-                    ];
-                    const isReputablePub = reputablePublishers.some(p => publisher.includes(p) || pubName.includes(p));
-
-                    if (isScopusDoi || isReputablePub) {
-                        return 'Jurnal Internasional Bereputasi (WoS/Scopus)';
+                    if (indoScopus.some(j => pubName.includes(j) || publisher.includes(j) || doiStr.includes('10.11591/'))) {
+                        return 'Scopus Q2';
                     }
 
-                    // 5. Cek SINTA dari nama jurnal
-                    const sintaMatch = pubName.match(/sinta\s*([1-6])/i);
+                    // 4. Cek DOI Prefix & Publisher Scopus Dunia
+                    if (doiStr.includes('10.1016/')) return 'Scopus Q1'; // Elsevier / ScienceDirect
+                    if (doiStr.includes('10.1038/')) return 'Scopus Q1'; // Nature
+                    if (doiStr.includes('10.1002/')) return 'Scopus Q1'; // Wiley
+                    if (doiStr.includes('10.1080/')) return 'Scopus Q2'; // Taylor & Francis
+                    if (doiStr.includes('10.1007/')) return 'Scopus Q2'; // Springer
+                    if (doiStr.includes('10.3390/')) return 'Scopus Q2'; // MDPI
+                    if (doiStr.includes('10.1108/')) return 'Scopus Q2'; // Emerald
+                    if (doiStr.includes('10.1088/')) return 'Scopus Q2'; // IOP
+                    if (doiStr.includes('10.1063/')) return 'Scopus Q2'; // AIP
+                    if (doiStr.includes('10.1371/')) return 'Scopus Q1'; // PLOS
+                    if (doiStr.includes('10.1186/')) return 'Scopus Q1'; // BioMed Central
+                    if (doiStr.includes('10.1093/')) return 'Scopus Q1'; // Oxford
+                    if (doiStr.includes('10.1017/')) return 'Scopus Q1'; // Cambridge
+                    if (doiStr.includes('10.1177/')) return 'Scopus Q2'; // SAGE
+                    if (doiStr.includes('10.1504/')) return 'Scopus Q3'; // Inderscience
+                    if (doiStr.includes('10.3389/')) return 'Scopus Q1'; // Frontiers
+                    if (doiStr.includes('10.1039/')) return 'Scopus Q1'; // RSC
+                    if (doiStr.includes('10.1021/')) return 'Scopus Q1'; // ACS
+                    if (doiStr.includes('10.1515/')) return 'Scopus Q2'; // De Gruyter
+
+                    // 5. Cek Publisher Scopus Terkenal dari teks
+                    const scopusPublishersQ1 = ['elsevier', 'nature', 'wiley', 'cell press', 'plos', 'oxford university press', 'cambridge university press', 'frontiers in'];
+                    if (scopusPublishersQ1.some(p => publisher.includes(p) || pubName.includes(p))) {
+                        return 'Scopus Q1';
+                    }
+
+                    const scopusPublishersQ2 = ['springer', 'taylor & francis', 'taylor and francis', 'routledge', 'emerald', 'mdpi', 'sage', 'iop publishing', 'aip publishing', 'de gruyter', 'informs', 'wolters kluwer'];
+                    if (scopusPublishersQ2.some(p => publisher.includes(p) || pubName.includes(p))) {
+                        return 'Scopus Q2';
+                    }
+
+                    // 6. Cek SINTA spesifik jika ada di teks
+                    const sintaMatch = (pubName + ' ' + title).match(/sinta\s*([1-6])/i);
                     if (sintaMatch) {
                         return `SINTA ${sintaMatch[1]}`;
                     }
 
-                    // 6. Cek Jurnal Nasional
-                    const isIndonesian = pubName.includes('jurnal') || pubName.includes('indonesia') || pubName.includes('nasional') || publisher.includes('universitas') || publisher.includes('institut') || publisher.includes('politeknik') || publisher.includes('asosi') || publisher.includes('perkumpulan');
+                    // 7. Cek Jurnal Indonesia / Nasional (Default ke SINTA 2 / SINTA 3 yang merupakan standar akreditasi umum)
+                    const isIndonesian = pubName.includes('jurnal') || pubName.includes('indonesia') || pubName.includes('nasional') || publisher.includes('universitas') || publisher.includes('institut') || publisher.includes('politeknik') || publisher.includes('asosi') || publisher.includes('perkumpulan') || publisher.includes('stmik') || publisher.includes('lldikti');
                     if (isIndonesian) {
-                        return 'Jurnal Nasional Terakreditasi';
+                        if (oaWork?.primary_location?.source?.is_in_doaj || pubName.includes('international') || pubName.includes('journal of')) {
+                            return 'SINTA 2';
+                        }
+                        return 'SINTA 3';
                     }
 
+                    // 8. Jika jurnal internasional lain
                     if (pubName) {
-                        return 'Jurnal Internasional Terindeks';
+                        if (pubName.includes('international') || pubName.includes('journal')) {
+                            return 'Jurnal Internasional Terindeks';
+                        }
+                        return 'SINTA 3';
                     }
+
                     return 'Lainnya';
                 }
 
