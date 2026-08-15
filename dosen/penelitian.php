@@ -553,7 +553,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (url) fill('input[name="link_artikel"]', url);
 
                 // ── DETEKSI KATEGORI / INDEKSASI (SCOPUS / SINTA / PROSIDING) ──
-                function detectKategori(crItem, oaWork, s2Work, dcWork, cslWork) {
+                function detectKategori(crItem, oaWork, s2Work, dcWork, cslWork, rawDoi) {
+                    const doiStr = (rawDoi || '').toLowerCase();
                     const type = (crItem?.type || oaWork?.type || cslWork?.type || '').toLowerCase();
                     const pubName = (crItem?.['container-title']?.[0] || oaWork?.primary_location?.source?.display_name || s2Work?.publicationVenue?.name || cslWork?.['container-title'] || '').toLowerCase();
                     const publisher = (crItem?.publisher || oaWork?.primary_location?.source?.host_organization_name || dcWork?.publisher || cslWork?.publisher || '').toLowerCase();
@@ -571,25 +572,36 @@ document.addEventListener('DOMContentLoaded', function() {
                         return 'Buku / Book Chapter';
                     }
 
-                    // 3. Cek SINTA dari nama jurnal
-                    const sintaMatch = pubName.match(/sinta\s*([1-6])/i);
-                    if (sintaMatch) {
-                        return `SINTA ${sintaMatch[1]}`;
-                    }
+                    // 3. Cek DOI Prefix Penerbit Bereputasi Internasional (Scopus / WoS)
+                    const scopusPrefixes = [
+                        '10.1016/', '10.1109/', '10.1007/', '10.1002/', '10.1080/', '10.1145/',
+                        '10.3390/', '10.1038/', '10.1088/', '10.1063/', '10.11591/', '10.1108/',
+                        '10.1371/', '10.1186/', '10.1093/', '10.1017/', '10.1177/', '10.1504/',
+                        '10.3389/', '10.1039/', '10.1021/', '10.1515/', '10.1006/', '10.1051/'
+                    ];
+                    const isScopusDoi = scopusPrefixes.some(pfx => doiStr.includes(pfx));
 
                     // 4. Publisher Internasional Bereputasi (WoS / Scopus)
                     const reputablePublishers = [
                         'elsevier', 'springer', 'nature', 'ieee', 'wiley', 'taylor & francis', 'taylor and francis',
                         'routledge', 'oxford university press', 'cambridge university press', 'acm', 'sage',
                         'emerald', 'mdpi', 'frontiers', 'iop publishing', 'aip publishing', 'inderscience',
-                        'plos', 'biomed central', 'sciencedirect', 'cell press', 'de gruyter', 'informs', 'wolters kluwer'
+                        'plos', 'biomed central', 'sciencedirect', 'cell press', 'de gruyter', 'informs', 'wolters kluwer',
+                        'royal society of chemistry', 'american chemical society', 'institute of physics', 'iaes'
                     ];
-                    const isReputable = reputablePublishers.some(p => publisher.includes(p) || pubName.includes(p));
-                    if (isReputable) {
+                    const isReputablePub = reputablePublishers.some(p => publisher.includes(p) || pubName.includes(p));
+
+                    if (isScopusDoi || isReputablePub) {
                         return 'Jurnal Internasional Bereputasi (WoS/Scopus)';
                     }
 
-                    // 5. Cek Jurnal Nasional
+                    // 5. Cek SINTA dari nama jurnal
+                    const sintaMatch = pubName.match(/sinta\s*([1-6])/i);
+                    if (sintaMatch) {
+                        return `SINTA ${sintaMatch[1]}`;
+                    }
+
+                    // 6. Cek Jurnal Nasional
                     const isIndonesian = pubName.includes('jurnal') || pubName.includes('indonesia') || pubName.includes('nasional') || publisher.includes('universitas') || publisher.includes('institut') || publisher.includes('politeknik') || publisher.includes('asosi') || publisher.includes('perkumpulan');
                     if (isIndonesian) {
                         return 'Jurnal Nasional Terakreditasi';
@@ -601,7 +613,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return 'Lainnya';
                 }
 
-                const detectedKategori = detectKategori(item, oaw, s2, dcAttr, csl);
+                const detectedKategori = detectKategori(item, oaw, s2, dcAttr, csl, doi);
                 const elKategori = document.querySelector('select[name="kategori_publikasi"]');
                 if (elKategori && detectedKategori) {
                     elKategori.value = detectedKategori;
