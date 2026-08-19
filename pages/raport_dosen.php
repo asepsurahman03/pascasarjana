@@ -6,6 +6,7 @@ requireAdmin();
 require_once __DIR__ . '/../functions/excel_raport_helper.php';
 require_once __DIR__ . '/../functions/pdf_genap_parser.php';
 require_once __DIR__ . '/../functions/docx_raport_generator.php';
+require_once __DIR__ . '/../functions/ak_xls_parser.php';
 
 /**
  * 5 ASPEK KUESIONER STANDAR - sesuai PDF referensi MSD_Agus Hendriyanto.pdf
@@ -101,6 +102,61 @@ if ($periodeParam === 'genap' && $cfg['pdf'] && file_exists($cfg['pdf'])) {
     }
 }
 
+// ======================================================
+// GASAL: Enrich data dosen Akuntansi dari file XLS SIAKAD
+// Folder: Contoh Lampiran/Laporan Raport/Akuntansi/
+// Data XLS berisi: nilai kuesioner, responden, rekomendasi perbaikan (P1-P5
+//   dari aspek yang paling banyak mendapat respons Biasa/Buruk),
+//   dan catatan mahasiswa (K1-K4 dari komentar mahasiswa)
+// ======================================================
+if ($periodeParam === 'gasal' && !empty($allDosen)) {
+    $akFolderPath = __DIR__ . '/../Contoh Lampiran/Laporan Raport/Akuntansi';
+    if (is_dir($akFolderPath)) {
+        $akDosenData = parseAllAkuntansiDosen($akFolderPath);
+        if (!empty($akDosenData)) {
+            foreach ($allDosen as &$exRow) {
+                // Hanya proses dosen Akuntansi
+                $prodi = strtolower(trim($exRow['Prodi'] ?? ''));
+                if (strpos($prodi, 'akuntansi') === false) continue;
+
+                $nama = $exRow['Nama'] ?? '';
+                $akMatch = matchAkuntansiDosen($nama, $akDosenData);
+                if (!$akMatch) continue;
+
+                // Override nilai kuesioner & responden dari XLS jika Excel kosong atau 0
+                if ((float)($exRow['Nilai Kuesioner'] ?? 0) == 0 && $akMatch['nilai_kuesioner'] > 0) {
+                    $exRow['Nilai Kuesioner'] = $akMatch['nilai_kuesioner'];
+                }
+                if (empty(trim($exRow['Jumlah Responden'] ?? '')) && !empty($akMatch['jumlah_responden'])) {
+                    $exRow['Jumlah Responden'] = $akMatch['jumlah_responden'];
+                }
+
+                // Enrich Rekomendasi (P1-P5): dari aspek paling banyak Biasa/Buruk
+                // Hanya isi jika Excel masih kosong
+                foreach (['P1','P2','P3','P4','P5'] as $pk) {
+                    if (empty(trim($exRow[$pk] ?? ''))) {
+                        $exRow[$pk] = $akMatch[$pk] ?? '';
+                    }
+                }
+
+                // Enrich Catatan Mahasiswa (K1-K4): dari komentar di file XLS
+                // Hanya isi jika Excel masih kosong
+                foreach (['K1','K2','K3','K4'] as $kk) {
+                    if (empty(trim($exRow[$kk] ?? ''))) {
+                        $exRow[$kk] = $akMatch[$kk] ?? '';
+                    }
+                }
+
+                // Simpan data Analisis Sentimen dari seluruh komentar XLS Akuntansi
+                if (!empty($akMatch['sentimen'])) {
+                    $exRow['sentimen'] = $akMatch['sentimen'];
+                }
+            }
+            unset($exRow);
+        }
+    }
+}
+
 // Daftar prodi unik
 $prodiList = array_values(array_filter(array_unique(array_column($allDosen, 'Prodi'))));
 sort($prodiList);
@@ -110,6 +166,80 @@ $filterProdi = $_GET['prodi'] ?? '';
 $filterCari  = trim($_GET['cari'] ?? '');
 $step        = $_GET['step'] ?? 'list';
 $selectedIds = isset($_GET['ids']) ? explode(',', $_GET['ids']) : [];
+
+// WIZARD STEPS: Data Dosen → Skor Bobot → Skor → Rata-Rata → Cetak Raport
+$wizardSteps = [
+    'list'       => ['label' => 'Data Dosen',   'icon' => '👨‍🏫', 'sheet' => 'Sheet: Data Dosen',   'no' => 1],
+    'skor_bobot' => ['label' => 'Skor Bobot',    'icon' => '⚖️',  'sheet' => 'Sheet: Skor Bobot',    'no' => 2],
+    'skor'       => ['label' => 'Skor',          'icon' => '📊',  'sheet' => 'Sheet: Skor',           'no' => 3],
+    'rata_rata'  => ['label' => 'Rata-Rata',     'icon' => '📈',  'sheet' => 'Sheet: Rata-Rata',      'no' => 4],
+    'print'      => ['label' => 'Cetak Raport',  'icon' => '🖨️',  'sheet' => 'Sheet: Rapot',          'no' => 5],
+];
+$validSteps = array_keys($wizardSteps);
+if (!in_array($step, array_merge($validSteps, ['preview','word']))) $step = 'list';
+
+// Load multi-sheet data for wizard (skor_bobot, skor, rata_rata)
+$allSheetsData = [];
+if (in_array($step, ['skor_bobot','skor','rata_rata'])) {
+    $allSheetsData = parseExcelAllSheets(RAPORT_EXCEL_PATH);
+}
+
+// Handle Session Overrides untuk Input Manual
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['raport_overrides'])) {
+    $_SESSION['raport_overrides'] = [];
+}
+
+// Handle POST: Simpan Input Manual atau Reset
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $actNo = trim($_POST['dosen_no'] ?? '');
+    if ($actNo !== '') {
+        if ($_POST['action'] === 'save_manual') {
+            $_SESSION['raport_overrides'][$actNo] = [
+                'Jumlah Matkul'     => trim($_POST['jml_mk'] ?? ''),
+                'Jumlah Kelas'      => trim($_POST['jml_kelas'] ?? ''),
+                'Jumlah Responden'  => trim($_POST['jml_resp'] ?? ''),
+                'Nilai Kuesioner'   => (float)str_replace(',', '.', trim($_POST['nilai_kuis'] ?? '0')),
+                'Jumlah Kehadiran'  => (float)str_replace(',', '.', trim($_POST['kehadiran'] ?? '0')),
+                'Konten'            => (float)str_replace(',', '.', trim($_POST['konten'] ?? '0')),
+                'Jumlah Penelitian' => (int)trim($_POST['penelitian'] ?? '0'),
+                'Jumlah Pengabdian' => (int)trim($_POST['pengabdian'] ?? '0'),
+                'P1'                => trim($_POST['p1'] ?? ''),
+                'P2'                => trim($_POST['p2'] ?? ''),
+                'P3'                => trim($_POST['p3'] ?? ''),
+                'P4'                => trim($_POST['p4'] ?? ''),
+                'P5'                => trim($_POST['p5'] ?? ''),
+                'K1'                => trim($_POST['k1'] ?? ''),
+                'K2'                => trim($_POST['k2'] ?? ''),
+                'K3'                => trim($_POST['k3'] ?? ''),
+                'K4'                => trim($_POST['k4'] ?? ''),
+                'is_custom'         => true,
+            ];
+            $redirectStep = $_POST['current_step'] ?? 'skor_bobot';
+            header('Location: raport_dosen.php?step=' . urlencode($redirectStep) . '&ids=' . urlencode($actNo) . '&periode=' . urlencode(RAPORT_PERIODE_KEY) . '&msg=saved');
+            exit;
+        } elseif ($_POST['action'] === 'reset_manual') {
+            unset($_SESSION['raport_overrides'][$actNo]);
+            $redirectStep = $_POST['current_step'] ?? 'skor_bobot';
+            header('Location: raport_dosen.php?step=' . urlencode($redirectStep) . '&ids=' . urlencode($actNo) . '&periode=' . urlencode(RAPORT_PERIODE_KEY) . '&msg=reset');
+            exit;
+        }
+    }
+}
+
+// Aplikasikan overrides ke data dosen jika ada
+foreach ($allDosen as &$dRef) {
+    $dNo = (string)($dRef['No'] ?? '');
+    if (isset($_SESSION['raport_overrides'][$dNo])) {
+        $ov = $_SESSION['raport_overrides'][$dNo];
+        foreach ($ov as $k => $v) {
+            $dRef[$k] = $v;
+        }
+    }
+}
+unset($dRef);
 
 // Filter dosen
 $filteredDosen = $allDosen;
@@ -121,9 +251,9 @@ if ($filterCari) {
 }
 $filteredDosen = array_values($filteredDosen);
 
-// Jika step=print/word, ambil dosen yang dipilih
+// Jika step=print/word/wizard, ambil dosen yang dipilih (satu dosen)
 $selectedDosen = [];
-if (in_array($step, ['print','preview','word']) && !empty($selectedIds)) {
+if (in_array($step, ['print','preview','word','skor_bobot','skor','rata_rata']) && !empty($selectedIds)) {
     // Cast semua ke string untuk perbandingan yang aman (Excel No bisa berupa string)
     $selectedIdsStr = array_map('strval', $selectedIds);
     foreach ($allDosen as $d) {
@@ -140,6 +270,8 @@ if (in_array($step, ['print','preview','word']) && !empty($selectedIds)) {
         }
     }
 }
+// Untuk wizard: ambil dosen terpilih (satu)
+$wizardDosen = !empty($selectedDosen) ? $selectedDosen[0] : null;
 
 // ── Handler step=word: generate & download DOCX ──
 if ($step === 'word') {
@@ -187,6 +319,28 @@ if ($step === 'word') {
     exit;
 }
 
+// ── HELPER FUNCTIONS – keterangan/kategori (dibutuhkan di semua step) ──
+if (!function_exists('getKetKuis')) {
+    function getKetKuis(float $s): string {
+        if ($s == 0) return '';
+        if ($s >= 4.58) return 'Sangat Baik';
+        if ($s >= 4.12 && $s < 4.8) return 'Baik';
+        if ($s >= 3.66 && $s < 4.12) return 'Cukup';
+        return 'Kurang Baik';
+    }
+    function getKetHadir(float $h): string {
+        if ($h == 0) return '';
+        return $h < 14 ? 'Belum Memenuhi' : 'Sudah Memenuhi';
+    }
+    function getKetKonten(float $k): string {
+        if ($k == 0) return '';
+        if ($k >= 4.58) return 'Sangat Baik';
+        if ($k >= 4.12 && $k < 4.57) return 'Baik';
+        if ($k >= 3.66 && $k < 4.12) return 'Cukup';
+        return 'Kurang';
+    }
+}
+
 // Jika preview satu dosen dari GET no
 $previewNo = $_GET['no'] ?? null;
 $previewDosen = null;
@@ -208,6 +362,13 @@ if ($step === 'print') {
     // Header dihandle inline di dalam blok print
 } else {
     require_once __DIR__ . '/../includes/header.php';
+}
+
+// Helper: buat URL wizard dengan IDs terpilih
+function wizardUrl(string $step, string $periode, string $ids = ''): string {
+    $u = 'raport_dosen.php?step=' . urlencode($step) . '&periode=' . urlencode($periode);
+    if ($ids !== '') $u .= '&ids=' . urlencode($ids);
+    return $u;
 }
 ?>
 
@@ -328,25 +489,33 @@ if ($step === 'print') {
   .aspek-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; }
   .aspek-tbl tr { height: 16px; }
   .aspek-tbl td {
-    padding: 0 2px;
+    padding: 1px 2px;
     font-size: 9pt;
     vertical-align: top;
     border-bottom: 0.5pt solid #ccc;
-    line-height: 16px;
+    line-height: 15px;
   }
   .aspek-tbl td.no-col { width: 22px; text-align: left; padding-left: 0; }
+  .aspek-tbl td.isi-col {
+    text-align: justify;
+    text-justify: inter-word;
+  }
 
   /* ===== D. CATATAN (Row 33-36) =====
      Excel: A="-"(centered), B:D merged=teks; border-bottom; baris kosong tetap terlihat */
   .cat-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; }
   .cat-tbl tr { min-height: 18px; }
   .cat-tbl td {
-    padding: 1px 3px;
+    padding: 2px 3px;
     font-size: 9pt;
     vertical-align: top;
     border-bottom: 0.5pt solid #999;
     height: 18px;
-    line-height: 16px;
+    line-height: 15px;
+  }
+  .cat-tbl td.cat-isi {
+    text-align: justify;
+    text-justify: inter-word;
   }
   .cat-row-empty td.cat-isi { color: transparent; }
   .cat-tbl td.dash-col {
@@ -357,9 +526,48 @@ if ($step === 'print') {
     vertical-align: top;
   }
 
+  /* ===== E. KESIMPULAN & SENTIMEN (Row 37-38) ===== */
+  .sec-e {
+    font-weight: bold;
+    font-size: 9pt;
+    line-height: 16px;
+    margin-top: 5px;
+  }
+  .tbl-kesimpulan { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 2px; }
+  .tbl-kesimpulan td {
+    padding: 1px 2px;
+    font-size: 9pt;
+    vertical-align: top;
+    line-height: 14px;
+  }
+  .tbl-kesimpulan td.lbl-kes {
+    width: 26%;
+    font-weight: bold;
+  }
+  .tbl-kesimpulan td.sep-kes {
+    width: 2%;
+    text-align: center;
+  }
+  .tbl-kesimpulan td.val-kes {
+    width: 72%;
+  }
+  .tbl-kesimpulan td.val-just {
+    text-align: justify;
+    text-justify: inter-word;
+  }
+  .st-tag {
+    display: inline-block;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: 8.5pt;
+  }
+  .st-pos { background: #dcfce7; color: #15803d; }
+  .st-net { background: #f1f5f9; color: #475569; }
+  .st-neg { background: #fee2e2; color: #b91c1c; }
+
   /* ===== FOOTER (Row 39-46) ===== */
   .footer-wrap {
-    margin-top: 16px;
+    margin-top: 14px;
     display: flex;
     align-items: flex-start;
     gap: 8px;
@@ -466,38 +674,7 @@ if ($step === 'print') {
 
 
 <?php
-/**
- * FORMULA KETERANGAN - sesuai Excel sheet Rapot (verified dari actual formula):
- * D18: IF(C18>=4.58,"Sangat Baik",IF(AND(C18>=4.12,C18<4.8),"Baik",IF(AND(C18>=3.66,C18<4.12),"Cukup","Kurang Baik")))
- *      -> Karena IF pertama menangkap >=4.58, maka AND(>=4.12,<4.8) efektif = >=4.12 && <4.58
- * D19: IF(C19<14,"Belum Memenuhi","Sudah Memenuhi")
- * D20: IF(C20>=4.58,"Sangat Baik",IF(AND(C20>=4.12,C20<4.57),"Baik",IF(AND(C20>=3.66,C20<4.12),"Cukup","Kurang ")))
- *      -> Perhatikan batas "Baik" adalah C20<4.57 (bukan 4.58!), dan hasil "Kurang" ada trailing space
- * D21: IF(C21>=1,"Memenuhi","Belum Memenuhi")
- * D22: IF(C22>=1,"Memenuhi","Belum Memenuhi")
- */
-function getKetKuis(float $s): string {
-    if ($s == 0) return '';
-    // Excel D18: IF(C18>=4.58,"Sangat Baik",IF(AND(C18>=4.12,C18<4.8),"Baik",...
-    // Batas atas "Baik" adalah 4.8 (bukan 4.58) sesuai formula Excel aktual
-    if ($s >= 4.58) return 'Sangat Baik';
-    if ($s >= 4.12 && $s < 4.8) return 'Baik';
-    if ($s >= 3.66 && $s < 4.12) return 'Cukup';
-    return 'Kurang Baik';
-}
-function getKetHadir(float $h): string {
-    if ($h == 0) return '';
-    return $h < 14 ? 'Belum Memenuhi' : 'Sudah Memenuhi';
-}
-function getKetKonten(float $k): string {
-    // Excel D20: IF(C20>=4.58,"Sangat Baik",IF(AND(C20>=4.12,C20<4.57),"Baik",...
-    // Batas atas "Baik" adalah 4.57 (bukan 4.58) sesuai formula Excel aktual
-    if ($k == 0) return '';
-    if ($k >= 4.58) return 'Sangat Baik';
-    if ($k >= 4.12 && $k < 4.57) return 'Baik';
-    if ($k >= 3.66 && $k < 4.12) return 'Cukup';
-    return 'Kurang';
-}
+// Fungsi getKetKuis/getKetHadir/getKetKonten sudah didefinisikan di atas (global scope)
 
 $printDosen = $selectedDosen;
 if (empty($printDosen)) {
@@ -591,6 +768,9 @@ foreach ($printDosen as $d):
     }
     while (count($catatan) < 4) $catatan[] = '';
 
+    // E. ANALISIS SENTIMEN & KESIMPULAN MAHASISWA
+    $sentimen = getDosenSentimen($d);
+
     // Periode uppercase sesuai Excel: "GASAL 2025-2026" (tanpa spasi di sekitar -)
     $periodeLabel = strtoupper(RAPORT_PERIODE);
     $periodeLabel = preg_replace('/\s*-\s*/', '-', $periodeLabel);
@@ -669,6 +849,25 @@ foreach ($printDosen as $d):
       <td class="cat-isi"><?= $isEmpty ? '&nbsp;' : htmlspecialchars($catatan[$i]) ?></td>
     </tr>
     <?php endfor; ?>
+  </table>
+
+  <!-- ROW: E. KESIMPULAN & ANALISIS SENTIMEN MAHASISWA -->
+  <div class="sec-e">E. KESIMPULAN &amp; ANALISIS SENTIMEN MAHASISWA</div>
+  <table class="tbl-kesimpulan">
+    <tr>
+      <td class="lbl-kes">Hasil Sentimen Mahasiswa</td>
+      <td class="sep-kes">:</td>
+      <td class="val-kes">
+        <span class="st-tag st-pos">Positif: <strong><?= $sentimen['positif_pct'] ?>%</strong> (<?= $sentimen['positif'] ?> respon)</span> &nbsp;&bull;&nbsp;
+        <span class="st-tag st-net">Netral: <strong><?= $sentimen['netral_pct'] ?>%</strong> (<?= $sentimen['netral'] ?> respon)</span> &nbsp;&bull;&nbsp;
+        <span class="st-tag st-neg">Negatif: <strong><?= $sentimen['negatif_pct'] ?>%</strong> (<?= $sentimen['negatif'] ?> respon)</span>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl-kes">Kesimpulan Evaluasi</td>
+      <td class="sep-kes">:</td>
+      <td class="val-kes val-just"><?= htmlspecialchars($sentimen['kesimpulan']) ?></td>
+    </tr>
   </table>
 
   <!-- ROW 39-46: FOOTER sesuai Excel -->
@@ -809,6 +1008,35 @@ endif;
       </div>
     </div>
 
+    <!-- Analisis Sentimen & Kesimpulan -->
+    <?php $prevSentimen = getDosenSentimen($previewDosen); ?>
+    <div class="border-b border-slate-100 dark:border-slate-700/60 pb-6 mb-6">
+      <h3 class="font-bold text-lg text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+        <span class="w-8 h-8 rounded-lg bg-[#8c0c4c]/10 text-[#8c0c4c] flex items-center justify-center text-sm font-bold">E</span>
+        Kesimpulan &amp; Analisis Sentimen Mahasiswa
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div class="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl border border-emerald-100 dark:border-emerald-800 text-center">
+          <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">Sentimen Positif</div>
+          <div class="text-xl font-bold text-emerald-700 dark:text-emerald-300"><?= $prevSentimen['positif_pct'] ?>%</div>
+          <div class="text-[11px] text-emerald-600 dark:text-emerald-400"><?= $prevSentimen['positif'] ?> respon</div>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border border-slate-200 dark:border-slate-600 text-center">
+          <div class="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Sentimen Netral</div>
+          <div class="text-xl font-bold text-slate-700 dark:text-slate-300"><?= $prevSentimen['netral_pct'] ?>%</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400"><?= $prevSentimen['netral'] ?> respon</div>
+        </div>
+        <div class="p-3 bg-red-50 dark:bg-red-900/30 rounded-2xl border border-red-100 dark:border-red-800 text-center">
+          <div class="text-xs font-bold text-red-600 dark:text-red-400 uppercase">Sentimen Negatif</div>
+          <div class="text-xl font-bold text-red-700 dark:text-red-300"><?= $prevSentimen['negatif_pct'] ?>%</div>
+          <div class="text-[11px] text-red-600 dark:text-red-400"><?= $prevSentimen['negatif'] ?> respon</div>
+        </div>
+      </div>
+      <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs leading-relaxed text-slate-700 dark:text-slate-300 text-justify">
+        <strong>Kesimpulan Evaluasi:</strong> <?= htmlspecialchars($prevSentimen['kesimpulan']) ?>
+      </div>
+    </div>
+
     <!-- Tombol Cetak -->
     <div class="flex justify-end">
       <a href="raport_dosen.php?step=print&ids=<?= $previewDosen['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>" target="_blank"
@@ -818,11 +1046,501 @@ endif;
     </div>
   </div>
 </div>
+<?php elseif (in_array($step, ['skor_bobot','skor','rata_rata']) && $wizardDosen): ?>
+<!-- ====================== WIZARD STEPS (2-4) ====================== -->
+<?php
+  $idsParam = implode(',', $selectedIds);
+  $prevStepMap = ['skor_bobot'=>'list','skor'=>'skor_bobot','rata_rata'=>'skor'];
+  $nextStepMap = ['skor_bobot'=>'skor','skor'=>'rata_rata','rata_rata'=>'print'];
+  $currentStep = $wizardSteps[$step];
+  $prevStep = $prevStepMap[$step];
+  $nextStep = $nextStepMap[$step];
+?>
+<div class="pb-12">
+  <?php if (isset($_GET['msg']) && $_GET['msg'] === 'saved'): ?>
+  <div class="mb-4 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-700 flex items-center justify-between text-emerald-800 dark:text-emerald-200">
+    <div class="flex items-center gap-3">
+      <span class="text-xl">✅</span>
+      <span class="text-sm font-semibold">Data perubahan manual berhasil disimpan dan diterapkan pada raport dosen ini!</span>
+    </div>
+    <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700 font-bold">&times;</button>
+  </div>
+  <?php elseif (isset($_GET['msg']) && $_GET['msg'] === 'reset'): ?>
+  <div class="mb-4 p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-700 flex items-center justify-between text-blue-800 dark:text-blue-200">
+    <div class="flex items-center gap-3">
+      <span class="text-xl">🔄</span>
+      <span class="text-sm font-semibold">Data telah dikembalikan ke data asli dari file Excel.</span>
+    </div>
+    <button onclick="this.parentElement.remove()" class="text-blue-500 hover:text-blue-700 font-bold">&times;</button>
+  </div>
+  <?php endif; ?>
+
+  <!-- ======= WIZARD PROGRESS BAR ======= -->
+  <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/60 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between gap-1 mb-4">
+      <?php foreach ($wizardSteps as $sKey => $sInfo): ?>
+      <?php
+        $isDone    = $sInfo['no'] < $currentStep['no'];
+        $isCurrent = ($sKey === $step);
+        $isNext    = $sInfo['no'] > $currentStep['no'];
+        $stepColor = $isDone ? 'bg-emerald-500 text-white' : ($isCurrent ? 'bg-[#8c0c4c] text-white shadow-lg ring-4 ring-[#8c0c4c]/20' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500');
+        $lineColor = $isDone ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700';
+      ?>
+      <div class="flex flex-col items-center flex-1">
+        <?php if ($sKey !== 'list'): ?>
+        <div class="w-full h-0.5 <?= $lineColor ?> mb-4 -mt-4 relative top-4"></div>
+        <?php endif; ?>
+        <a href="<?= $sKey === 'list' ? 'raport_dosen.php?periode='.RAPORT_PERIODE_KEY : ($sKey === 'print' ? 'raport_dosen.php?step=print&ids='.urlencode($idsParam).'&periode='.RAPORT_PERIODE_KEY : wizardUrl($sKey, RAPORT_PERIODE_KEY, $idsParam)) ?>"
+           target="<?= $sKey === 'print' ? '_blank' : '_self' ?>"
+           class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold <?= $stepColor ?> z-10 relative transition-all hover:scale-105">
+          <?= $isDone ? '✓' : $sInfo['icon'] ?>
+        </a>
+        <div class="mt-1.5 text-center">
+          <div class="text-[10px] font-bold <?= $isCurrent ? 'text-[#8c0c4c] dark:text-pink-400' : ($isDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400') ?>"><?= $sInfo['label'] ?></div>
+          <div class="text-[9px] text-slate-400 dark:text-slate-500"><?= $sInfo['sheet'] ?></div>
+        </div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+
+    <!-- Dosen selector bar (Pilih Dosen Interaktif seperti VLOOKUP Excel) -->
+    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <div class="w-10 h-10 rounded-2xl bg-[#8c0c4c]/10 text-[#8c0c4c] flex items-center justify-center font-bold text-lg shrink-0">👤</div>
+        <div class="flex-1 min-w-[260px]">
+          <label class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Pilih / Ganti Dosen (VLOOKUP Excel)</label>
+          <select onchange="window.location.href='raport_dosen.php?step=<?= $step ?>&periode=<?= RAPORT_PERIODE_KEY ?>&ids=' + this.value"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#8c0c4c]">
+            <?php foreach ($allDosen as $ad): ?>
+            <?php
+              $adNo = (string)($ad['No'] ?? '');
+              $isSel = ($adNo === (string)($wizardDosen['No'] ?? ''));
+              $isMod = isset($_SESSION['raport_overrides'][$adNo]);
+            ?>
+            <option value="<?= htmlspecialchars($adNo) ?>" <?= $isSel ? 'selected' : '' ?>>
+              <?= htmlspecialchars($ad['No'] . '. ' . $ad['Nama'] . ' (' . ($ad['Prodi'] ?: 'Tanpa Prodi') . ')' . ($isMod ? ' ✏️ [Diedit]' : '')) ?>
+            </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <?php if (isset($_SESSION['raport_overrides'][(string)($wizardDosen['No'] ?? '')])): ?>
+        <span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-[10px] font-bold shrink-0">
+          ✏️ Mode Kustom
+        </span>
+        <?php endif; ?>
+      </div>
+
+      <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+        <a href="<?= wizardUrl($prevStep, RAPORT_PERIODE_KEY, $idsParam) ?>" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold text-xs hover:bg-slate-200 transition-colors">← Kembali</a>
+        <?php if ($nextStep === 'print'): ?>
+        <a href="raport_dosen.php?step=print&ids=<?= urlencode($idsParam) ?>&periode=<?= RAPORT_PERIODE_KEY ?>" target="_blank"
+           class="px-5 py-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-semibold text-xs transition-all shadow flex items-center gap-1.5">
+          <span>🖨️</span> <span>Cetak Raport A4 →</span>
+        </a>
+        <?php else: ?>
+        <a href="<?= wizardUrl($nextStep, RAPORT_PERIODE_KEY, $idsParam) ?>" class="px-5 py-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-semibold text-xs transition-all shadow flex items-center gap-1.5">
+          <span>Lanjut ke <?= $wizardSteps[$nextStep]['label'] ?></span> <span>→</span>
+        </a>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= STEP CONTENT ======= -->
+  <?php if ($step === 'skor_bobot'): ?>
+  <!-- STEP 2: SKOR BOBOT & INPUT / EDIT MANUAL -->
+  <?php
+    $skK = round((float)($wizardDosen['Nilai Kuesioner'] ?? 0), 2);
+    $skH = (float)($wizardDosen['Jumlah Kehadiran'] ?? 0);
+    $skKo = round((float)($wizardDosen['Konten'] ?? 0), 2);
+    $jPenel = (int)($wizardDosen['Jumlah Penelitian'] ?? 0);
+    $jPengab = (int)($wizardDosen['Jumlah Pengabdian'] ?? 0);
+    $dNo = (string)($wizardDosen['No'] ?? '');
+    $isOverridden = isset($_SESSION['raport_overrides'][$dNo]);
+  ?>
+  <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/60 shadow-sm overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <span class="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-xl">⚖️</span>
+        <div>
+          <h2 class="font-bold text-lg text-slate-800 dark:text-white">Skor Bobot &amp; Input Penilaian Tridharma</h2>
+          <p class="text-xs text-slate-500">Sesuaikan atau input manual data indikator seperti di Excel</p>
+        </div>
+      </div>
+      <?php if ($isOverridden): ?>
+      <form method="POST" onsubmit="return confirm('Kembalikan semua nilai dosen ini ke data asli Excel?')">
+        <input type="hidden" name="action" value="reset_manual">
+        <input type="hidden" name="dosen_no" value="<?= htmlspecialchars($dNo) ?>">
+        <input type="hidden" name="current_step" value="skor_bobot">
+        <button type="submit" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-colors">
+          🔄 Reset ke Asli Excel
+        </button>
+      </form>
+      <?php endif; ?>
+    </div>
+
+    <!-- FORM INPUT / EDIT NILAI MANUAL -->
+    <form method="POST" class="p-6">
+      <input type="hidden" name="action" value="save_manual">
+      <input type="hidden" name="dosen_no" value="<?= htmlspecialchars($dNo) ?>">
+      <input type="hidden" name="current_step" value="skor_bobot">
+
+      <!-- Keep P & K hidden on this step if not modified -->
+      <input type="hidden" name="p1" value="<?= htmlspecialchars($wizardDosen['P1'] ?? '') ?>">
+      <input type="hidden" name="p2" value="<?= htmlspecialchars($wizardDosen['P2'] ?? '') ?>">
+      <input type="hidden" name="p3" value="<?= htmlspecialchars($wizardDosen['P3'] ?? '') ?>">
+      <input type="hidden" name="p4" value="<?= htmlspecialchars($wizardDosen['P4'] ?? '') ?>">
+      <input type="hidden" name="p5" value="<?= htmlspecialchars($wizardDosen['P5'] ?? '') ?>">
+      <input type="hidden" name="k1" value="<?= htmlspecialchars($wizardDosen['K1'] ?? '') ?>">
+      <input type="hidden" name="k2" value="<?= htmlspecialchars($wizardDosen['K2'] ?? '') ?>">
+      <input type="hidden" name="k3" value="<?= htmlspecialchars($wizardDosen['K3'] ?? '') ?>">
+      <input type="hidden" name="k4" value="<?= htmlspecialchars($wizardDosen['K4'] ?? '') ?>">
+
+      <!-- Section Identitas Mengajar -->
+      <div class="mb-6 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <h4 class="text-xs uppercase font-bold text-slate-500 mb-3 flex items-center gap-2">
+          <span>📚</span> <span>Informasi Mengajar &amp; Responden</span>
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Jumlah Mata Kuliah</label>
+            <input type="number" name="jml_mk" value="<?= htmlspecialchars($wizardDosen['Jumlah Matkul'] ?? '0') ?>" min="0" max="20"
+              class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-[#8c0c4c]">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Jumlah Kelas</label>
+            <input type="number" name="jml_kelas" value="<?= htmlspecialchars($wizardDosen['Jumlah Kelas'] ?? '0') ?>" min="0" max="50"
+              class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-[#8c0c4c]">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Jumlah Responden (cth: 131 dari 312)</label>
+            <input type="text" name="jml_resp" value="<?= htmlspecialchars($wizardDosen['Jumlah Responden'] ?? '') ?>" placeholder="X dari Y"
+              class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-[#8c0c4c]">
+          </div>
+        </div>
+      </div>
+
+      <!-- Section Input 5 Indikator Tridharma -->
+      <h3 class="font-bold text-slate-800 dark:text-white mb-3 flex items-center justify-between">
+        <span>📋 Nilai 5 Indikator Tridharma (Bisa Diedit Manual)</span>
+        <span class="text-xs text-slate-400 font-normal">Formula Excel aktif otomatis saat nilai diubah</span>
+      </h3>
+
+      <div class="overflow-x-auto mb-6">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="bg-slate-100 dark:bg-slate-900">
+              <th class="text-left py-3 px-4 font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">Indikator Penilaian</th>
+              <th class="text-center py-3 px-4 font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 w-36">Input Nilai</th>
+              <th class="text-center py-3 px-4 font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 w-24">Bobot</th>
+              <th class="text-center py-3 px-4 font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 w-44">Predikat / Keterangan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 1. Kuesioner Mahasiswa -->
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700">
+                <div class="font-bold text-slate-800 dark:text-white">1. Kuesioner Mahasiswa</div>
+                <div class="text-[11px] text-slate-500">Rentang skor: 3.20 - 5.00</div>
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <input type="number" step="0.01" min="0" max="5.00" name="nilai_kuis" id="input-kuis"
+                  value="<?= $skK > 0 ? $skK : '' ?>" placeholder="0.00" oninput="updateLiveKeterangan()"
+                  class="w-28 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl py-1.5 font-bold text-slate-800 dark:text-white focus:border-[#8c0c4c] focus:outline-none">
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center text-slate-500 font-semibold">40%</td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <span id="badge-kuis" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700"><?= getKetKuis($skK) ?: '–' ?></span>
+              </td>
+            </tr>
+
+            <!-- 2. Kehadiran Mengajar -->
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700">
+                <div class="font-bold text-slate-800 dark:text-white">2. Kehadiran Mengajar</div>
+                <div class="text-[11px] text-slate-500">Target: minimal 14 pertemuan</div>
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <input type="number" step="0.1" min="0" max="20" name="kehadiran" id="input-hadir"
+                  value="<?= $skH > 0 ? $skH : '' ?>" placeholder="0" oninput="updateLiveKeterangan()"
+                  class="w-28 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl py-1.5 font-bold text-slate-800 dark:text-white focus:border-[#8c0c4c] focus:outline-none">
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center text-slate-500 font-semibold">20%</td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <span id="badge-hadir" class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700"><?= getKetHadir($skH) ?: '–' ?></span>
+              </td>
+            </tr>
+
+            <!-- 3. Kelengkapan Konten LMS -->
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700">
+                <div class="font-bold text-slate-800 dark:text-white">3. Kelengkapan Konten LMS</div>
+                <div class="text-[11px] text-slate-500">Rentang skor: 3.20 - 5.00</div>
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <input type="number" step="0.01" min="0" max="5.00" name="konten" id="input-konten"
+                  value="<?= $skKo > 0 ? $skKo : '' ?>" placeholder="0.00" oninput="updateLiveKeterangan()"
+                  class="w-28 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl py-1.5 font-bold text-slate-800 dark:text-white focus:border-[#8c0c4c] focus:outline-none">
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center text-slate-500 font-semibold">20%</td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <span id="badge-konten" class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700"><?= getKetKonten($skKo) ?: '–' ?></span>
+              </td>
+            </tr>
+
+            <!-- 4. Penelitian -->
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700">
+                <div class="font-bold text-slate-800 dark:text-white">4. Penelitian</div>
+                <div class="text-[11px] text-slate-500">Minimal 1 publikasi / penelitian</div>
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <input type="number" min="0" max="20" name="penelitian" id="input-penel"
+                  value="<?= $jPenel ?>" placeholder="0" oninput="updateLiveKeterangan()"
+                  class="w-28 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl py-1.5 font-bold text-slate-800 dark:text-white focus:border-[#8c0c4c] focus:outline-none">
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center text-slate-500 font-semibold">10%</td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <span id="badge-penel" class="px-3 py-1 rounded-full text-xs font-bold <?= $jPenel >= 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' ?>"><?= $jPenel >= 1 ? 'Memenuhi' : 'Belum Memenuhi' ?></span>
+              </td>
+            </tr>
+
+            <!-- 5. Pengabdian -->
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700">
+                <div class="font-bold text-slate-800 dark:text-white">5. Pengabdian Kepada Masyarakat</div>
+                <div class="text-[11px] text-slate-500">Minimal 1 kegiatan pengabdian</div>
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <input type="number" min="0" max="20" name="pengabdian" id="input-pengab"
+                  value="<?= $jPengab ?>" placeholder="0" oninput="updateLiveKeterangan()"
+                  class="w-28 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl py-1.5 font-bold text-slate-800 dark:text-white focus:border-[#8c0c4c] focus:outline-none">
+              </td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center text-slate-500 font-semibold">10%</td>
+              <td class="py-3 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <span id="badge-pengab" class="px-3 py-1 rounded-full text-xs font-bold <?= $jPengab >= 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' ?>"><?= $jPengab >= 1 ? 'Memenuhi' : 'Belum Memenuhi' ?></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+        <p class="text-xs text-slate-500">
+          💡 Klik <strong>Simpan Perubahan</strong> untuk mengaplikasikan nilai ini ke Raport &amp; cetakan PDF.
+        </p>
+        <button type="submit" class="px-6 py-2.5 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2">
+          <span>💾</span> <span>Simpan Perubahan Manual</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <?php elseif ($step === 'skor'): ?>
+  <!-- STEP 3: SKOR & PILIHAN REKOMENDASI (P1-P5) + CATATAN MAHASISWA (K1-K4) -->
+  <?php
+    $dNo = (string)($wizardDosen['No'] ?? '');
+    $rataKriteria = $allSheetsData['rata_rata'] ?? [];
+    $skK = round((float)($wizardDosen['Nilai Kuesioner'] ?? 0), 2);
+    $katK = getSkorKategori($skK);
+
+    $pValues = [
+      $wizardDosen['P1'] ?? '',
+      $wizardDosen['P2'] ?? '',
+      $wizardDosen['P3'] ?? '',
+      $wizardDosen['P4'] ?? '',
+      $wizardDosen['P5'] ?? '',
+    ];
+    // Fallback default rekomendasi jika kosong
+    $defaultP = ASPEK_KUESIONER_STANDAR;
+    for ($i = 0; $i < 5; $i++) {
+      if (empty(trim($pValues[$i]))) {
+        $pValues[$i] = $defaultP[$i] ?? '';
+      }
+    }
+    $kValues = [
+      $wizardDosen['K1'] ?? '',
+      $wizardDosen['K2'] ?? '',
+      $wizardDosen['K3'] ?? '',
+      $wizardDosen['K4'] ?? '',
+    ];
+  ?>
+  <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/60 shadow-sm overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-xl">📊</span>
+        <div>
+          <h2 class="font-bold text-lg text-slate-800 dark:text-white">Skor &amp; Pilihan Rekomendasi Kuesioner</h2>
+          <p class="text-xs text-slate-500">Pilih rekomendasi perbaikan (P1–P5) dari 28 aspek kuesioner atau ketik catatan mahasiswa</p>
+        </div>
+      </div>
+      <span class="px-3 py-1 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs">
+        Skor: <?= $skK > 0 ? number_format($skK, 2) : '–' ?> (<?= $katK['label'] ?>)
+      </span>
+    </div>
+
+    <!-- FORM PILIHAN & EDIT REKOMENDASI -->
+    <form method="POST" class="p-6">
+      <input type="hidden" name="action" value="save_manual">
+      <input type="hidden" name="dosen_no" value="<?= htmlspecialchars($dNo) ?>">
+      <input type="hidden" name="current_step" value="skor">
+
+      <!-- Keep numerical fields -->
+      <input type="hidden" name="jml_mk" value="<?= htmlspecialchars($wizardDosen['Jumlah Matkul'] ?? '0') ?>">
+      <input type="hidden" name="jml_kelas" value="<?= htmlspecialchars($wizardDosen['Jumlah Kelas'] ?? '0') ?>">
+      <input type="hidden" name="jml_resp" value="<?= htmlspecialchars($wizardDosen['Jumlah Responden'] ?? '') ?>">
+      <input type="hidden" name="nilai_kuis" value="<?= htmlspecialchars($wizardDosen['Nilai Kuesioner'] ?? '0') ?>">
+      <input type="hidden" name="kehadiran" value="<?= htmlspecialchars($wizardDosen['Jumlah Kehadiran'] ?? '0') ?>">
+      <input type="hidden" name="konten" value="<?= htmlspecialchars($wizardDosen['Konten'] ?? '0') ?>">
+      <input type="hidden" name="penelitian" value="<?= htmlspecialchars($wizardDosen['Jumlah Penelitian'] ?? '0') ?>">
+      <input type="hidden" name="pengabdian" value="<?= htmlspecialchars($wizardDosen['Jumlah Pengabdian'] ?? '0') ?>">
+
+      <!-- 5 ASPEK REKOMENDASI PERBAIKAN DENGAN DROPDOWN 28 KRITERIA -->
+      <div class="mb-8">
+        <h3 class="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+          <span>🎯</span> <span>C1. Rekomendasi Perbaikan (P1 – P5)</span>
+        </h3>
+        <p class="text-xs text-slate-500 mb-4">
+          Pilih aspek dari <strong>dropdown 28 kriteria kuesioner</strong> (sesuai Sheet Rata-Rata Excel) atau pilih <em>"Ketik Kustom"</em> untuk mengisi sendiri:
+        </p>
+
+        <div class="space-y-3">
+          <?php for ($pi = 1; $pi <= 5; $pi++): ?>
+          <?php $currentP = $pValues[$pi - 1]; ?>
+          <div class="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-900/10 border border-amber-200/70 dark:border-amber-800/60">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0"><?= $pi ?></span>
+              <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Pilih Aspek Rekomendasi <?= $pi ?>:</label>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <!-- Dropdown 28 Kriteria -->
+              <select onchange="document.getElementById('input-p<?= $pi ?>').value = this.value"
+                class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#8c0c4c]">
+                <option value="">-- Pilih dari 28 Kriteria Kuesioner --</option>
+                <?php foreach ($rataKriteria as $rk): ?>
+                <option value="<?= htmlspecialchars($rk['nama']) ?>" <?= trim($currentP) === trim($rk['nama']) ? 'selected' : '' ?>>
+                  <?= htmlspecialchars($rk['no'] . '. ' . $rk['nama']) ?>
+                </option>
+                <?php endforeach; ?>
+              </select>
+
+              <!-- Text Input Langsung (bisa diketik kustom) -->
+              <input type="text" name="p<?= $pi ?>" id="input-p<?= $pi ?>" value="<?= htmlspecialchars($currentP) ?>" placeholder="Teks aspek rekomendasi..."
+                class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 font-semibold focus:outline-none focus:border-[#8c0c4c]">
+            </div>
+          </div>
+          <?php endfor; ?>
+        </div>
+      </div>
+
+      <!-- 4 CATATAN / KOMENTAR MAHASISWA (K1 - K4) -->
+      <div class="mb-6">
+        <h3 class="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+          <span>💬</span> <span>D. Catatan &amp; Komentar Mahasiswa (K1 – K4)</span>
+        </h3>
+        <p class="text-xs text-slate-500 mb-4">
+          Tulis atau edit catatan/kesan mahasiswa untuk dosen ini (akan tercetak pada Bagian D Raport):
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <?php for ($ki = 1; $ki <= 4; $ki++): ?>
+          <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label class="block text-xs font-bold text-slate-500 mb-1">Catatan <?= $ki ?> (K<?= $ki ?>):</label>
+            <textarea name="k<?= $ki ?>" rows="2" placeholder="Tulis catatan mahasiswa di sini..."
+              class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#8c0c4c]"><?= htmlspecialchars($kValues[$ki - 1]) ?></textarea>
+          </div>
+          <?php endfor; ?>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+        <p class="text-xs text-slate-500">
+          💡 Rekomendasi &amp; catatan yang dipilih akan tercetak pada raport resmi.
+        </p>
+        <button type="submit" class="px-6 py-2.5 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2">
+          <span>💾</span> <span>Simpan Rekomendasi &amp; Catatan</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+
+  <?php elseif ($step === 'rata_rata'): ?>
+  <!-- STEP 4: RATA-RATA -->
+  <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/60 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+      <span class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-xl">📈</span>
+      <div>
+        <h2 class="font-bold text-lg text-slate-800 dark:text-white">Rata-Rata Kriteria Kuesioner</h2>
+        <p class="text-sm text-slate-500">28 kriteria aspek penilaian kuesioner (dari Sheet Rata-Rata Excel)</p>
+      </div>
+    </div>
+    <div class="p-6">
+      <?php
+        $rataData = $allSheetsData['rata_rata'] ?? [];
+        // Skor rata-rata dosen untuk referensi
+        $skorRef = round((float)($wizardDosen['Nilai Kuesioner'] ?? 0), 2);
+      ?>
+      <!-- Info skor -->
+      <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800 mb-6 flex items-center gap-4">
+        <span class="text-3xl">📈</span>
+        <div>
+          <div class="font-bold text-emerald-800 dark:text-emerald-200">Nilai Kuesioner: <span class="text-2xl"><?= $skorRef > 0 ? number_format($skorRef, 2) : '–' ?></span></div>
+          <div class="text-sm text-emerald-700 dark:text-emerald-400">Nilai ini merupakan rata-rata tertimbang dari 28 kriteria di bawah ini</div>
+        </div>
+      </div>
+      <!-- Tabel 28 Kriteria -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="bg-slate-50 dark:bg-slate-900/50">
+              <th class="text-center py-3 px-4 font-semibold text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 w-12">No</th>
+              <th class="text-left py-3 px-4 font-semibold text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">Kriteria Penilaian</th>
+              <th class="text-center py-3 px-4 font-semibold text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 w-24">Rata-Rata</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($rataData as $kr): ?>
+            <?php
+              $rataVal = $kr['rata'];
+              $katRata = $rataVal !== null ? getSkorKategori($rataVal) : null;
+              $bgRow = '';
+              if ($rataVal !== null) {
+                  $bgRow = $rataVal >= 4.58 ? 'bg-emerald-50/50 dark:bg-emerald-900/10' :
+                           ($rataVal >= 4.12 ? 'bg-blue-50/50 dark:bg-blue-900/10' :
+                           ($rataVal >= 3.66 ? 'bg-amber-50/50 dark:bg-amber-900/10' : 'bg-red-50/50 dark:bg-red-900/10'));
+              }
+            ?>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 <?= $bgRow ?>">
+              <td class="py-2.5 px-4 border border-slate-200 dark:border-slate-700 text-center text-slate-500 font-mono"><?= htmlspecialchars($kr['no']) ?></td>
+              <td class="py-2.5 px-4 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"><?= htmlspecialchars($kr['nama']) ?></td>
+              <td class="py-2.5 px-4 border border-slate-200 dark:border-slate-700 text-center">
+                <?php if ($rataVal !== null): ?>
+                <span class="px-2 py-0.5 rounded text-xs font-bold <?= ['Sangat Baik'=>'bg-emerald-100 text-emerald-700','Baik'=>'bg-blue-100 text-blue-700','Cukup'=>'bg-amber-100 text-amber-700','Kurang Baik'=>'bg-red-100 text-red-700'][$katRata['label']] ?? 'bg-slate-100 text-slate-600' ?>"><?= number_format($rataVal, 2) ?></span>
+                <?php else: ?>
+                <span class="text-slate-300 text-xs">–</span>
+                <?php endif; ?>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-xs text-slate-500">
+        <strong>Catatan:</strong> Nilai rata-rata dihitung dari data kuesioner mahasiswa sesuai Sheet "Rata-Rata" di file Excel.
+        Tanda (–) berarti data belum tersedia atau belum dihitung untuk dosen ini.
+      </div>
+    </div>
+  </div>
+  <?php endif; // end wizard step content ?>
+</div>
+
 <?php else: ?>
 <!-- ====================== LIST VIEW ====================== -->
 <div class="pb-10">
   <!-- Header + Periode Switcher -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
     <div>
       <h1 class="font-display font-bold text-2xl md:text-3xl text-slate-800 dark:text-white">📋 Raport Laporan Dosen</h1>
       <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Generate surat raport dosen otomatis dari data kuesioner &amp; evaluasi Tridharma</p>
@@ -847,6 +1565,37 @@ endif;
     </div>
   </div>
 
+  <!-- ======= WIZARD FLOW INDICATOR (Step 1 aktif) ======= -->
+  <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/60 shadow-sm p-5 mb-6">
+    <div class="flex items-center justify-between gap-1">
+      <?php foreach ($wizardSteps as $sKey => $sInfo): ?>
+      <?php
+        $isListActive = ($sKey === 'list');
+        $circleClass  = $isListActive
+          ? 'bg-[#8c0c4c] text-white shadow-lg ring-4 ring-[#8c0c4c]/20'
+          : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500';
+        $lineClass = 'bg-slate-200 dark:bg-slate-700';
+        $lblClass  = $isListActive ? 'text-[#8c0c4c] dark:text-pink-400 font-bold' : 'text-slate-400';
+      ?>
+      <div class="flex flex-col items-center flex-1">
+        <?php if ($sKey !== 'list'): ?>
+        <div class="w-full h-0.5 <?= $lineClass ?> mb-4 -mt-4 relative top-4"></div>
+        <?php endif; ?>
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold <?= $circleClass ?> z-10 relative">
+          <?= $sInfo['icon'] ?>
+        </div>
+        <div class="mt-1.5 text-center">
+          <div class="text-[10px] <?= $lblClass ?>"><?= $sInfo['label'] ?></div>
+          <div class="text-[9px] text-slate-400 dark:text-slate-500"><?= $sInfo['sheet'] ?></div>
+        </div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <p class="text-xs text-slate-500 dark:text-slate-400 text-center mt-3">
+      <strong>Langkah 1 dari 5:</strong> Pilih satu dosen lalu klik <strong>"Lihat Raport"</strong> untuk memulai alur tahapan raport sesuai sheet Excel
+    </p>
+  </div>
+
   <?php if ($hasError): ?>
   <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 mb-6">
     <p class="text-amber-700 dark:text-amber-400 font-semibold">⚠️ <?= htmlspecialchars($excelData['error'] ?? 'Data tidak tersedia') ?></p>
@@ -859,6 +1608,7 @@ endif;
     <?php endif; ?>
   </div>
   <?php endif; ?>
+
 
   <!-- Stats Cards -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -1068,12 +1818,14 @@ endif;
             </td>
             <td class="py-3.5 px-4 text-right">
               <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                <a href="raport_dosen.php?step=preview&no=<?= $d['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>"
-                   class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 transition-colors">
-                   👁️ Preview
+                <!-- Lihat Raport → mulai wizard dari step skor_bobot -->
+                <a href="raport_dosen.php?step=skor_bobot&ids=<?= $d['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>"
+                   class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#8c0c4c] text-white hover:bg-[#a3155b] transition-colors shadow-sm">
+                   📑 Lihat Raport
                 </a>
                 <a href="raport_dosen.php?step=print&ids=<?= $d['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>" target="_blank"
-                   class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#8c0c4c]/10 text-[#8c0c4c] hover:bg-[#8c0c4c]/20 transition-colors">
+                   class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 transition-colors"
+                   title="Langsung cetak tanpa wizard">
                    🖨️ Cetak
                 </a>
                 <a href="raport_dosen.php?step=word&ids=<?= $d['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>"
@@ -1092,6 +1844,100 @@ endif;
 <?php endif; ?>
 
 <script>
+// ===== Live Formula / Keterangan Calculator (Mirip Formula Excel) =====
+function updateLiveKeterangan() {
+  // 1. Kuesioner
+  const kInput = document.getElementById('input-kuis');
+  const kBadge = document.getElementById('badge-kuis');
+  if (kInput && kBadge) {
+    const k = parseFloat(kInput.value) || 0;
+    if (k >= 4.58) {
+      kBadge.textContent = 'Sangat Baik';
+      kBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
+    } else if (k >= 4.12 && k < 4.8) {
+      kBadge.textContent = 'Baik';
+      kBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
+    } else if (k >= 3.66 && k < 4.12) {
+      kBadge.textContent = 'Cukup';
+      kBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+    } else if (k > 0) {
+      kBadge.textContent = 'Kurang Baik';
+      kBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+    } else {
+      kBadge.textContent = '–';
+      kBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
+    }
+  }
+
+  // 2. Kehadiran
+  const hInput = document.getElementById('input-hadir');
+  const hBadge = document.getElementById('badge-hadir');
+  if (hInput && hBadge) {
+    const h = parseFloat(hInput.value) || 0;
+    if (h >= 14) {
+      hBadge.textContent = 'Sudah Memenuhi';
+      hBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
+    } else if (h > 0) {
+      hBadge.textContent = 'Belum Memenuhi';
+      hBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+    } else {
+      hBadge.textContent = '–';
+      hBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
+    }
+  }
+
+  // 3. Konten LMS
+  const koInput = document.getElementById('input-konten');
+  const koBadge = document.getElementById('badge-konten');
+  if (koInput && koBadge) {
+    const ko = parseFloat(koInput.value) || 0;
+    if (ko >= 4.58) {
+      koBadge.textContent = 'Sangat Baik';
+      koBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
+    } else if (ko >= 4.12 && ko < 4.57) {
+      koBadge.textContent = 'Baik';
+      koBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
+    } else if (ko >= 3.66 && ko < 4.12) {
+      koBadge.textContent = 'Cukup';
+      koBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+    } else if (ko > 0) {
+      koBadge.textContent = 'Kurang';
+      koBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+    } else {
+      koBadge.textContent = '–';
+      koBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
+    }
+  }
+
+  // 4. Penelitian
+  const pInput = document.getElementById('input-penel');
+  const pBadge = document.getElementById('badge-penel');
+  if (pInput && pBadge) {
+    const p = parseInt(pInput.value, 10) || 0;
+    if (p >= 1) {
+      pBadge.textContent = 'Memenuhi';
+      pBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
+    } else {
+      pBadge.textContent = 'Belum Memenuhi';
+      pBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+    }
+  }
+
+  // 5. Pengabdian
+  const pgInput = document.getElementById('input-pengab');
+  const pgBadge = document.getElementById('badge-pengab');
+  if (pgInput && pgBadge) {
+    const pg = parseInt(pgInput.value, 10) || 0;
+    if (pg >= 1) {
+      pgBadge.textContent = 'Memenuhi';
+      pgBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
+    } else {
+      pgBadge.textContent = 'Belum Memenuhi';
+      pgBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+    }
+  }
+}
+
 // ===== Checkbox / Batch =====
 function updateBatchToolbar() {
   const checks = document.querySelectorAll('.dosen-checkbox:checked');

@@ -39,6 +39,8 @@ $headers = [
     'No',
     'Judul Artikel',
     'Kategori / Indeksasi',
+    'Scopus',
+    'Sinta Rank',
     'Nama Jurnal / Prosiding',
     'Penulis',
     'DOI',
@@ -49,6 +51,19 @@ $headers = [
     'Abstrak',
     'Tanggal Ditambahkan',
 ];
+
+// ─── Helper: ekstrak Scopus & Sinta dari kategori_publikasi ──────────────────
+function extractScopusDosen(string $kat): string {
+    if (preg_match('/scopus\s*(Q[1-4])?/i', $kat, $m)) {
+        return 'Scopus' . (isset($m[1]) && $m[1] ? ' ' . strtoupper($m[1]) : '');
+    }
+    if (stripos($kat, 'WOS') !== false || stripos($kat, 'Web of Science') !== false) return 'WoS';
+    return '';
+}
+function extractSintaDosen(string $kat): string {
+    if (preg_match('/SINTA[\s\-]*([1-6])/i', $kat, $m)) return 'SINTA ' . $m[1];
+    return '';
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function xmlEsc2(string $s): string {
@@ -83,24 +98,27 @@ foreach ($headers as $h) { $strIdx($h); }
 // ─── Baris data ───────────────────────────────────────────────────────────────
 $rows = [];
 foreach ($pubs as $i => $p) {
+    $kat = $p['kategori_publikasi'] ?? 'Lainnya';
     $rows[] = [
-        $i + 1,                                       // 0  No (numeric)
-        $p['judul_artikel']      ?? '',               // 1
-        $p['kategori_publikasi'] ?? 'Lainnya',        // 2
-        $p['nama_jurnal']        ?? '',               // 3
-        $p['penulis']            ?? '',               // 4
-        $p['doi']                ?? '',               // 5
-        (int)($p['tahun_terbit'] ?? 0) ?: '',         // 6  Tahun (numeric)
-        $p['status_publikasi']   ?? '',               // 7
-        $p['kata_kunci']         ?? '',               // 8
-        $p['link_artikel']       ?? '',               // 9
-        $p['abstrak']            ?? '',               // 10
-        date('d/m/Y', strtotime($p['created_at'])),  // 11
+        $i + 1,                                       //  0  No (numeric)
+        $p['judul_artikel']      ?? '',               //  1
+        $kat,                                         //  2  Kategori
+        extractScopusDosen($kat),                     //  3  Scopus  ← BARU
+        extractSintaDosen($kat),                      //  4  Sinta   ← BARU
+        $p['nama_jurnal']        ?? '',               //  5
+        $p['penulis']            ?? '',               //  6
+        $p['doi']                ?? '',               //  7
+        (int)($p['tahun_terbit'] ?? 0) ?: '',         //  8  Tahun (numeric)
+        $p['status_publikasi']   ?? '',               //  9
+        $p['kata_kunci']         ?? '',               // 10
+        $p['link_artikel']       ?? '',               // 11
+        $p['abstrak']            ?? '',               // 12
+        date('d/m/Y', strtotime($p['created_at'])),  // 13
     ];
 }
 foreach ($rows as $row) {
     foreach ($row as $ci => $val) {
-        if ($ci !== 0 && $ci !== 6) { $strIdx((string)$val); }
+        if ($ci !== 0 && $ci !== 8) { $strIdx((string)$val); }
     }
 }
 
@@ -182,7 +200,7 @@ $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 </styleSheet>';
 
 // ─── Worksheet XML ────────────────────────────────────────────────────────────
-$colWidths = [5, 50, 35, 38, 30, 12, 18, 38, 38, 60, 16];
+$colWidths = [5, 50, 28, 14, 14, 38, 30, 12, 10, 18, 38, 38, 60, 16];
 $numCols   = count($headers);
 $lastCol   = colLetterD2($numCols - 1);
 
@@ -230,14 +248,25 @@ foreach ($rows as $ri => $row) {
     foreach ($row as $ci => $val) {
         $addr = caD($ci, $excelRow);
         if ($ci === 0) {
+            // No — numeric
             $ws .= '      <c r="' . $addr . '" s="4"><v>' . (int)$val . '</v></c>' . "\n";
-        } elseif ($ci === 5) {
+        } elseif ($ci === 3 || $ci === 4) {
+            // Scopus & Sinta — center
+            $sStyle = ($ri % 2 === 0) ? 4 : 4;
+            $ws .= '      <c r="' . $addr . '" s="' . $sStyle . '" t="s"><v>' . $strIdx((string)$val) . '</v></c>' . "\n";
+        } elseif ($ci === 7) {
+            // DOI
+            $sStyle = ($ri % 2 === 0) ? 3 : 6;
+            $ws .= '      <c r="' . $addr . '" s="' . $sStyle . '" t="s"><v>' . $strIdx((string)$val) . '</v></c>' . "\n";
+        } elseif ($ci === 8) {
+            // Tahun — numeric
             if ($val !== '') {
                 $ws .= '      <c r="' . $addr . '" s="4"><v>' . (int)$val . '</v></c>' . "\n";
             } else {
                 $ws .= '      <c r="' . $addr . '" s="4" t="s"><v>' . $strIdx('') . '</v></c>' . "\n";
             }
-        } elseif ($ci === 6) {
+        } elseif ($ci === 9) {
+            // Status Publikasi
             $sStyle = str_contains(strtolower((string)$val), 'publish') ? 5 : 3;
             $ws .= '      <c r="' . $addr . '" s="' . $sStyle . '" t="s"><v>' . $strIdx((string)$val) . '</v></c>' . "\n";
         } else {

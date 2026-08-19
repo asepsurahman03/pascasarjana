@@ -34,12 +34,26 @@ $pubs = dbQuery($sql, $params);
 // ─── Header kolom ────────────────────────────────────────────────────────────
 $headers = [
     'No', 'NIM', 'Nama Mahasiswa', 'Program Studi',
-    'Judul Artikel', 'Kategori / Indeksasi', 'Nama Jurnal', 'Penulis / Rekan',
+    'Judul Artikel', 'Kategori / Indeksasi', 'Scopus', 'Sinta Rank', 'Nama Jurnal', 'Penulis / Rekan',
     'Dosen Pembimbing', 'DOI', 'Tahun Terbit',
     'Volume', 'Nomor Terbit', 'Halaman',
     'Status Publikasi', 'Kata Kunci', 'Link Artikel',
     'Abstrak', 'Tanggal Input',
 ];
+
+// ─── Helper: ekstrak Scopus & Sinta dari kategori_publikasi ──────────────────
+function extractScopusMhs(string $kat): string {
+    // Cocokkan: Scopus Q1, Scopus Q2, Scopus Q3, Scopus Q4, Scopus, WOS, dll
+    if (preg_match('/scopus\s*(Q[1-4])?/i', $kat, $m)) {
+        return 'Scopus' . (isset($m[1]) && $m[1] ? ' ' . strtoupper($m[1]) : '');
+    }
+    if (stripos($kat, 'WOS') !== false || stripos($kat, 'Web of Science') !== false) return 'WoS';
+    return '';
+}
+function extractSintaMhs(string $kat): string {
+    if (preg_match('/SINTA[\s\-]*([1-6])/i', $kat, $m)) return 'SINTA ' . $m[1];
+    return '';
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function xmlEscA(string $s): string { return htmlspecialchars($s, ENT_QUOTES | ENT_XML1, 'UTF-8'); }
@@ -63,32 +77,35 @@ foreach ($headers as $h) { $strIdx($h); }
 // ─── Baris data ──────────────────────────────────────────────────────────────
 $rows = [];
 foreach ($pubs as $i => $p) {
+    $kat = $p['kategori_publikasi'] ?? 'Lainnya';
     $rows[] = [
-        $i + 1,
-        $p['mhs_nim']            ?? '',
-        $p['mhs_nama']           ?? '',
-        $p['prodi_nama']         ?? '',
-        $p['judul_artikel']      ?? '',
-        $p['kategori_publikasi'] ?? 'Lainnya',
-        $p['nama_jurnal']        ?? '',
-        $p['rekan_penulis']      ?? '',
-        $p['dosen_pendamping']   ?? '',
-        $p['doi']                ?? '',
-        (int)($p['tahun_terbit'] ?? 0) ?: '',
-        $p['volume']             ?? '',
-        $p['nomor_terbit']       ?? '',
-        $p['halaman']            ?? '',
-        $p['status_publikasi']   ?? '',
-        $p['kata_kunci']         ?? '',
-        $p['link_artikel']       ?? '',
-        $p['abstrak']            ?? '',
-        date('d/m/Y', strtotime($p['created_at'])),
+        $i + 1,                                         //  0  No (numeric)
+        $p['mhs_nim']            ?? '',                 //  1
+        $p['mhs_nama']           ?? '',                 //  2
+        $p['prodi_nama']         ?? '',                 //  3
+        $p['judul_artikel']      ?? '',                 //  4
+        $kat,                                           //  5  Kategori
+        extractScopusMhs($kat),                         //  6  Scopus  ← BARU
+        extractSintaMhs($kat),                          //  7  Sinta   ← BARU
+        $p['nama_jurnal']        ?? '',                 //  8
+        $p['rekan_penulis']      ?? '',                 //  9
+        $p['dosen_pendamping']   ?? '',                 // 10
+        $p['doi']                ?? '',                 // 11
+        (int)($p['tahun_terbit'] ?? 0) ?: '',           // 12  Tahun (numeric)
+        $p['volume']             ?? '',                 // 13
+        $p['nomor_terbit']       ?? '',                 // 14
+        $p['halaman']            ?? '',                 // 15
+        $p['status_publikasi']   ?? '',                 // 16
+        $p['kata_kunci']         ?? '',                 // 17
+        $p['link_artikel']       ?? '',                 // 18
+        $p['abstrak']            ?? '',                 // 19
+        date('d/m/Y', strtotime($p['created_at'])),    // 20
     ];
 }
-// Numeric cols: 0 (No), 10 (Tahun)
+// Numeric cols: 0 (No), 12 (Tahun)
 foreach ($rows as $row) {
     foreach ($row as $ci => $val) {
-        if ($ci !== 0 && $ci !== 10) { $strIdx((string)$val); }
+        if ($ci !== 0 && $ci !== 12) { $strIdx((string)$val); }
     }
 }
 
@@ -153,7 +170,7 @@ $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 </styleSheet>';
 
 // ─── Worksheet ───────────────────────────────────────────────────────────────
-$colWidths = [4,14,35,28,50,35,35,30,28,10,10,12,12,18,35,35,60,14];
+$colWidths = [4,14,35,28,50,28,14,14,35,30,28,10,10,12,12,18,28,35,38,60,14];
 $numCols   = count($headers);
 $lastCol   = colLetA($numCols - 1);
 
@@ -192,12 +209,23 @@ foreach ($rows as $ri => $row) {
     foreach ($row as $ci => $val) {
         $addr = caA($ci, $er);
         if ($ci === 0) {
+            // No — numeric
             $ws .= '      <c r="'.$addr.'" s="4"><v>'.(int)$val.'</v></c>'."\n";
-        } elseif ($ci === 9) {
+        } elseif ($ci === 11) {
+            // DOI (Tahun sekarang di ci=12)
+            $sStyle = ($ri % 2 === 0) ? 3 : 6;
+            $ws .= '      <c r="'.$addr.'" s="'.$sStyle.'" t="s"><v>'.$strIdx((string)$val).'</v></c>'."\n";
+        } elseif ($ci === 12) {
+            // Tahun — numeric
             if ($val !== '') { $ws .= '      <c r="'.$addr.'" s="4"><v>'.(int)$val.'</v></c>'."\n"; }
             else             { $ws .= '      <c r="'.$addr.'" s="4" t="s"><v>'.$strIdx('').'</v></c>'."\n"; }
-        } elseif ($ci === 13) {
+        } elseif ($ci === 16) {
+            // Status Publikasi
             $sStyle = str_contains(strtolower((string)$val), 'publish') ? 5 : 3;
+            $ws .= '      <c r="'.$addr.'" s="'.$sStyle.'" t="s"><v>'.$strIdx((string)$val).'</v></c>'."\n";
+        } elseif ($ci === 6 || $ci === 7) {
+            // Scopus & Sinta — center align
+            $sStyle = ($ri % 2 === 0) ? 4 : 4;
             $ws .= '      <c r="'.$addr.'" s="'.$sStyle.'" t="s"><v>'.$strIdx((string)$val).'</v></c>'."\n";
         } else {
             $sStyle = ($ri % 2 === 0) ? 3 : 6;

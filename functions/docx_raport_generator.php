@@ -24,7 +24,12 @@ function docxRun(string $text, bool $bold = false, string $size = '18'): string 
 }
 
 function docxPara(string $runsXml, string $align = 'left', int $spacingBefore = 0, int $spacingAfter = 0): string {
-    $alignTag = $align !== 'left' ? '<w:jc w:val="' . $align . '"/>' : '';
+    $alignTag = '';
+    if ($align === 'justify' || $align === 'both') {
+        $alignTag = '<w:jc w:val="both"/>';
+    } elseif ($align !== 'left') {
+        $alignTag = '<w:jc w:val="' . $align . '"/>';
+    }
     return '<w:p>'
         . '<w:pPr>'
         .   '<w:pStyle w:val="Normal"/>'
@@ -79,7 +84,7 @@ function docxRow(array $cells, int $height = 280): string {
     return '<w:tr>' . $hXml . implode('', $cells) . '</w:tr>';
 }
 
-function docxTable(array $rows, int $totalWidth = 9360): string {
+function docxTable(array $rows, int $totalWidth = 10035): string {
     return '<w:tbl>'
         . '<w:tblPr>'
         .   '<w:tblW w:w="' . $totalWidth . '" w:type="dxa"/>'
@@ -148,10 +153,10 @@ function docxInlineImage(string $rId, int $widthEmu, int $heightEmu, string $nam
 }
 
 function generateRaportDocx(array $dosenList, string $periodeLabel): string {
-    $TW   = 9360; // total width twips (A4 usable ~16.5cm)
-    $colA = 374;  // indent ~4%
-    $colB = 3000; // label B ~32%
-    $colC = $TW - $colA - $colB; // value rest
+    $TW   = 10035; // total usable width twips for A4 with 19mm left/top/bottom, 14mm right
+    $colA = 400;   // indent ~4%
+    $colB = 3200;  // label B ~32%
+    $colC = $TW - $colA - $colB; // value rest ~6435
 
     // Cek apakah TTD image tersedia
     $ttdPath = __DIR__ . '/../TTD Dosen/ttd_pak_pahmi.png';
@@ -159,10 +164,9 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
     $ttdData = $hasTTD ? file_get_contents($ttdPath) : null;
     $ttdRId  = 'rId2'; // relationship ID untuk gambar
 
-    // Ukuran TTD di dokumen: 158x182px @96dpi -> EMU = px * 914400/96
-    // Skala ke tinggi ~2 cm (720000 EMU)
-    $ttdHeightEmu = 720000;  // ~2cm tinggi
-    $ttdWidthEmu  = (int)($ttdHeightEmu * 158 / 182); // proportional: ~625274
+    // Ukuran TTD di dokumen: skala ke tinggi ~1.8 cm (648000 EMU)
+    $ttdHeightEmu = 648000;  // ~1.8cm tinggi
+    $ttdWidthEmu  = (int)($ttdHeightEmu * 158 / 182); // proportional
 
     $body = '';
 
@@ -251,14 +255,14 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
         $body .= '<w:p>'
             . '<w:pPr>'
             .   '<w:jc w:val="center"/>'
-            .   '<w:spacing w:before="0" w:after="60" w:line="240" w:lineRule="auto"/>'
+            .   '<w:spacing w:before="0" w:after="40" w:line="240" w:lineRule="auto"/>'
             .   '<w:pBdr><w:bottom w:val="double" w:sz="6" w:space="1" w:color="000000"/></w:pBdr>'
             . '</w:pPr>'
             . docxRun('Jl. Raya Cibolang No. 21, Cibolang Kaler, Cisaat, Cibolang Kaler, Cisaat, Sukabumi, Jawa Barat 43152. Telp. (0266) 210594')
             . '</w:p>';
 
         // A. IDENTITAS
-        $body .= docxPara(docxRun('A. IDENTITAS DOSEN', true), 'left', 60, 0);
+        $body .= docxPara(docxRun('A. IDENTITAS DOSEN', true), 'left', 40, 0);
         $idRows = [
             ['NAMA DOSEN', $nama], ['PROGRAM STUDI', $prodi],
             ['JUMLAH MATA KULIAH', $vJmlMK], ['JUMLAH KELAS', $vJmlKelas],
@@ -270,23 +274,22 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
                 docxCell(docxPara(''), $colA, docxBorderNone()),
                 docxCell(docxPara(docxRun($lbl)), $colB, docxBorderNone()),
                 docxCell(docxPara(docxRun($val)), $colC, docxBorderNone()),
-            ], 240);
+            ], 220);
         }
         $body .= docxTable($idTableRows, $TW);
 
-        // B. REKAPITULASI (proporsi sesuai Excel & PDF print: 58% / 12% / 30%)
-        $body .= docxPara(docxRun('B. REKAPITULASI PENILAIAN', true), 'left', 60, 0);
-        $rekapW = $TW - $colA; // 8986
-        $wInd = 5212;          // Indikator 58%
-        $wNil = 1078;          // Nilai 12%
-        $wKet = 2696;          // Keterangan 30%
+        // B. REKAPITULASI
+        $body .= docxPara(docxRun('B. REKAPITULASI PENILAIAN', true), 'left', 40, 0);
+        $wInd = 5588;          // Indikator ~58%
+        $wNil = 1200;          // Nilai ~12%
+        $wKet = $TW - $colA - $wInd - $wNil; // Keterangan ~30% (~2847)
         $rekapRows = [];
         $rekapRows[] = docxRow([
             docxCell(docxPara(''), $colA, docxBorderNone()),
             docxCell(docxPara(docxRun('Indikator Penilaian', true), 'center'), $wInd, docxBorderAll(), 1, 'center'),
             docxCell(docxPara(docxRun('Nilai', true), 'center'), $wNil, docxBorderAll(), 1, 'center'),
             docxCell(docxPara(docxRun('Keterangan', true), 'center'), $wKet, docxBorderAll(), 1, 'center'),
-        ], 280);
+        ], 260);
         $rekapData2 = [
             ['Kuesioner Mahasiswa',$vKuis,$kKuis],['Kehadiran',$vHadir,$kHadir],
             ['Kelengkapan Konten Perkuliahan',$vKonten,$kKonten],
@@ -298,76 +301,87 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
                 docxCell(docxPara(docxRun($ind)), $wInd, docxBorderAll()),
                 docxCell(docxPara(docxRun($nil), 'right'), $wNil, docxBorderAll()),
                 docxCell(docxPara(docxRun($ket)), $wKet, docxBorderAll()),
-            ], 260);
+            ], 240);
         }
         $body .= docxTable($rekapRows, $TW);
 
         // C. ASPEK
-        $body .= docxPara(docxRun('C. ASPEK PEMBELAJARAN', true), 'left', 60, 0);
+        $body .= docxPara(docxRun('C. ASPEK PEMBELAJARAN', true), 'left', 40, 0);
         $body .= docxPara(docxRun('C1. REKOMENDASI PERBAIKAN', true), 'left', 0, 0);
         $wNo = 300; $wIsiCol = $TW - $wNo;
         $aspekRows = [];
         for ($i = 0; $i < 5; $i++) {
             $aspekRows[] = docxRow([
                 docxCell(docxPara(docxRun((string)($i+1))), $wNo, docxBorderBottom()),
-                docxCell(docxPara(docxRun($perbaikan[$i])), $wIsiCol, docxBorderBottom()),
-            ], 260);
+                docxCell(docxPara(docxRun($perbaikan[$i]), 'both'), $wIsiCol, docxBorderBottom()),
+            ], 240);
         }
         $body .= docxTable($aspekRows, $TW);
 
         // D. CATATAN
-        $body .= docxPara(docxRun('D. CATATAN', true), 'left', 60, 0);
+        $body .= docxPara(docxRun('D. CATATAN', true), 'left', 40, 0);
         $wDash = 280; $wCat = $TW - $wDash;
         $catRows = [];
         for ($i = 0; $i < 4; $i++) {
             $catText = $catatan[$i] !== '' ? $catatan[$i] : ' ';
             $catRows[] = docxRow([
                 docxCell(docxPara(docxRun('-', true), 'center'), $wDash, docxBorderBottom()),
-                docxCell(docxPara(docxRun($catText)), $wCat, docxBorderBottom()),
-            ], 280);
+                docxCell(docxPara(docxRun($catText), 'both'), $wCat, docxBorderBottom()),
+            ], 260);
         }
         $body .= docxTable($catRows, $TW);
 
+        // E. KESIMPULAN & ANALISIS SENTIMEN MAHASISWA
+        $sentimen = getDosenSentimen($d);
+        $body .= docxPara(docxRun('E. KESIMPULAN & ANALISIS SENTIMEN MAHASISWA', true), 'left', 40, 0);
+        $wE1 = 2500;
+        $wE2 = 200;
+        $wE3 = $TW - $wE1 - $wE2;
+        $eRows = [];
+        $sentimenText = "Positif: {$sentimen['positif_pct']}% ({$sentimen['positif']} respon)  |  Netral: {$sentimen['netral_pct']}% ({$sentimen['netral']} respon)  |  Negatif: {$sentimen['negatif_pct']}% ({$sentimen['negatif']} respon)";
+        $eRows[] = docxRow([
+            docxCell(docxPara(docxRun('Hasil Sentimen Mahasiswa', true)), $wE1, docxBorderNone()),
+            docxCell(docxPara(docxRun(':')), $wE2, docxBorderNone()),
+            docxCell(docxPara(docxRun($sentimenText, true)), $wE3, docxBorderNone()),
+        ], 220);
+        $eRows[] = docxRow([
+            docxCell(docxPara(docxRun('Kesimpulan Evaluasi', true)), $wE1, docxBorderNone()),
+            docxCell(docxPara(docxRun(':')), $wE2, docxBorderNone()),
+            docxCell(docxPara(docxRun($sentimen['kesimpulan']), 'both'), $wE3, docxBorderNone()),
+        ], 240);
+        $body .= docxTable($eRows, $TW);
+
         // FOOTER
-        $wFL = (int)($TW * 0.44); // ~4118 twips kiri
-        $wFR = $TW - $wFL;         // ~5242 twips kanan
+        $wFL = 4400;              // kiri
+        $wFR = $TW - $wFL;        // kanan (~5635)
+        $wSkor = 900;
+        $wSd   = 1550;
+        $wKt   = $wFR - $wSkor - $wSd; // ~3185
 
-        // Kolom kriteria penskoran: proporsi pas sesuai PDF print
-        $wSkor = 850;
-        $wSd   = 1450;
-        $wKt   = $wFR - $wSkor - $wSd; // ~2942 twips
-
-        // Kiri: UPM + TTD image + nama dengan garis atas
-        // Paragraf TTD: gunakan gambar jika tersedia, space kosong jika tidak
         if ($hasTTD) {
-            // Posisi TTD tepat di tengah-tengah garis nama penandatangan
             $ttdPara = '<w:p>'
-                . '<w:pPr><w:ind w:left="750"/><w:spacing w:before="40" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
+                . '<w:pPr><w:ind w:left="650"/><w:spacing w:before="20" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
                 . docxInlineImage($ttdRId, $ttdWidthEmu, $ttdHeightEmu, 'TTD_Pahmi')
                 . '</w:p>';
         } else {
-            // 3 baris kosong sebagai placeholder TTD
             $ttdPara = docxPara('', 'center', 0, 0)
-                . docxPara('', 'center', 0, 0)
                 . docxPara('', 'center', 0, 0);
         }
 
-        $leftXml = docxPara(docxRun('UNIT PENJAMINAN MUTU'), 'left', 80, 0)
+        $leftXml = docxPara(docxRun('UNIT PENJAMINAN MUTU'), 'left', 60, 0)
             . docxPara(docxRun('UNIVERSITAS NUSA PUTRA'), 'left', 0, 0)
             . $ttdPara
-            // Nama + garis tanda tangan: left-aligned
             . '<w:p>'
             .   '<w:pPr><w:jc w:val="left"/><w:spacing w:before="0" w:after="0"/>'
             .   '<w:pBdr><w:top w:val="single" w:sz="6" w:space="1" w:color="000000"/></w:pBdr></w:pPr>'
             .   docxRun('Dr. Samsul Pahmi, S.Pd., M.Pd.', true)
             . '</w:p>';
 
-        // Kanan: tabel kriteria 3 kolom
         $krRows = [];
         $krRows[] = docxRow([
             docxCell(docxPara(docxRun('RENTANG SKOR', true), 'center'), $wSkor + $wSd, docxBorderAll(), 2, 'center'),
             docxCell(docxPara(docxRun('KRITERIA', true), 'center'), $wKt, docxBorderAll(), 1, 'center'),
-        ], 260);
+        ], 240);
         foreach([
             ['3,20', 's/d 3,65', 'Kurang Baik'],
             ['3,66', 's/d 4,11', 'Cukup'],
@@ -378,10 +392,10 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
                 docxCell(docxPara(docxRun($sk), 'right'), $wSkor, docxBorderAll()),
                 docxCell(docxPara(docxRun($sd)), $wSd, docxBorderAll()),
                 docxCell(docxPara(docxRun($kt)), $wKt, docxBorderAll()),
-            ], 240);
+            ], 220);
         }
         $krTable = docxTable($krRows, $wFR);
-        $rightXml = docxPara(docxRun('CATATAN: KRITERIA PENSKORAN'), 'left', 80, 0) . $krTable;
+        $rightXml = docxPara(docxRun('CATATAN: KRITERIA PENSKORAN'), 'left', 60, 0) . $krTable;
 
         $body .= docxTable([
             docxRow([
@@ -401,8 +415,8 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
         . ' xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
         . '<w:body>' . $body
         . '<w:sectPr>'
-        .   '<w:pgSz w:w="12240" w:h="15840"/>'
-        .   '<w:pgMar w:top="1080" w:right="1008" w:bottom="1080" w:left="1080" w:header="0" w:footer="0" w:gutter="0"/>'
+        .   '<w:pgSz w:w="11906" w:h="16838"/>'
+        .   '<w:pgMar w:top="1077" w:right="794" w:bottom="1077" w:left="1077" w:header="0" w:footer="0" w:gutter="0"/>'
         . '</w:sectPr>'
         . '</w:body></w:document>';
 

@@ -24,7 +24,19 @@ $sql = "SELECT dp.*, d.nama AS dosen_nama, d.nidn
         ORDER BY dp.tahun_terbit DESC, dp.created_at DESC";
 $pubs = dbQuery($sql, $params);
 
-$headers = ['No','NIDN','Nama Dosen','Judul Artikel','Kategori / Indeksasi','Nama Jurnal','Penulis','DOI','Tahun Terbit','Status Publikasi','Kata Kunci','Link Artikel','Abstrak','Tanggal Input'];
+$headers = ['No','NIDN','Nama Dosen','Judul Artikel','Kategori / Indeksasi','Scopus','Sinta Rank','Nama Jurnal','Penulis','DOI','Tahun Terbit','Status Publikasi','Kata Kunci','Link Artikel','Abstrak','Tanggal Input'];
+
+function extractScopusD(string $kat): string {
+    if (preg_match('/scopus\s*(Q[1-4])?/i', $kat, $m)) {
+        return 'Scopus' . (isset($m[1]) && $m[1] ? ' ' . strtoupper($m[1]) : '');
+    }
+    if (stripos($kat, 'WOS') !== false || stripos($kat, 'Web of Science') !== false) return 'WoS';
+    return '';
+}
+function extractSintaD(string $kat): string {
+    if (preg_match('/SINTA[\s\-]*([1-6])/i', $kat, $m)) return 'SINTA ' . $m[1];
+    return '';
+}
 
 function xmlEscD(string $s): string { return htmlspecialchars($s, ENT_QUOTES|ENT_XML1, 'UTF-8'); }
 function colLetD(int $i): string { $i++; $c=''; while($i>0){$i--;$c=chr(65+$i%26).$c;$i=intdiv($i,26);} return $c; }
@@ -39,26 +51,29 @@ foreach ($headers as $h) { $strIdx($h); }
 
 $rows = [];
 foreach ($pubs as $i => $p) {
+    $kat = $p['kategori_publikasi'] ?? 'Lainnya';
     $rows[] = [
-        $i + 1,
-        $p['nidn']               ?? '',
-        $p['dosen_nama']         ?? '',
-        $p['judul_artikel']      ?? '',
-        $p['kategori_publikasi'] ?? 'Lainnya',
-        $p['nama_jurnal']        ?? '',
-        $p['penulis']            ?? '',
-        $p['doi']                ?? '',
-        (int)($p['tahun_terbit'] ?? 0) ?: '',
-        $p['status_publikasi']   ?? '',
-        $p['kata_kunci']         ?? '',
-        $p['link_artikel']       ?? '',
-        $p['abstrak']            ?? '',
-        date('d/m/Y', strtotime($p['created_at'])),
+        $i + 1,                                         //  0  No (numeric)
+        $p['nidn']               ?? '',                 //  1
+        $p['dosen_nama']         ?? '',                 //  2
+        $p['judul_artikel']      ?? '',                 //  3
+        $kat,                                           //  4  Kategori
+        extractScopusD($kat),                           //  5  Scopus  ← BARU
+        extractSintaD($kat),                            //  6  Sinta   ← BARU
+        $p['nama_jurnal']        ?? '',                 //  7
+        $p['penulis']            ?? '',                 //  8
+        $p['doi']                ?? '',                 //  9
+        (int)($p['tahun_terbit'] ?? 0) ?: '',           // 10  Tahun (numeric)
+        $p['status_publikasi']   ?? '',                 // 11
+        $p['kata_kunci']         ?? '',                 // 12
+        $p['link_artikel']       ?? '',                 // 13
+        $p['abstrak']            ?? '',                 // 14
+        date('d/m/Y', strtotime($p['created_at'])),    // 15
     ];
 }
 foreach ($rows as $row) {
     foreach ($row as $ci => $val) {
-        if ($ci !== 0 && $ci !== 8) { $strIdx((string)$val); }
+        if ($ci !== 0 && $ci !== 10) { $strIdx((string)$val); }
     }
 }
 
@@ -91,7 +106,7 @@ $styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   </cellXfs>
 </styleSheet>';
 
-$colWidths=[4,14,35,50,25,35,38,28,10,18,35,38,60,14];
+$colWidths=[4,14,35,50,25,14,14,35,38,28,10,18,35,38,60,14];
 $numCols=count($headers); $lastCol=colLetD($numCols-1);
 $ws='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
 $ws.='<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'."\n";
@@ -112,8 +127,9 @@ foreach($rows as $ri=>$row){
     foreach($row as $ci=>$val){
         $addr=caD2($ci,$er);
         if($ci===0){ $ws.='      <c r="'.$addr.'" s="4"><v>'.(int)$val.'</v></c>'."\n"; }
-        elseif($ci===7){ if($val!==''){$ws.='      <c r="'.$addr.'" s="4"><v>'.(int)$val.'</v></c>'."\n";}else{$ws.='      <c r="'.$addr.'" s="4" t="s"><v>'.$strIdx('').'</v></c>'."\n";} }
-        elseif($ci===8){ $sStyle=str_contains(strtolower((string)$val),'publish')?5:3; $ws.='      <c r="'.$addr.'" s="'.$sStyle.'" t="s"><v>'.$strIdx((string)$val).'</v></c>'."\n"; }
+        elseif($ci===5||$ci===6){ $sStyle=($ri%2===0)?4:4; $ws.='      <c r="'.$addr.'" s="'.$sStyle.'" t="s"><v>'.$strIdx((string)$val).'</v></c>'."\n"; }
+        elseif($ci===10){ if($val!==''){$ws.='      <c r="'.$addr.'" s="4"><v>'.(int)$val.'</v></c>'."\n";}else{$ws.='      <c r="'.$addr.'" s="4" t="s"><v>'.$strIdx('').'</v></c>'."\n";} }
+        elseif($ci===11){ $sStyle=str_contains(strtolower((string)$val),'publish')?5:3; $ws.='      <c r="'.$addr.'" s="'.$sStyle.'" t="s"><v>'.$strIdx((string)$val).'</v></c>'."\n"; }
         else{ $sStyle=($ri%2===0)?3:6; $ws.='      <c r="'.$addr.'" s="'.$sStyle.'" t="s"><v>'.$strIdx((string)$val).'</v></c>'."\n"; }
     }
     $ws.='    </row>'."\n";
