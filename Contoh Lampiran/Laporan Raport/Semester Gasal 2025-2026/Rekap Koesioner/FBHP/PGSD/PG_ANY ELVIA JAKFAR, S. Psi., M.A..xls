@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Laporan Rekap Kuesioner</title>
+                <style type="text/css">
+                    body {
+                margin: 0 auto;
+            }
+            body, td, th {
+                font-family: 'Source Sans Pro', sans-serif;
+                font-size: 12px;
+            }
+            td, th {
+                vertical-align: top;
+            }
+            th {
+                text-align: center;
+            }
+            .font-normal th {
+                font-weight: normal;
+                vertical-align: middle;
+            }
+            .kop {
+                border-spacing: 0;
+                border-collapse: collapse;
+            }
+            .kop td {
+                padding: 0;
+                text-align: center;
+            }
+            .kop-univ td {
+                font-size: 16px;
+                line-height: 1.1;
+            }
+            .kop-fak td {
+                font-size: 24px;
+                font-weight: bold;
+                line-height: 1.1;
+            }
+            .kop-prodi td {
+                font-size: 18px;
+                font-weight: bold;
+                line-height: 1.1;
+                padding-bottom: 5px;
+            }
+            .header td, .header th {
+                font-size: 16px;
+            }
+            .mid td, .mid th {
+                font-size: 14px;
+            }
+            .center td, .center th {
+                text-align: center;
+                vertical-align: middle;
+            }
+            table.border {
+                border-collapse: collapse;
+            }
+            table.border td, table.border th {
+                border: 1px solid black;
+            }
+            table[border="1"] {
+                border-collapse: collapse;
+            }
+            table[border="1"] td, table[border="1"] th {
+                border: 1px solid black;
+            }
+            tr.noborder td, tr.noborder th {
+                border: none;
+            }
+            hr {
+                margin: 10px auto;
+                border: 1px solid black;
+                border-width: 1px 0 0 0;
+            }
+            .text-center {
+                text-align: center;
+            }
+            .btn-flat {
+                -webkit-border-radius: 0;
+                -moz-border-radius: 0;
+                border-radius: 0;
+                -webkit-box-shadow: none;
+                -moz-box-shadow: none;
+                box-shadow: none;
+                border-width: 1px;
+            }
+            .btn.btn-primary {
+                background-color: #0052A2;
+                border-color: #008D4C;
+            }
+            .btn.btn-primary:hover, .btn.btn-primary:active, .btn.btn-primary.hover {
+                background-color: #008D4C;
+            }
+            .bg-info {
+                background-color: #D9EDF7;
+            }
+            .bg-success {
+                background-color: #DFF0D8;
+            }
+
+            .title{
+                font-size: 14px;
+                font-weight: bold;
+            }
+            .padded th, .padded td {
+                padding: 4px;
+            }
+            @media print {
+                .col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6, .col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+                  float: left;
+                }
+                .col-md-12 {
+                  width: 100%;
+                }
+                .col-md-11 {
+                  width: 91.66666666666666%;
+                }
+                .col-md-10 {
+                  width: 83.33333333333334%;
+                }
+                .col-md-9 {
+                  width: 75%;
+                }
+                .col-md-8 {
+                  width: 66.66666666666666%;
+                }
+                .col-md-7 {
+                  width: 58.333333333333336%;
+                }
+                .col-md-6 {
+                  width: 50%;
+                }
+                .col-md-5 {
+                  width: 41.66666666666667%;
+                }
+                .col-md-4 {
+                  width: 33.33333333333333%;
+                 }
+                 .col-md-3 {
+                   width: 25%;
+                 }
+                 .col-md-2 {
+                   width: 16.666666666666664%;
+                 }
+                 .col-md-1 {
+                  width: 8.333333333333332%;
+                 }
+            }
+
+            .footer {
+                background-color: #fab619;
+                height: 36px;
+                width: 100%;
+                margin-top: 20px;
+                position: relative;
+            }
+            .footer::after {
+                position: absolute;
+                right: 0;
+                bottom: 0;
+                content: url('https://assets.siakadcloud.com/assets/v1/img/obe/object-footer.svg');
+                height: 61px;
+            }
+
+            @media print {
+                .footer.no-print {
+                    display: none;
+                }
+                .navbar.navbar-default{
+                    display: none !important;
+                    position: absolute;
+                    top: -9999px;
+                    left: -9999px;
+                }
+            }
+                    </style>
+    </head>
+    <body>
+        
+        <div align="center">
+            <div style="width: 750px">
+                <div align="center">
+                <div class="title">
+                LAPORAN REKAP KUESIONER            </div>
+            <br>
+            <table class="tb_head" border="0" width="750px">
+                <tr valign="top">
+                    <td width="10%">Periode</td>
+                    <td align="center" width="5%">:</td>
+                    <td>2025/2026 Gasal</td>
+                    <td width="10%">NIP Dosen</td>
+                    <td align="center" width="5%">:</td>
+                    <td>0120230016</td>
+                </tr>
+                <tr valign="top">
+                    <td>Homebase</td>
+                    <td align="center">:</td>
+                    <td>S1 Pendidikan Guru Sekolah Dasar</td>
+                    <td>Nama Dosen</td>
+                    <td align="center">:</td>
+                    <td>ANY ELVIA JAKFAR</td>
+                </tr>
+            </table>
+
+            <!-- nilai skala -->
+                            <br>
+                <div style="font-size:14px;margin-bottom:5px;text-align:left"><strong>Bimbingan dan Konseling di SD (SD24F)</strong></div>
+                <!-- skala -->
+                <table class="tb_data border" border="1" width="100%">
+                    <thead>
+                        <tr>
+                            <th style="vertical-align: middle;width:20px">No</th>
+                            <th style="vertical-align: middle">Pertanyaan</th>
+                                                            <th style="vertical-align: middle;width:70px">Sangat tidak baik (1)</th>
+                                                            <th style="vertical-align: middle;width:70px">Tidak baik (2)</th>
+                                                            <th style="vertical-align: middle;width:70px">Biasa (3)</th>
+                                                            <th style="vertical-align: middle;width:70px">Baik (4)</th>
+                                                            <th style="vertical-align: middle;width:70px">Sangat baik (5)</th>
+                                                    </tr>
+                    </thead>
+                    <tbody>
+                                                    <tr>
+                                <td><b>A</b></td>
+                                <td colspan="7"><b>Lainnya</b></td>
+                            </tr>
+                                                            <tr>
+                                    <td align="center"> 1</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesiapan memberikan kuliah dan/atau praktek/praktikum</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">8</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 2</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Keteraturan dan ketertiban penyelengaraan perkuliahan</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">23</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 3</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menghidupkan suasana kelas</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">8</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 4</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kejelasan penyampaian materi dan jawaban terhadap pertanyaan di kelas</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">23</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 5</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pemanfaatan media dan teknologi pembelajaran</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">8</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 6</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> keanekaragaman cara pengukuran hasil belajar</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">10</td>
+                                                                            <td class="text-center">20</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 7</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pemberian umpan balik terhadap tugas</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">8</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 8</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesesuaian materi ujian dan/atau tugas dengan tujuan mata kuliah</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">9</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 9</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesesuaian nilai yang diberikan dengan hasil belajar</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">23</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 10</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan pokok pembahasan/topik secara cepat</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">23</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 11</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan memberikan contoh relevan dari konsep yang diajarkan</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">24</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 12</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan keterkaitan bidang/topik yang di ajarkan dengan bidang/topik yang lain</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">8</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 13</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan keterkaitan bidang/topik yang diajarkan dengan konteks</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">9</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 14</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Penguasaan akan isu-isu mutakhir dalam bidang yang diajarkan</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">10</td>
+                                                                            <td class="text-center">21</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 15</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pengguanaan hasil-hasil penelitian untuk meningkatkan kualitas perkuliahaan</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">10</td>
+                                                                            <td class="text-center">19</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 16</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pelibatan mahasiswa dalam penelitian/kajian dan/atau pengembangan/rekayasa/desain yang dilakukan oleh dosen</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">8</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 17</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menggunakan beragam teknologi komunikasi</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">10</td>
+                                                                            <td class="text-center">20</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 18</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Keawibawaan sebagai pribadi dosen</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">6</td>
+                                                                            <td class="text-center">24</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 19</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kearifan dalam mengambil keputusan</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">9</td>
+                                                                            <td class="text-center">21</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 20</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Menjadi contoh dalam sikap dan perilaku</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">9</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 21</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Satunya kata dan tindakan</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">23</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 22</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan mengendalikan diri dalam berbagai situasi dan kondisi</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">11</td>
+                                                                            <td class="text-center">20</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 23</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Adil dalam memperlakukan mahasiswa</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">8</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 24</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menyampaikan pendapat</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">9</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 25</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menerima kritik, saran dan pendapat mahasiswa</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">10</td>
+                                                                            <td class="text-center">20</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 26</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Mengenal dengan baik mahasiswa yang mengikuti kuliahnya</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">11</td>
+                                                                            <td class="text-center">19</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 27</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Mudah bergaul di kalangan mahasiswa</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">22</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 28</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Toleransi terhadap keberagaman mahasiswa</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">8</td>
+                                                                            <td class="text-center">23</td>
+                                                                    </tr>
+                                                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td align="center" colspan='2'> Total Jawaban</td>
+                                                                <td align="center"> 27</td>
+                                                                        <td align="center"> 1</td>
+                                                                        <td align="center"> 50</td>
+                                                                        <td align="center"> 236</td>
+                                                                        <td align="center"> 610</td>
+                                                            </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Total Skor</td>
+                                                                <td align="center"> 27</td>
+                                                                        <td align="center"> 2</td>
+                                                                        <td align="center"> 150</td>
+                                                                        <td align="center"> 944</td>
+                                                                        <td align="center"> 3050</td>
+                                                            </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Nilai</td>
+                            <td align="center" colspan="5"> 4173</td>
+                        </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Rata-Rata</td>
+                            <td align="center" colspan="5">
+                                4.52                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                                <br>
+                <div style="font-size:14px;margin-bottom:5px;text-align:left"><strong>Bimbingan dan Konseling di SD (SD24I)</strong></div>
+                <!-- skala -->
+                <table class="tb_data border" border="1" width="100%">
+                    <thead>
+                        <tr>
+                            <th style="vertical-align: middle;width:20px">No</th>
+                            <th style="vertical-align: middle">Pertanyaan</th>
+                                                            <th style="vertical-align: middle;width:70px">Sangat tidak baik (1)</th>
+                                                            <th style="vertical-align: middle;width:70px">Tidak baik (2)</th>
+                                                            <th style="vertical-align: middle;width:70px">Biasa (3)</th>
+                                                            <th style="vertical-align: middle;width:70px">Baik (4)</th>
+                                                            <th style="vertical-align: middle;width:70px">Sangat baik (5)</th>
+                                                    </tr>
+                    </thead>
+                    <tbody>
+                                                    <tr>
+                                <td><b>A</b></td>
+                                <td colspan="7"><b>Lainnya</b></td>
+                            </tr>
+                                                            <tr>
+                                    <td align="center"> 1</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesiapan memberikan kuliah dan/atau praktek/praktikum</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">14</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 2</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Keteraturan dan ketertiban penyelengaraan perkuliahan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">14</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 3</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menghidupkan suasana kelas</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 4</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kejelasan penyampaian materi dan jawaban terhadap pertanyaan di kelas</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">14</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 5</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pemanfaatan media dan teknologi pembelajaran</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 6</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> keanekaragaman cara pengukuran hasil belajar</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 7</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pemberian umpan balik terhadap tugas</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 8</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesesuaian materi ujian dan/atau tugas dengan tujuan mata kuliah</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 9</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesesuaian nilai yang diberikan dengan hasil belajar</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">14</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 10</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan pokok pembahasan/topik secara cepat</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 11</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan memberikan contoh relevan dari konsep yang diajarkan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">6</td>
+                                                                            <td class="text-center">12</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 12</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan keterkaitan bidang/topik yang di ajarkan dengan bidang/topik yang lain</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">6</td>
+                                                                            <td class="text-center">12</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 13</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan keterkaitan bidang/topik yang diajarkan dengan konteks</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">6</td>
+                                                                            <td class="text-center">12</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 14</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Penguasaan akan isu-isu mutakhir dalam bidang yang diajarkan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 15</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pengguanaan hasil-hasil penelitian untuk meningkatkan kualitas perkuliahaan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">6</td>
+                                                                            <td class="text-center">12</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 16</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pelibatan mahasiswa dalam penelitian/kajian dan/atau pengembangan/rekayasa/desain yang dilakukan oleh dosen</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">6</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 17</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menggunakan beragam teknologi komunikasi</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 18</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Keawibawaan sebagai pribadi dosen</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">14</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 19</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kearifan dalam mengambil keputusan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">14</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 20</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Menjadi contoh dalam sikap dan perilaku</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">14</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 21</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Satunya kata dan tindakan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 22</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan mengendalikan diri dalam berbagai situasi dan kondisi</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 23</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Adil dalam memperlakukan mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 24</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menyampaikan pendapat</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">13</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 25</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menerima kritik, saran dan pendapat mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">15</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 26</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Mengenal dengan baik mahasiswa yang mengikuti kuliahnya</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">8</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 27</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Mudah bergaul di kalangan mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 28</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Toleransi terhadap keberagaman mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">12</td>
+                                                                    </tr>
+                                                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td align="center" colspan='2'> Total Jawaban</td>
+                                                                <td align="center"> 0</td>
+                                                                        <td align="center"> 0</td>
+                                                                        <td align="center"> 54</td>
+                                                                        <td align="center"> 144</td>
+                                                                        <td align="center"> 362</td>
+                                                            </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Total Skor</td>
+                                                                <td align="center"> 0</td>
+                                                                        <td align="center"> 0</td>
+                                                                        <td align="center"> 162</td>
+                                                                        <td align="center"> 576</td>
+                                                                        <td align="center"> 1810</td>
+                                                            </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Nilai</td>
+                            <td align="center" colspan="5"> 2548</td>
+                        </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Rata-Rata</td>
+                            <td align="center" colspan="5">
+                                4.55                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                                <br>
+                <div style="font-size:14px;margin-bottom:5px;text-align:left"><strong>Psikologi Pendidikan (SD25A)</strong></div>
+                <!-- skala -->
+                <table class="tb_data border" border="1" width="100%">
+                    <thead>
+                        <tr>
+                            <th style="vertical-align: middle;width:20px">No</th>
+                            <th style="vertical-align: middle">Pertanyaan</th>
+                                                            <th style="vertical-align: middle;width:70px">Sangat tidak baik (1)</th>
+                                                            <th style="vertical-align: middle;width:70px">Tidak baik (2)</th>
+                                                            <th style="vertical-align: middle;width:70px">Biasa (3)</th>
+                                                            <th style="vertical-align: middle;width:70px">Baik (4)</th>
+                                                            <th style="vertical-align: middle;width:70px">Sangat baik (5)</th>
+                                                    </tr>
+                    </thead>
+                    <tbody>
+                                                    <tr>
+                                <td><b>A</b></td>
+                                <td colspan="7"><b>Lainnya</b></td>
+                            </tr>
+                                                            <tr>
+                                    <td align="center"> 1</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesiapan memberikan kuliah dan/atau praktek/praktikum</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 2</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Keteraturan dan ketertiban penyelengaraan perkuliahan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 3</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menghidupkan suasana kelas</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">7</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 4</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kejelasan penyampaian materi dan jawaban terhadap pertanyaan di kelas</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 5</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pemanfaatan media dan teknologi pembelajaran</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 6</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> keanekaragaman cara pengukuran hasil belajar</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 7</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pemberian umpan balik terhadap tugas</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 8</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesesuaian materi ujian dan/atau tugas dengan tujuan mata kuliah</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 9</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesesuaian nilai yang diberikan dengan hasil belajar</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 10</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan pokok pembahasan/topik secara cepat</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 11</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan memberikan contoh relevan dari konsep yang diajarkan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 12</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan keterkaitan bidang/topik yang di ajarkan dengan bidang/topik yang lain</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 13</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan keterkaitan bidang/topik yang diajarkan dengan konteks</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 14</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Penguasaan akan isu-isu mutakhir dalam bidang yang diajarkan</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 15</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pengguanaan hasil-hasil penelitian untuk meningkatkan kualitas perkuliahaan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 16</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pelibatan mahasiswa dalam penelitian/kajian dan/atau pengembangan/rekayasa/desain yang dilakukan oleh dosen</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 17</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menggunakan beragam teknologi komunikasi</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">7</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 18</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Keawibawaan sebagai pribadi dosen</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 19</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kearifan dalam mengambil keputusan</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 20</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Menjadi contoh dalam sikap dan perilaku</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 21</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Satunya kata dan tindakan</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">7</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 22</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan mengendalikan diri dalam berbagai situasi dan kondisi</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">7</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 23</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Adil dalam memperlakukan mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">10</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 24</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menyampaikan pendapat</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">10</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 25</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menerima kritik, saran dan pendapat mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 26</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Mengenal dengan baik mahasiswa yang mengikuti kuliahnya</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 27</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Mudah bergaul di kalangan mahasiswa</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 28</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Toleransi terhadap keberagaman mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td align="center" colspan='2'> Total Jawaban</td>
+                                                                <td align="center"> 13</td>
+                                                                        <td align="center"> 11</td>
+                                                                        <td align="center"> 45</td>
+                                                                        <td align="center"> 86</td>
+                                                                        <td align="center"> 237</td>
+                                                            </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Total Skor</td>
+                                                                <td align="center"> 13</td>
+                                                                        <td align="center"> 22</td>
+                                                                        <td align="center"> 135</td>
+                                                                        <td align="center"> 344</td>
+                                                                        <td align="center"> 1185</td>
+                                                            </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Nilai</td>
+                            <td align="center" colspan="5"> 1699</td>
+                        </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Rata-Rata</td>
+                            <td align="center" colspan="5">
+                                4.33                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                                <br>
+                <div style="font-size:14px;margin-bottom:5px;text-align:left"><strong>Psikologi Pendidikan (SD25E)</strong></div>
+                <!-- skala -->
+                <table class="tb_data border" border="1" width="100%">
+                    <thead>
+                        <tr>
+                            <th style="vertical-align: middle;width:20px">No</th>
+                            <th style="vertical-align: middle">Pertanyaan</th>
+                                                            <th style="vertical-align: middle;width:70px">Sangat tidak baik (1)</th>
+                                                            <th style="vertical-align: middle;width:70px">Tidak baik (2)</th>
+                                                            <th style="vertical-align: middle;width:70px">Biasa (3)</th>
+                                                            <th style="vertical-align: middle;width:70px">Baik (4)</th>
+                                                            <th style="vertical-align: middle;width:70px">Sangat baik (5)</th>
+                                                    </tr>
+                    </thead>
+                    <tbody>
+                                                    <tr>
+                                <td><b>A</b></td>
+                                <td colspan="7"><b>Lainnya</b></td>
+                            </tr>
+                                                            <tr>
+                                    <td align="center"> 1</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesiapan memberikan kuliah dan/atau praktek/praktikum</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">12</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 2</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Keteraturan dan ketertiban penyelengaraan perkuliahan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 3</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menghidupkan suasana kelas</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">7</td>
+                                                                            <td class="text-center">6</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 4</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kejelasan penyampaian materi dan jawaban terhadap pertanyaan di kelas</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">10</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 5</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pemanfaatan media dan teknologi pembelajaran</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">9</td>
+                                                                            <td class="text-center">6</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 6</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> keanekaragaman cara pengukuran hasil belajar</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 7</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pemberian umpan balik terhadap tugas</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 8</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesesuaian materi ujian dan/atau tugas dengan tujuan mata kuliah</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 9</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kesesuaian nilai yang diberikan dengan hasil belajar</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">10</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 10</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan pokok pembahasan/topik secara cepat</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 11</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan memberikan contoh relevan dari konsep yang diajarkan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">12</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 12</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan keterkaitan bidang/topik yang di ajarkan dengan bidang/topik yang lain</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 13</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menjelaskan keterkaitan bidang/topik yang diajarkan dengan konteks</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">6</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 14</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Penguasaan akan isu-isu mutakhir dalam bidang yang diajarkan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">6</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 15</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pengguanaan hasil-hasil penelitian untuk meningkatkan kualitas perkuliahaan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 16</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Pelibatan mahasiswa dalam penelitian/kajian dan/atau pengembangan/rekayasa/desain yang dilakukan oleh dosen</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 17</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menggunakan beragam teknologi komunikasi</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">10</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 18</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Keawibawaan sebagai pribadi dosen</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 19</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kearifan dalam mengambil keputusan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 20</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Menjadi contoh dalam sikap dan perilaku</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">10</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 21</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Satunya kata dan tindakan</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">9</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 22</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan mengendalikan diri dalam berbagai situasi dan kondisi</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 23</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Adil dalam memperlakukan mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 24</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menyampaikan pendapat</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">6</td>
+                                                                            <td class="text-center">8</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 25</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Kemampuan menerima kritik, saran dan pendapat mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">3</td>
+                                                                            <td class="text-center">2</td>
+                                                                            <td class="text-center">11</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 26</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Mengenal dengan baik mahasiswa yang mengikuti kuliahnya</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">7</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 27</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Mudah bergaul di kalangan mahasiswa</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">4</td>
+                                                                            <td class="text-center">6</td>
+                                                                    </tr>
+                                                                <tr>
+                                    <td align="center"> 28</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;"> Toleransi terhadap keberagaman mahasiswa</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">0</td>
+                                                                            <td class="text-center">1</td>
+                                                                            <td class="text-center">5</td>
+                                                                            <td class="text-center">10</td>
+                                                                    </tr>
+                                                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td align="center" colspan='2'> Total Jawaban</td>
+                                                                <td align="center"> 1</td>
+                                                                        <td align="center"> 2</td>
+                                                                        <td align="center"> 58</td>
+                                                                        <td align="center"> 121</td>
+                                                                        <td align="center"> 266</td>
+                                                            </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Total Skor</td>
+                                                                <td align="center"> 1</td>
+                                                                        <td align="center"> 4</td>
+                                                                        <td align="center"> 174</td>
+                                                                        <td align="center"> 484</td>
+                                                                        <td align="center"> 1330</td>
+                                                            </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Nilai</td>
+                            <td align="center" colspan="5"> 1993</td>
+                        </tr>
+                        <tr>
+                            <td align="center" colspan='2'> Rata-Rata</td>
+                            <td align="center" colspan="5">
+                                4.45                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+            <!-- nilai total -->
+            <table class="tb_data border" border="1" width="100%">
+                <tbody>
+                    <tr>
+                        <td width="50%" align="center">Nilai Total</td>
+                        <td align="center">10413</td>
+                    </tr>
+                    <tr>
+                        <td align="center">Rata-Rata Total</td>
+                        <td align="center">
+                            4.48                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center">Predikat</td>
+                        <td align="center">
+                                                    </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- keterangan -->
+            <table border="0" width="100%">
+                <tr>
+                    <td colspan="4">Keterangan :</td>
+                </tr>
+                            </table>
+
+            <!-- uraian -->
+                            <br>
+                <table class="tb_data border" border="1" width="100%">
+                    <thead>
+                        <tr>
+                            <th style="vertical-align: middle;width:20px">No</th>
+                            <th style="vertical-align: middle">Open Question</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                                                    <tr>
+                                <td style="font-weight: bold;padding-left: 5px;padding-right: 5px;" colspan="7"> Bimbingan dan Konseling di SD (SD24F)</td>
+                            </tr>
+                                                            <tr>
+                                    <td><b>A</b></td>
+                                    <td colspan="2"><b>Lainnya</b></td>
+                                </tr>
+                                                                                                <tr>
+                                    <td align="center" rowspan="34"> 1</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;background-color: #eee">Kesan dan Pesan tuliskan disini</td>
+                                </tr>
+                                                                    <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">terimakasih ibu sudah mengajar saya selama satu semester ini</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Tidak ada</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">kesan : sangat terkesan sekali dengan cara menyampaikan  materi , sangat terkesan semoga ilmu  yang didapatkan jadi berguna bagi banyak orang dan bermanfaat</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">____</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">yes</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Trimakasih ibuuu sudah menjadi dosen yang baik, trimakasih untuk ilmu yang di berikan,sehat selalu dan minal aidzin wal Faidzin mohon maaf lahir dan batin 🙏🏻Maaf apabila ada salah kata sikap yg menyakiti hati🙏🏻</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Terima kasih sudah melatih mental dan kedisiplinan kami. Sehat selalu, Bu, semoga terus menjadi sosok yang menginspirasi."</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Perkuliahan berlangsung dengan baik, materi disampaikan jelas dan mudah dipahami. Suasana belajar juga nyaman dan interaktif.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Pembelajaran nya menyenangkan</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">alhamdulillah ada senangnya terkadang pernah tegang juga pas awalan</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baikk</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Sangat memuaskan selama mengikuti kelas yang di ampu oleh bu Any, semoga kedepannya bisa kembali menajdi mahasiswa di kelas Bu Any</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">sangat menyenangkan dan banyak pelajaran yang saya dapatkan</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Bagus cara mengajarnya jelas dan mudah dipahami, selalu kembangkan.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Terimakasih telah memberikan pengajaran yang baik selama 1 semester ini</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">sangat berkesan sekali.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Mungkin awalnya saya berpikir ibunya bakalan jadi dosen killer tetapi dalam satu semester itu ibu jauh dari apa yang saya pikirkan. Ibu mungkin kelihatan killer tetapi sebenarnya sangat baik dan pengertian</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Begitu banyak kesan di dalam perkuliahan saya, dan pesan saya semoga dosen yang bersangkutan dengan matakuliah tersebut diberikan kesehatan selalu amin.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Bagsu</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Saya suka dengan cara mengajar Bu Any</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">berkesan sekali dengan pembawaan yg tenang , berwibawa saya sebagai mahasiswa merasa sangat segan terhadap ibu , sehat selalu ya ibu , ilmu yg diberikan sangat bermanfaat sekali 🫶🏻</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">makasih ibu</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">.</td>
+                                    </tr>
+                                                                <tr>
+                                <td style="font-weight: bold;padding-left: 5px;padding-right: 5px;" colspan="7"> Bimbingan dan Konseling di SD (SD24I)</td>
+                            </tr>
+                                                            <tr>
+                                    <td><b>A</b></td>
+                                    <td colspan="2"><b>Lainnya</b></td>
+                                </tr>
+                                                                                                <tr>
+                                    <td align="center" rowspan="21"> 1</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;background-color: #eee">Kesan dan Pesan tuliskan disini</td>
+                                </tr>
+                                                                    <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Terimakasih</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kesan saya selama mengikuti mata kuliah Bimbingan dan Konseling di SD sangat baik dan bermakna. Ibu mengajar dengan penuh kesabaran dan empati, sehingga kami memahami pentingnya peran guru dalam membimbing serta mendampingi perkembangan peserta didik, baik secara akademik maupun emosional. Materi yang diberikan membuat kami lebih peka terhadap kebutuhan dan permasalahan siswa di sekolah dasar.
+Pesan saya, semoga Ibu selalu diberikan kesehatan dan semangat dalam membimbing mahasiswa. Terima kasih atas ilmu dan nilai-nilai positif yang telah Ibu tanamkan kepada kami sebagai calon pendidik. 🙏✨</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kesan saya selama mengikuti mata kuliah ini sangat menyenangkan. Cara penyampaian materi sangat baik, jelas, dan interaktif. Terima kasih telah membuat kelas tidak membosankan"</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Sangat bahagia</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Dosen sangat baik terhadap mahasiswa, dapat menerima pendapat mahasiswa, dan menjelaskan materi dengan jelas dan rinci</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Seru bisa belajar bareng ibu</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Belajar bersama bu any menyenangkan, ibu memberikan aturan yang jelas pada awal kontrak kuliah dan konsisten hingga akhir dan selalu tepat waktu. Membuat siswa menjadi disiplin waktu</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">TERIMAKASII SUDAAH MEMBIMBING BELAJAR DENGAN BAIK</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">sangat paham</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Baik</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kesan saya selama mengikuti perkuliahan sangat baik karena materi yang disampaikan jelas dan mudah dipahami. Pesan saya, semoga Ibu dosen selalu sehat dan terus membimbing mahasiswa dengan penuh semangat.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Perkuliahan berjalan baik, materi jelas, dan dosen menghargai mahasiswa.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Good</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">pengen diajar lagi sama ibu🩷
+dosen favorit sepanjang masa!! tegas, objektif dalam memberi nilai, jadi selalu semangat melakukan yang terbaik, karna proses dan hasil selalu memuaskan</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kesan:
+Perkuliahan bersama ibu dosen memberikan pengalaman belajar yang baik. Materi disampaikan dengan jelas sehingga mudah dipahami dan suasana belajar terasa nyaman.
+Pesan:
+Terima kasih atas ilmu, bimbingan, dan kesabarannya selama mengajar. Semoga Bapak/Ibu dosen selalu sehat, sukses, dan terus semangat dalam mendidik mahasiswa. Semoga ke depannya proses pembelajaran tetap berjalan dengan baik.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Terimakasih atas pembelajaran yang telah di berikan</td>
+                                    </tr>
+                                                                <tr>
+                                <td style="font-weight: bold;padding-left: 5px;padding-right: 5px;" colspan="7"> Psikologi Pendidikan (SD25A)</td>
+                            </tr>
+                                                            <tr>
+                                    <td><b>A</b></td>
+                                    <td colspan="2"><b>Lainnya</b></td>
+                                </tr>
+                                                                                                <tr>
+                                    <td align="center" rowspan="15"> 1</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;background-color: #eee">Kesan dan Pesan tuliskan disini</td>
+                                </tr>
+                                                                    <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Terimakasih atas ilmunya</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">lebih rinci lagi ngejelasin nya </td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Materi yang disampaikan sangat jelas, dan dosen sangat ahli di bidangnya</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Perkuliahan Psikologi Pendidikan sangat bermanfaat dan mudah dipahami. Dosen menyampaikan materi dengan jelas serta mengaitkannya dengan situasi yang ada di dunia pendidikan. Semoga perkuliahan ke depannya tetap menarik dan interaktif.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Semoga Bu Any selalu diberikan kesehatan, kelancaran, dan kesuksesan dalam mengajar. Terima kasih atas ilmu serta motivasi yang telah diberikan kepada kami.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Baik</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">seru bgt belajar sma ibuu</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik sekali ibu</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Terimakasih atas bimbingan dan motivasi dalam proses pembelajaran</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Good luck</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">....</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Tetap menjadi teladan dan pendidik hebat bagi generasi berikutnya.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Menyenangkan, menantang, dan membentuk pola pikir yang lebih dewasa</td>
+                                    </tr>
+                                                                <tr>
+                                <td style="font-weight: bold;padding-left: 5px;padding-right: 5px;" colspan="7"> Psikologi Pendidikan (SD25E)</td>
+                            </tr>
+                                                            <tr>
+                                    <td><b>A</b></td>
+                                    <td colspan="2"><b>Lainnya</b></td>
+                                </tr>
+                                                                                                <tr>
+                                    <td align="center" rowspan="17"> 1</td>
+                                    <td style="padding-left: 5px;padding-right: 5px;background-color: #eee">Kesan dan Pesan tuliskan disini</td>
+                                </tr>
+                                                                    <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kesan saya untuk ini menyenangkan dan baik. Pesan saya semoga kedepannya lebih baik lagi</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Tidak ada</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Seru belajar sama bu Any, semangat ngajar ibuu </td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Makasih byk  </td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">seruu bangett, dingin dingin seruu</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Selama satu semester ini, saya merasa sangat terbantu dengan cara Ibu dosen dalam menyampaikan materi. Penjelasan yang diberikan jelas, sistematis, dan mudah dipahami. Suasana pembelajaran juga cukup interaktif sehingga membuat saya lebih termotivasi untuk belajar. Selain itu, Ibu dosen juga sabar dalam membimbing serta terbuka terhadap pertanyaan dan pendapat mahasiswa.
+
+Pesan:
+Semoga ke depannya ibu dosen tetap mempertahankan metode pembelajaran yang sudah baik ini. Mungkin bisa ditambahkan lebih banyak contoh nyata atau praktik agar materi semakin mudah dipahami. Terima kasih atas ilmu, bimbingan, dan pengalaman yang telah diberikan selama satu semester ini.
+
+</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kesan:
+Dosen Psikologi Pendidikan mengajar dengan baik dan membuat mahasiswa lebih aktif dalam memahami materi. Selama perkuliahan, mahasiswa dilatih untuk berpikir kritis dan berani menyampaikan pendapat sehingga pembelajaran terasa lebih hidup dan bermakna.
+
+Pesan:
+Terima kasih karena selalu mendorong mahasiswa untuk berpikir lebih luas dan kritis dalam melihat suatu permasalahan. Hal tersebut sangat membantu mahasiswa untuk berkembang, tidak hanya dalam akademik tetapi juga dalam cara berpikir sehari-hari.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Sangat tegas, saya sangat menyukai itu. Sangat menyenangkan dan mendukung motivasi saya untuk terus berkembang.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">senang semester pertama bareng ibu meskipun ada tegang nyaa hihi</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Terima kasih banyak atas ilmu, bimbingan, dan kesabaran Ibu selama mengajar kami.
+Selama diajar oleh Ibu, suasana belajar terasa menyenangkan dan mudah dipahami.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Terimkasih atas ilmu dan motivasi yang sudah di berikan selama perkuliahan</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">sangat baik</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">kesannyaa tegang cuma kayak seruu soalnya bahas tentang perkembangan anak sd, dengan kita melihat psikologis nya jadi pastinya bakalan bermanfaat banget untuk melihat perkembangan anak nanti saat sudah menjadi tenaga pendidikan dan mendidik anak</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Trimakasih untuk 1 semester ini</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word"> Kesan
+ 
+Ibu Any adalah dosen yang sangat menyenangkan, selalu tersenyum dan santai saat mengajar. Suasana kelas jadi terasa hangat dan tidak kaku. Namun Ibu sangat tegas mengenai aturan tidak boleh menggunakan ponsel sehingga kami lebih fokus dan sungkan untuk melanggarnya.
+ 
+Pesan
+ 
+Terima kasih banyak sudah mengajar dengan penuh keramahan dan senyuman yang menenangkan ya Bu. Terima kasih juga sudah membimbing kami untuk lebih disiplin dan fokus belajar. Semoga Ibu selalu sehat dan tetap menjadi dosen yang ramah seperti sekarang.</td>
+                                    </tr>
+                                                                        <tr>
+                                        <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kesan
+ 
+Ibu mengajar dengan sangat hangat dan penuh pemahaman. Penjelasan Ibu tentang psikologi pendidikan sangat mudah dipahami, banyak contoh nyata yang membuat kami lebih mengerti cara memahami dunia siswa dan proses belajar mereka. Terima kasih atas kesabaran dan perhatian Ibu selama ini.
+ 
+Pesan
+ 
+Semoga Ibu selalu sehat, bahagia, dan tetap semangat berbagi ilmu. Tetaplah menjadi inspirasi bagi kami untuk menjadi pendidik yang peka dan peduli terhadap perkembangan setiap anak.</td>
+                                    </tr>
+                                                        </tbody>
+                </table>
+                        
+            <!-- kritik dan saran -->
+            <br>
+            <table class="tb_data border" border="1" width="100%">
+                <thead>
+                    <tr>
+                        <th style="vertical-align: middle;width:20px">No</th>
+                        <th style="vertical-align: middle">Kritik & Saran</th>
+                    </tr>
+                </thead>
+                <tbody>
+                                            <tr>
+                            <td style="font-weight: bold;padding-left: 5px;padding-right: 5px;" colspan="22"> Bimbingan dan Konseling di SD (SD24F)</td>
+                        </tr>
+                        <tr>
+                            <td align="center" rowspan="20">#</td>
+                                                                                            <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">semoga lebih baik lagi mengajarnya</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">saran : bapa tetap jadi pengarah yang baik bagi anak-anak yang mau menimbah ilmu 
+terimakasih atas didikan selama proses perkulihan</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">____</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">yes</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Sebelumnya, saya ingin berterima kasih karena kelas Ibu adalah salah satu yang paling saya tunggu karena cara mengajar yang sangat jelas.."</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Semoga ke depannya tetap mempertahankan cara mengajar yang sudah baik, dan bisa menambahkan lebih banyak contoh agar materi semakin mudah dipahami. Terima kasih.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Tidak ada</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">tidak ada saran dan kritik </td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">gaada</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">tidak ada</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Tidak ada kritik dan saran. Terimakasih</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">izin ibu , boleh lebih ceriaa lagi ya bu , kadang merasa takut ke ibu karena ibu terlihat sangat amat tegas dan jarang sekali ada becanda jadi kita di kelas sedikit tegang hehehe 🙏🏻😊</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">.</td>
+                                </tr>
+                                                        <tr>
+                            <td style="font-weight: bold;padding-left: 5px;padding-right: 5px;" colspan="15"> Bimbingan dan Konseling di SD (SD24I)</td>
+                        </tr>
+                        <tr>
+                            <td align="center" rowspan="13">#</td>
+                                                                                            <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Cukup</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Tidak ada kritikan</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Materi yang selama ibu sampaikan di kelas sangat baik</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Tidak ada</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Adakan ice breaking jika topik perkuliahan agak berat</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Peraturannya ga boleh terlalu ketat ya buu😊🙏</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kritik:
+Sejauh ini tidak ada kritik yang berarti. Proses pembelajaran sudah berjalan dengan baik dan materi disampaikan dengan jelas.
+
+Saran:
+Semoga dosen selalu sehat, semangat dalam mengajar, dan terus memberikan ilmu serta bimbingan yang bermanfaat bagi mahasiswa. Semoga proses perkuliahan ke depannya tetap berjalan dengan baik dan semakin sukses.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">baik</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Lebih di tingkatkan lagi dari segi media pembelajaran dan pendekatan terhadap mahasiswa</td>
+                                </tr>
+                                                        <tr>
+                            <td style="font-weight: bold;padding-left: 5px;padding-right: 5px;" colspan="14"> Psikologi Pendidikan (SD25A)</td>
+                        </tr>
+                        <tr>
+                            <td align="center" rowspan="12">#</td>
+                                                                                            <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Semoga kedepannya lebih baik lagi</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word"></td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Terima kasih atas kedisiplinannya. Semoga ke depannya bisa lebih memberikan ruang diskusi yang santai</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Dosen sudah mengajar dengan baik. Ke depannya, semoga lebih banyak memberikan contoh kasus nyata di sekolah, diskusi kelompok, dan umpan balik terhadap tugas agar mahasiswa semakin memahami penerapan teori Psikologi Pendidikan dalam praktik pembelajaran.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Sejauh ini tidak ada kritik, pembelajaran sudah berjalan dengan baik.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Baik</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word"></td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">semangat ibu</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kami berharap bapak / ibu memberikan inovatif agar mahasiswa semangat dan mudah memahami pembelajaran</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">...</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">evaluasi kuesioner kampus dengan fokus pada metode pengajaran, ketepatan waktu, serta kejelasan pemberian tugas.</td>
+                                </tr>
+                                                        <tr>
+                            <td style="font-weight: bold;padding-left: 5px;padding-right: 5px;" colspan="17"> Psikologi Pendidikan (SD25E)</td>
+                        </tr>
+                        <tr>
+                            <td align="center" rowspan="15">#</td>
+                                                                                            <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">-</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Tidak ada</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word"></td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word"></td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word"></td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kritik:
+Terkadang mahasiswa merasa cukup kesulitan karena dituntut untuk selalu berpikir kritis dan aktif dalam setiap pembelajaran, terutama bagi mahasiswa yang masih kurang percaya diri dalam menyampaikan pendapat.
+
+Saran:
+Mungkin ke depannya dapat diberikan lebih banyak contoh atau arahan terlebih dahulu sebelum sesi diskusi kritis dimulai, sehingga mahasiswa bisa lebih siap, nyaman, dan percaya diri dalam menyampaikan pemikirannya.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Libatkan semua mahasiswa, dan berikan motivasi pendukung agar mahasiswa lain ikut berpartisipasi aktif. Boleh lebih tegas lagi.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">tidak ada</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Mungkin ke depannya tempo penyampaian materi bisa sedikit diperlambat agar semua mahasiswa lebih mudah memahami penjelasan yang diberikan. Selain itu, akan lebih baik jika ada lebih banyak sesi diskusi atau tanya jawab supaya mahasiswa lebih aktif dan berani menyampaikan pendapat.</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">semoga materi yang di sampaikan bisa lebih santai dan diselingi ice breaking supaya suasana kelas tidak terlalu tegang</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">tidak ada</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">tidak ada</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Ibu baik, dan selalu adil. Tapi tidak pernah ada perbaikan buat mahasiswa untuk nilai</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">Kritik
+ 
+Ibu Any adalah dosen yang sangat berkesan senantiasa tersenyum dan bersikap santai namun tetap tegas dan konsisten menegakkan aturan di kelas. Hal ini membuat kami nyaman sekaligus paham batasan yang harus dipatuhi. Hanya saja kadang kami masih merasa ragu atau takut salah saat berpendapat karena belum terbiasa dengan keseimbangan sikap Ibu yang ramah namun tegas.
+ 
+ Saran
+ 
+1. Semoga Ibu terus mempertahankan senyuman dan ketegasan yang luar biasa ini ya Bu karena hal itu sangat mendidik kedisiplinan kami.
+2. Bolehkah Ibu sesekali menjelaskan alasan di balik aturan yang diterapkan supaya kami lebih memahami dan lebih patuh dengan sukarela?</td>
+                                </tr>
+                                                                                                    <tr>
+                                                                <td style="padding-left: 5px;padding-right: 5px;word-break: break-word">- Kritik: Penilaian jujur mengenai kekurangan, kelemahan, atau hal yang kurang tepat/kurang baik dari materi, modul, atau kegiatan.
+​
+- Saran: Usulan perbaikan, penambahan, atau cara penyempurnaan agar hasilnya lebih baik, jelas, dan efekti</td>
+                                </tr>
+                                                </tbody>
+            </table>
+            <div style="page-break-after:always"></div>
+            </div>                <style>
+    /* Watermark-style footer */
+    .footprint {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        text-align: left;
+        font-size: 5px;
+    }
+
+    @media print {
+        .footprint {
+            display: block;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            text-align: left;
+            font-size: 5px;
+        }
+    }
+
+    @page {
+        /* margin-bottom: 0; */
+    }
+</style>
+<div class="footprint">
+    <div>
+        Dicetak oleh: SARAH HASTAWATI SAFITRI, S.Ds., pada 07 Agustus 2026 10:21:36 WIB | siakad.nusaputra.ac.id/siakad/rep_rekapangket    </div>
+</div>            </div>
+        </div>
+
+        <!-- Tambahan footer untuk laporan OBE -->
+        
+        <!-- tambahan -->
+            </body>
+</html>

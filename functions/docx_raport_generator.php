@@ -152,27 +152,69 @@ function docxInlineImage(string $rId, int $widthEmu, int $heightEmu, string $nam
         . '</w:r>';
 }
 
+/**
+ * Cari path absolut file TTD berdasarkan nama dosen (untuk DOCX generator).
+ * Mengembalikan path absolut atau null jika tidak ditemukan.
+ */
+function getTtdPathForDosen(string $namaDosen): ?string {
+    $norm = strtolower($namaDosen);
+    $base = __DIR__ . '/../TTD Dosen';
+
+    $mapping = [
+        'pahmi'     => $base . '/TTD Pak Pahmi.png',
+        'samsul'    => $base . '/TTD Pak Pahmi.png',
+        'dana'      => $base . '/TTD Dosen Manajemen/Ttd Dr. Dana.png',
+        'hesri'     => $base . '/TTD Dosen Manajemen/Ttd Dr. Hesri.png',
+        'koesmawan' => $base . '/TTD Dosen Manajemen/Ttd Dr. Koesmawan.png',
+        'slamet'    => $base . '/TTD Dosen Manajemen/Ttd Dr. Slamet.png',
+        'yusuf'     => $base . '/TTD Dosen Manajemen/Ttd Dr. Yusuf.png',
+        'gustian'   => $base . '/TTD Dosen Manajemen/Ttd. Dr. Gustian.png',
+        'kurniawan' => $base . '/TTD Dosen Manajemen/Ttd_Dr_Kurniawan.png',
+        'nurhasan'  => $base . '/TTD Dosen Manajemen/Ttd_Dr_Nur_Hasan.png',
+        'nur hasan' => $base . '/TTD Dosen Manajemen/Ttd_Dr_Nur_Hasan.png',
+        'hasan'     => $base . '/TTD Dosen Manajemen/Ttd_Dr_Nur_Hasan.png',
+    ];
+
+    foreach ($mapping as $keyword => $path) {
+        if (strpos($norm, $keyword) !== false && file_exists($path)) {
+            return $path;
+        }
+    }
+    return null;
+}
+
 function generateRaportDocx(array $dosenList, string $periodeLabel): string {
     $TW   = 10035; // total usable width twips for A4 with 19mm left/top/bottom, 14mm right
     $colA = 400;   // indent ~4%
     $colB = 3200;  // label B ~32%
     $colC = $TW - $colA - $colB; // value rest ~6435
 
-    // Cek apakah TTD image tersedia
-    $ttdPath = __DIR__ . '/../TTD Dosen/ttd_pak_pahmi.png';
-    $hasTTD  = file_exists($ttdPath);
-    $ttdData = $hasTTD ? file_get_contents($ttdPath) : null;
-    $ttdRId  = 'rId2'; // relationship ID untuk gambar
-
     // Ukuran TTD di dokumen: skala ke tinggi ~1.8 cm (648000 EMU)
     $ttdHeightEmu = 648000;  // ~1.8cm tinggi
     $ttdWidthEmu  = (int)($ttdHeightEmu * 158 / 182); // proportional
 
+    // Kumpulkan semua TTD unik yang dibutuhkan (path => rId)
+    $ttdRegistry  = []; // path => ['rId' => 'rId2', 'data' => binary]
+    $ttdRIdCounter = 2;  // rId2 dst
+
+    // Pra-scan: daftarkan TTD Pak Pahmi (penandatangan UPM) yang selalu dipakai di semua footer
+    $pahmiTtdPath = getTtdPathForDosen('pahmi');
+    if ($pahmiTtdPath && !isset($ttdRegistry[$pahmiTtdPath])) {
+        $ttdRegistry[$pahmiTtdPath] = [
+            'rId'  => 'rId' . $ttdRIdCounter,
+            'data' => file_get_contents($pahmiTtdPath),
+        ];
+        $ttdRIdCounter++;
+    }
+
+    $hasTTD = !empty($ttdRegistry);
+
     $body = '';
 
     foreach ($dosenList as $idx => $d) {
-        $nama     = trim($d['Nama'] ?? '-') ?: '-';
-        $prodi    = trim($d['Prodi'] ?? '-') ?: '-';
+        $nama      = trim($d['Nama'] ?? '-') ?: '-';
+        $rawProdi  = trim($d['Prodi'] ?? '-') ?: '-';
+        $prodi     = function_exists('formatProdiStandard') ? formatProdiStandard($rawProdi) : $rawProdi;
         $responden = trim($d['Jumlah Responden'] ?? '-') ?: '-';
 
         $sKuis   = round((float)($d['Nilai Kuesioner'] ?? 0), 3);
@@ -358,10 +400,15 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
         $wSd   = 1550;
         $wKt   = $wFR - $wSkor - $wSd; // ~3185
 
-        if ($hasTTD) {
+        // ── TTD footer: selalu Dr. Samsul Pahmi (Kepala UPM) ──
+        $pahmiPath   = getTtdPathForDosen('pahmi');
+        $pahmiHasTTD = $pahmiPath && isset($ttdRegistry[$pahmiPath]);
+        $pahmiTtdRId = $pahmiHasTTD ? $ttdRegistry[$pahmiPath]['rId'] : null;
+
+        if ($pahmiHasTTD) {
             $ttdPara = '<w:p>'
                 . '<w:pPr><w:ind w:left="650"/><w:spacing w:before="20" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
-                . docxInlineImage($ttdRId, $ttdWidthEmu, $ttdHeightEmu, 'TTD_Pahmi')
+                . docxInlineImage($pahmiTtdRId, $ttdWidthEmu, $ttdHeightEmu, 'TTD_Pahmi')
                 . '</w:p>';
         } else {
             $ttdPara = docxPara('', 'center', 0, 0)
@@ -374,7 +421,7 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
             . '<w:p>'
             .   '<w:pPr><w:jc w:val="left"/><w:spacing w:before="0" w:after="0"/>'
             .   '<w:pBdr><w:top w:val="single" w:sz="6" w:space="1" w:color="000000"/></w:pBdr></w:pPr>'
-            .   docxRun('Dr. Samsul Pahmi, S.Pd., M.Pd.', true)
+            .   docxRun('Dr. SAMSUL PAHMI, S.Pd, M.Pd', true)
             . '</w:p>';
 
         $krRows = [];
@@ -450,11 +497,15 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
         . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
         . '</Relationships>';
 
-    // Word rels — tambahkan image relationship jika ada TTD
+    // Word rels — tambahkan image relationship untuk setiap TTD unik
+    $ttdRelsXml = '';
+    foreach ($ttdRegistry as $regPath => $regInfo) {
+        $ttdRelsXml .= '<Relationship Id="' . $regInfo['rId'] . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/ttd_' . $regInfo['rId'] . '.png"/>';
+    }
     $wordRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
         . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
-        . ($hasTTD ? '<Relationship Id="' . $ttdRId . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/ttd.png"/>' : '')
+        . $ttdRelsXml
         . '</Relationships>';
 
     $tmpFile = sys_get_temp_dir() . '/raport_' . uniqid() . '.docx';
@@ -468,9 +519,11 @@ function generateRaportDocx(array $dosenList, string $periodeLabel): string {
     $zip->addFromString('word/styles.xml', $stylesXml);
     $zip->addFromString('word/_rels/document.xml.rels', $wordRels);
 
-    // Embed TTD image
-    if ($hasTTD && $ttdData) {
-        $zip->addFromString('word/media/ttd.png', $ttdData);
+    // Embed semua TTD unik ke dalam DOCX
+    foreach ($ttdRegistry as $regPath => $regInfo) {
+        if (!empty($regInfo['data'])) {
+            $zip->addFromString('word/media/ttd_' . $regInfo['rId'] . '.png', $regInfo['data']);
+        }
     }
 
     $zip->close();

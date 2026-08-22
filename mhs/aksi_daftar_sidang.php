@@ -18,11 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $mhsId   = (int)($_POST['mahasiswa_id'] ?? 0);
 $jenis   = trim($_POST['jenis_sidang'] ?? 'Sidang Tesis');
 
-// Hitung dan Upload berkas administratif saja
+// Hitung dan Upload berkas luaran & administratif
 $berkasFields = [
+    'berkas_jurnal', 'berkas_bukti_bayar_jurnal',
     'berkas_persetujuan', 'berkas_khs', 'berkas_bebas_perpus', 
     'berkas_buku_sumbangan', 'berkas_bebas_admin', 'berkas_foto', 
-    'berkas_draft_tesis', 'berkas_code_program', 'berkas_presentasi'
+    'berkas_draft_tesis', 'berkas_code_program', 'berkas_presentasi',
+    'berkas_plagiarisme'
 ];
 
 $berkasOk    = 0;
@@ -40,6 +42,8 @@ $safeNim = preg_replace('/[^a-zA-Z0-9\-_]/', '_', trim($_POST['nim'] ?? "MHS_$mh
 $safeNama = preg_replace('/[^a-zA-Z0-9\-_]/', '_', trim($_POST['nama'] ?? 'TanpaNama'));
 
 $fieldLabels = [
+    'berkas_jurnal' => 'File_Jurnal_Manuskrip',
+    'berkas_bukti_bayar_jurnal' => 'Bukti_Bayar_Jurnal',
     'berkas_persetujuan' => 'Persetujuan_Pembimbing',
     'berkas_khs' => 'KHS_Smt_1-3',
     'berkas_bebas_perpus' => 'Bebas_Perpus',
@@ -48,7 +52,8 @@ $fieldLabels = [
     'berkas_foto' => 'Foto_Background_Merah',
     'berkas_draft_tesis' => 'Draft_Tesis',
     'berkas_code_program' => 'Code_Program',
-    'berkas_presentasi' => 'File_Presentasi'
+    'berkas_presentasi' => 'File_Presentasi',
+    'berkas_plagiarisme' => 'Hasil_Cek_Plagiarisme'
 ];
 
 foreach ($berkasFields as $field) {
@@ -94,19 +99,21 @@ try {
 
     $sql = "INSERT INTO pendaftaran_sidang (
         mahasiswa_id, jenis_sidang, angkatan, email, no_hp,
-        pembimbing1, pembimbing2, judul_tesis,
-        berkas_persetujuan,
+        pembimbing1, pembimbing2, doi, judul_artikel, nama_jurnal,
+        status_luaran, kategori_luaran, link_luaran, judul_tesis,
+        berkas_jurnal, berkas_bukti_bayar_jurnal, berkas_persetujuan,
         berkas_khs, berkas_bebas_perpus, berkas_buku_sumbangan,
         berkas_bebas_admin, berkas_foto, berkas_draft_tesis,
-        berkas_code_program, berkas_presentasi,
+        berkas_code_program, berkas_presentasi, berkas_plagiarisme,
         berkas_ok, berkas_total, status, created_at
     ) VALUES (
         ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?,
         ?, ?, ?,
-        ?,
         ?, ?, ?,
         ?, ?, ?,
-        ?, ?,
+        ?, ?, ?,
         ?, ?, 'Pending', NOW()
     )";
 
@@ -118,7 +125,15 @@ try {
         trim($_POST['no_hp']    ?? ''),
         trim($_POST['pembimbing1']   ?? ''),
         trim($_POST['pembimbing2']   ?? ''),
+        trim($_POST['doi']           ?? ''),
+        trim($_POST['judul_artikel'] ?? ''),
+        trim($_POST['nama_jurnal']   ?? ''),
+        trim($_POST['status_luaran'] ?? ''),
+        trim($_POST['kategori_luaran'] ?? ''),
+        trim($_POST['link_luaran']   ?? ''),
         trim($_POST['judul_tesis']   ?? ''),
+        $berkasData['berkas_jurnal'],
+        $berkasData['berkas_bukti_bayar_jurnal'],
         $berkasData['berkas_persetujuan'],
         $berkasData['berkas_khs'],
         $berkasData['berkas_bebas_perpus'],
@@ -128,6 +143,7 @@ try {
         $berkasData['berkas_draft_tesis'],
         $berkasData['berkas_code_program'],
         $berkasData['berkas_presentasi'],
+        $berkasData['berkas_plagiarisme'],
         $berkasOk,
         $berkasTotal,
     ];

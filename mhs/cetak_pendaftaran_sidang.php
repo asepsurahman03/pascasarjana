@@ -130,7 +130,7 @@ $logo_fallback = 'https://nusaputra.ac.id/wp-content/uploads/2019/07/logo-nusa-p
     <tr>
       <td>Tempat Tanggal Lahir</td>
       <td><?= $mhs['ttl'] ?></td>
-      <td rowspan="5" style="text-align: center; vertical-align: middle; border-top: none;">Pas foto</td>
+      <td rowspan="5" style="text-align: center; vertical-align: middle; border-top: none; font-size: 10pt; color: #555;">Pas Foto<br><strong>4 x 6</strong></td>
     </tr>
     <tr>
       <td>Program Studi</td>
@@ -162,11 +162,11 @@ $logo_fallback = 'https://nusaputra.ac.id/wp-content/uploads/2019/07/logo-nusa-p
       <td colspan="2"><?= $mhs['email'] ?></td>
     </tr>
     <tr>
-      <td>Dosen Pembimbing I</td>
+      <td>Ketua Pembimbing</td>
       <td colspan="2"><?= $mhs['pembimbing1'] ?></td>
     </tr>
     <tr>
-      <td>Dosen Pembimbing II</td>
+      <td>Anggota Pembimbing</td>
       <td colspan="2"><?= $mhs['pembimbing2'] ?></td>
     </tr>
     <tr>
@@ -327,14 +327,14 @@ $logo_fallback = 'https://nusaputra.ac.id/wp-content/uploads/2019/07/logo-nusa-p
 
   <div style="display: flex; justify-content: space-between; margin-top: 70px; padding: 0 10px; font-size: 12pt;">
     <div style="width: 250px;">
-      Dosen Pembimbing 1,
+      Ketua Pembimbing,
       <div style="margin-top: 80px;">
         <span style="font-weight: bold;"><?= $mhs['pembimbing1'] ?></span><br>
         NIDN. ........................................
       </div>
     </div>
     <div style="width: 250px;">
-      Dosen Pembimbing 2,
+      Anggota Pembimbing,
       <div style="margin-top: 80px;">
         <span style="font-weight: bold;"><?= $mhs['pembimbing2'] ?></span><br>
         NIDN. ........................................
@@ -475,9 +475,9 @@ $emailBody .= "- Angkatan : " . $mhs['angkatan'] . "\n";
 $emailBody .= "- No. WhatsApp : " . $mhs['hp'] . "\n\n";
 $emailBody .= "Adapun detail tesis saya adalah sebagai berikut:\n";
 $emailBody .= "- Judul Tesis : " . $judul . "\n";
-$emailBody .= "- Pembimbing I : " . $mhs['pembimbing1'] . "\n";
+$emailBody .= "- Ketua Pembimbing : " . $mhs['pembimbing1'] . "\n";
 if ($mhs['pembimbing2'] && $mhs['pembimbing2'] !== '-') {
-    $emailBody .= "- Pembimbing II : " . $mhs['pembimbing2'] . "\n\n";
+    $emailBody .= "- Anggota Pembimbing : " . $mhs['pembimbing2'] . "\n\n";
 } else {
     $emailBody .= "\n";
 }

@@ -21,159 +21,315 @@ define('ASPEK_KUESIONER_STANDAR', [
 ]);
 
 // ======================================================
-// MULTI-PERIODE: Gasal & Genap
+// MULTI-PERIODE: Dinamis dari tabel raport_periode
 // ======================================================
-$periodeParam = $_GET['periode'] ?? 'gasal';
-$periodeParam = in_array($periodeParam, ['gasal','genap']) ? $periodeParam : 'gasal';
 
-$periodeConfig = [
-    'gasal' => [
-        'label'    => 'Gasal 2025 - 2026',
-        'excel'    => 'Sistem Report Dosen 2025 - 2026 Gasal.xlsx',
-        'path'     => __DIR__ . '/../Contoh Lampiran/Laporan Raport/Sistem Report Dosen 2025 - 2026 Gasal.xlsx',
-        'pdf'      => null,
-    ],
-    'genap' => [
-        'label'    => 'Genap 2025 - 2026',
-        'excel'    => 'Sistem Report Dosen 2025 - 2026 Genap.xlsx',
-        'path'     => __DIR__ . '/../Contoh Lampiran/Laporan Raport/Sistem Report Dosen 2025 - 2026 Genap.xlsx',
-        'pdf'      => __DIR__ . '/../Contoh Lampiran/Laporan Raport/Laporan Rekap Kuesioner 2025 - 2026 Genap.pdf',
-    ],
-];
+// Load semua periode dari DB
+$allPeriodeDB = dbQuery("SELECT * FROM raport_periode ORDER BY tahun_awal DESC, semester ASC");
 
-$cfg = $periodeConfig[$periodeParam];
-
-define('RAPORT_EXCEL_PATH', $cfg['path']);
-define('RAPORT_EXCEL_NAME', $cfg['excel']);
-define('RAPORT_PERIODE',    $cfg['label']);
-define('RAPORT_PERIODE_KEY', $periodeParam);
-
-// Parse data – Excel jika ada, fallback ke PDF parser untuk Genap
-$excelData = [];
-$allDosen  = [];
-$hasError  = false;
-
-if (file_exists(RAPORT_EXCEL_PATH)) {
-    $excelData = parseExcelRaport(RAPORT_EXCEL_PATH);
-    $allDosen  = $excelData['rows'] ?? [];
-    $hasError  = isset($excelData['error']);
+// Buat lookup by label
+$periodeByLabel = [];
+foreach ($allPeriodeDB as $p) {
+    $periodeByLabel[$p['label']] = $p;
 }
 
-// Untuk Genap, pastikan kita MENGGABUNGKAN data dari PDF karena PDF Genap memiliki data Kuesioner (Nilai dan Kesan) yang lebih akurat
-if ($periodeParam === 'genap' && $cfg['pdf'] && file_exists($cfg['pdf'])) {
-    require_once __DIR__ . '/../functions/pdf_genap_parser.php';
-    $pdfDosen = parseGenapPDF($cfg['pdf']);
-    
-    if (!empty($pdfDosen)) {
-        if (empty($allDosen)) {
-            $allDosen = $pdfDosen;
-        } else {
-            // Merge PDF data into Excel data based on Nama Dosen
-            foreach ($allDosen as &$exRow) {
-                $nama = strtoupper(preg_replace('/\s+/', '', $exRow['Nama'] ?? ''));
-                foreach ($pdfDosen as $pdfRow) {
-                    $pdfNama = strtoupper(preg_replace('/\s+/', '', $pdfRow['Nama'] ?? ''));
-                    if ($nama === $pdfNama) {
-                        // Override Excel fields with PDF accurate fields for Kuesioner
-                        if ($pdfRow['Nilai Kuesioner'] > 0) $exRow['Nilai Kuesioner'] = $pdfRow['Nilai Kuesioner'];
-                        if ($pdfRow['Jumlah Matkul'] > 0) $exRow['Jumlah Matkul'] = $pdfRow['Jumlah Matkul'];
-                        if ($pdfRow['Jumlah Kelas'] > 0) $exRow['Jumlah Kelas'] = $pdfRow['Jumlah Kelas'];
-                        for ($i = 1; $i <= 10; $i++) { // Allow up to 10 comments if possible
-                            if (!empty($pdfRow['K'.$i])) $exRow['K'.$i] = $pdfRow['K'.$i];
+// Default: periode pertama (terbaru)
+$defaultPeriode = !empty($allPeriodeDB) ? $allPeriodeDB[0]['label'] : 'Gasal 2025-2026';
+
+// Resolve periodeParam dari GET
+$periodeParam = trim($_GET['periode'] ?? '');
+
+// Backward compat: 'gasal' → 'Gasal 2025-2026', 'genap' → 'Genap 2025-2026'
+$backwardMap = ['gasal' => 'Gasal 2025-2026', 'genap' => 'Genap 2025-2026'];
+if (isset($backwardMap[$periodeParam])) {
+    $periodeParam = $backwardMap[$periodeParam];
+}
+
+// Validasi: harus ada di DB
+if (empty($periodeParam) || !isset($periodeByLabel[$periodeParam])) {
+    $periodeParam = $defaultPeriode;
+}
+
+$cfg        = $periodeByLabel[$periodeParam] ?? [];
+$excelName  = $cfg['excel_file'] ?? '';
+$excelPath  = !empty($excelName)
+    ? __DIR__ . '/../Contoh Lampiran/Laporan Raport/' . $excelName
+    : '';
+// PDF hanya untuk Genap 2025-2026 legacy
+$pdfPath    = ($cfg['semester'] === 'Genap' && ($cfg['tahun_awal'] ?? 0) === 2025)
+    ? __DIR__ . '/../Contoh Lampiran/Laporan Raport/Laporan Rekap Kuesioner 2025 - 2026 Genap.pdf'
+    : null;
+
+define('RAPORT_EXCEL_PATH', $excelPath);
+define('RAPORT_EXCEL_NAME', $excelName);
+define('RAPORT_PERIODE',    $periodeParam);
+define('RAPORT_PERIODE_KEY', $periodeParam);
+
+// ======================================================
+// SUMBER DATA: Database (utama) atau Excel (fallback)
+// ======================================================
+$excelData   = [];
+$allDosen    = [];
+$hasError    = false;
+$dataFromDB  = false;
+
+// Cek apakah ada data di database untuk periode ini
+$dbCount = dbQueryOne("SELECT COUNT(*) as c FROM raport_dosen_data WHERE periode=?", [$periodeParam]);
+$useDB   = ($dbCount['c'] ?? 0) > 0;
+
+if ($useDB) {
+    // ── Baca dari DATABASE ─────────────────────────────────────────────────
+    $dbRows = dbQuery("SELECT * FROM raport_dosen_data WHERE periode=? ORDER BY no", [$periodeParam]);
+    foreach ($dbRows as $dbRow) {
+        $allDosen[] = [
+            'No'                => $dbRow['no'],
+            'Nama'              => $dbRow['nama'],
+            'Prodi'             => $dbRow['prodi'],
+            'Jumlah Matkul'     => $dbRow['jumlah_matkul'],
+            'Jumlah Kelas'      => $dbRow['jumlah_kelas'],
+            'Jumlah Responden'  => $dbRow['jumlah_responden'],
+            'Nilai Kuesioner'   => $dbRow['nilai_kuesioner'],
+            'Jumlah Kehadiran'  => $dbRow['jumlah_kehadiran'],
+            'Konten'            => $dbRow['konten'],
+            'Jumlah Penelitian' => $dbRow['jumlah_penelitian'],
+            'Jumlah Pengabdian' => $dbRow['jumlah_pengabdian'],
+            'P1'                => $dbRow['p1'],
+            'P2'                => $dbRow['p2'],
+            'P3'                => $dbRow['p3'],
+            'P4'                => $dbRow['p4'],
+            'P5'                => $dbRow['p5'],
+            'K1'                => $dbRow['k1'],
+            'K2'                => $dbRow['k2'],
+            'K3'                => $dbRow['k3'],
+            'K4'                => $dbRow['k4'],
+        ];
+    }
+    $dataFromDB = true;
+    $hasError   = false;
+
+} else {
+    // ── Fallback ke FILE EXCEL ─────────────────────────────────────────────
+    if (file_exists(RAPORT_EXCEL_PATH)) {
+        $excelData = parseExcelRaport(RAPORT_EXCEL_PATH);
+        $allDosen  = $excelData['rows'] ?? [];
+        $hasError  = isset($excelData['error']);
+    }
+
+    // Untuk Genap: merge data dari PDF jika tersedia
+    if (($cfg['semester'] ?? '') === 'Genap' && $pdfPath && file_exists($pdfPath)) {
+        require_once __DIR__ . '/../functions/pdf_genap_parser.php';
+        $pdfDosen = parseGenapPDF($pdfPath);
+        if (!empty($pdfDosen)) {
+            if (empty($allDosen)) {
+                $allDosen = $pdfDosen;
+            } else {
+                foreach ($allDosen as &$exRow) {
+                    $nama = strtoupper(preg_replace('/\s+/', '', $exRow['Nama'] ?? ''));
+                    foreach ($pdfDosen as $pdfRow) {
+                        $pdfNama = strtoupper(preg_replace('/\s+/', '', $pdfRow['Nama'] ?? ''));
+                        if ($nama === $pdfNama) {
+                            if ($pdfRow['Nilai Kuesioner'] > 0) $exRow['Nilai Kuesioner'] = $pdfRow['Nilai Kuesioner'];
+                            if ($pdfRow['Jumlah Matkul'] > 0) $exRow['Jumlah Matkul'] = $pdfRow['Jumlah Matkul'];
+                            if ($pdfRow['Jumlah Kelas'] > 0) $exRow['Jumlah Kelas'] = $pdfRow['Jumlah Kelas'];
+                            for ($i = 1; $i <= 10; $i++) {
+                                if (!empty($pdfRow['K'.$i])) $exRow['K'.$i] = $pdfRow['K'.$i];
+                            }
+                            break;
                         }
+                    }
+                }
+                unset($exRow);
+            }
+            $hasError = false;
+            unset($excelData['error']);
+        } else {
+            if (empty($allDosen)) {
+                $hasError = true;
+                $excelData['error'] = 'Gagal mem-parsing PDF Genap, dan Excel Genap kosong.';
+            }
+        }
+    } else {
+        if (empty($allDosen)) {
+            $hasError = true;
+            $excelData['error'] = 'File Excel ' . RAPORT_EXCEL_NAME . ' tidak ditemukan. Silakan <a href="input_raport_dosen.php?periode=' . $periodeParam . '" class="underline text-blue-600">input data via web</a>.';
+        }
+    }
+}
+
+// GASAL: Enrich data dosen semua Prodi dari XLS SIAKAD
+// Hanya berlaku untuk periode Gasal 2025-2026 (folder rekap ada)
+// ======================================================
+if (($cfg['semester'] ?? '') === 'Gasal' && !empty($allDosen)) {
+    $rekapPath = __DIR__ . '/../Contoh Lampiran/Laporan Raport/Semester Gasal 2025-2026/Rekap Koesioner';
+    if (is_dir($rekapPath)) {
+        $allProdiXLS = parseAllFakultasDosen($rekapPath);
+
+        // Mapping: keyword dalam kolom Prodi (lowercase) => key di $allProdiXLS
+        // Urutan penting: keyword lebih spesifik harus lebih dulu
+        $prodiKeywordMap = [
+            // FBHP — S2 lebih spesifik duluan
+            's2 hukum'              => 's2 hukum',
+            's2 manajemen'          => 's2 manajemen',
+            's2 pedagogi'           => 's2 pedagogi',
+            'magister manajemen'    => 's2 manajemen',
+            'magister pedagogi'     => 's2 pedagogi',
+            'magister hukum'        => 's2 hukum',
+            'akuntansi'             => 'akuntansi',
+            'manajemen'             => 'manajemen',
+            'hukum'                 => 'hukum',
+            'pgsd'                  => 'pgsd',
+            'pedagogi'              => 's2 pedagogi',
+            // FECD — Magister lebih spesifik duluan
+            'magister informatika'  => 'magister informatika',
+            'desain komunikasi'     => 'desain komunikasi visual',
+            'dkv'                   => 'desain komunikasi visual',
+            'komunikasi visual'     => 'desain komunikasi visual',
+            'sistem informasi'      => 'sistem informasi',
+            'teknik elektro'        => 'teknik elektro',
+            'teknik informatika'    => 'teknik informatika',
+            'teknik mesin'          => 'teknik mesin',
+            'teknik sipil'          => 'teknik sipil',
+        ];
+
+        $prodiKeyToStandard = [
+            'akuntansi'               => 'S1 - Akuntansi',
+            'manajemen'               => 'S1 - Manajemen',
+            'hukum'                   => 'S1 - Hukum',
+            'pgsd'                    => 'S1 - Pendidikan Guru Sekolah Dasar',
+            's2 hukum'                => 'S2 - Magister Hukum',
+            's2 manajemen'            => 'S2 - Magister Manajemen',
+            's2 pedagogi'             => 'S2 - Magister Pedagogi',
+            'desain komunikasi visual'=> 'S1 - Desain Komunikasi Visual',
+            'sistem informasi'        => 'S1 - Sistem Informasi',
+            'teknik elektro'          => 'S1 - Teknik Elektro',
+            'teknik informatika'      => 'S1 - Teknik Informatika',
+            'teknik mesin'            => 'S1 - Teknik Mesin',
+            'teknik sipil'            => 'S1 - Teknik Sipil',
+            'magister informatika'    => 'S2 - Magister Informatika',
+        ];
+
+        // Pre-index flat lookup agar pencocokan 307 dosen berjalan instan O(1)
+        $flatXlsDosen = [];
+        foreach ($allProdiXLS as $pKey => $dosenMap) {
+            foreach ($dosenMap as $normKey => $dosenData) {
+                $flatXlsDosen[$normKey] = [
+                    'prodiKey' => $pKey,
+                    'data'     => $dosenData,
+                ];
+            }
+        }
+
+        foreach ($allDosen as &$exRow) {
+            $nama     = $exRow['Nama'] ?? '';
+            $normNama = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $nama));
+
+            $prodiRaw = strtolower(trim($exRow['Prodi'] ?? ''));
+            $prodiKey = null;
+
+            // Cari key prodi awal dari kolom Excel
+            foreach ($prodiKeywordMap as $keyword => $key) {
+                if (strpos($prodiRaw, $keyword) !== false) {
+                    $prodiKey = $key;
+                    break;
+                }
+            }
+
+            $xlsMatch = null;
+            $matchedProdiKey = null;
+
+            // 1. Cek exact normalized match di flat lookup (instan)
+            if (isset($flatXlsDosen[$normNama])) {
+                $xlsMatch = $flatXlsDosen[$normNama]['data'];
+                $matchedProdiKey = $flatXlsDosen[$normNama]['prodiKey'];
+            }
+
+            // 2. Coba cari di folder prodi yang sesuai kolom Excel dulu
+            if (!$xlsMatch && $prodiKey !== null && !empty($allProdiXLS[$prodiKey])) {
+                $xlsMatch = matchProdiDosen($nama, $allProdiXLS[$prodiKey]);
+                if ($xlsMatch) $matchedProdiKey = $prodiKey;
+            }
+
+            // 3. Jika belum ditemukan, cari fuzzy di seluruh folder prodi XLS lainnya
+            if (!$xlsMatch) {
+                foreach ($allProdiXLS as $pKey => $dosenMap) {
+                    if ($pKey === $prodiKey) continue;
+                    $candMatch = matchProdiDosen($nama, $dosenMap);
+                    if ($candMatch) {
+                        $xlsMatch = $candMatch;
+                        $matchedProdiKey = $pKey;
                         break;
                     }
                 }
             }
-            unset($exRow);
-        }
-        $hasError = false;
-        unset($excelData['error']);
-    } else {
-        if (empty($allDosen)) {
-            $hasError = true;
-            $excelData['error'] = 'Gagal mem-parsing PDF Genap, dan Excel Genap kosong.';
-        }
-    }
-} else {
-    if (empty($allDosen)) {
-        $hasError = true;
-        $excelData['error'] = 'File Excel ' . RAPORT_EXCEL_NAME . ' tidak ditemukan di server.';
-    }
-}
 
-// ======================================================
-// GASAL: Enrich data dosen Akuntansi dari file XLS SIAKAD
-// Folder: Contoh Lampiran/Laporan Raport/Akuntansi/
-// Data XLS berisi: nilai kuesioner, responden, rekomendasi perbaikan (P1-P5
-//   dari aspek yang paling banyak mendapat respons Biasa/Buruk),
-//   dan catatan mahasiswa (K1-K4 dari komentar mahasiswa)
-// ======================================================
-if ($periodeParam === 'gasal' && !empty($allDosen)) {
-    $akFolderPath = __DIR__ . '/../Contoh Lampiran/Laporan Raport/Akuntansi';
-    if (is_dir($akFolderPath)) {
-        $akDosenData = parseAllAkuntansiDosen($akFolderPath);
-        if (!empty($akDosenData)) {
-            foreach ($allDosen as &$exRow) {
-                // Hanya proses dosen Akuntansi
-                $prodi = strtolower(trim($exRow['Prodi'] ?? ''));
-                if (strpos($prodi, 'akuntansi') === false) continue;
+            if (!$xlsMatch) continue;
 
-                $nama = $exRow['Nama'] ?? '';
-                $akMatch = matchAkuntansiDosen($nama, $akDosenData);
-                if (!$akMatch) continue;
+            // Koreksi nama Program Studi dosen sesuai prodi file kuesionernya
+            if ($matchedProdiKey && isset($prodiKeyToStandard[$matchedProdiKey])) {
+                $exRow['Prodi'] = $prodiKeyToStandard[$matchedProdiKey];
+            }
 
-                // Override nilai kuesioner & responden dari XLS jika Excel kosong atau 0
-                if ((float)($exRow['Nilai Kuesioner'] ?? 0) == 0 && $akMatch['nilai_kuesioner'] > 0) {
-                    $exRow['Nilai Kuesioner'] = $akMatch['nilai_kuesioner'];
-                }
-                if (empty(trim($exRow['Jumlah Responden'] ?? '')) && !empty($akMatch['jumlah_responden'])) {
-                    $exRow['Jumlah Responden'] = $akMatch['jumlah_responden'];
-                }
+            // Override nilai kuesioner & responden dari XLS jika Excel kosong atau 0
+            if ((float)($exRow['Nilai Kuesioner'] ?? 0) == 0 && $xlsMatch['nilai_kuesioner'] > 0) {
+                $exRow['Nilai Kuesioner'] = $xlsMatch['nilai_kuesioner'];
+            }
+            if (empty(trim($exRow['Jumlah Responden'] ?? '')) && !empty($xlsMatch['jumlah_responden'])) {
+                $exRow['Jumlah Responden'] = $xlsMatch['jumlah_responden'];
+            }
 
-                // Enrich Rekomendasi (P1-P5): dari aspek paling banyak Biasa/Buruk
-                // Hanya isi jika Excel masih kosong
-                foreach (['P1','P2','P3','P4','P5'] as $pk) {
-                    if (empty(trim($exRow[$pk] ?? ''))) {
-                        $exRow[$pk] = $akMatch[$pk] ?? '';
-                    }
-                }
-
-                // Enrich Catatan Mahasiswa (K1-K4): dari komentar di file XLS
-                // Hanya isi jika Excel masih kosong
-                foreach (['K1','K2','K3','K4'] as $kk) {
-                    if (empty(trim($exRow[$kk] ?? ''))) {
-                        $exRow[$kk] = $akMatch[$kk] ?? '';
-                    }
-                }
-
-                // Simpan data Analisis Sentimen dari seluruh komentar XLS Akuntansi
-                if (!empty($akMatch['sentimen'])) {
-                    $exRow['sentimen'] = $akMatch['sentimen'];
+            // Enrich Rekomendasi (P1-P5): dari aspek paling banyak Biasa/Buruk
+            // Hanya isi jika Excel masih kosong
+            foreach (['P1','P2','P3','P4','P5'] as $pk) {
+                if (empty(trim($exRow[$pk] ?? ''))) {
+                    $exRow[$pk] = $xlsMatch[$pk] ?? '';
                 }
             }
-            unset($exRow);
+
+            // Enrich Catatan Mahasiswa (K1-K4): dari komentar di file XLS
+            // Hanya isi jika Excel masih kosong
+            foreach (['K1','K2','K3','K4'] as $kk) {
+                if (empty(trim($exRow[$kk] ?? ''))) {
+                    $exRow[$kk] = $xlsMatch[$kk] ?? '';
+                }
+            }
+
+            // Simpan data Analisis Sentimen dari seluruh komentar XLS
+            if (!empty($xlsMatch['sentimen'])) {
+                $exRow['sentimen'] = $xlsMatch['sentimen'];
+            }
         }
+        unset($exRow);
     }
 }
 
-// Daftar prodi unik
-$prodiList = array_values(array_filter(array_unique(array_column($allDosen, 'Prodi'))));
+
+// Format semua nama Prodi ke format resmi berjenjang (e.g. S1 - Akuntansi, S2 - Magister Informatika)
+foreach ($allDosen as &$dRef) {
+    if (isset($dRef['Prodi'])) {
+        $dRef['Prodi'] = formatProdiStandard($dRef['Prodi']);
+    }
+}
+unset($dRef);
+
+// Daftar prodi unik — gabungkan master prodi lengkap (D3, S1, S2, S3) dengan prodi yang ada di data
+$masterProdis = function_exists('getAllMasterProgramStudi') ? getAllMasterProgramStudi() : [];
+$dataProdis   = array_map('trim', array_column($allDosen, 'Prodi'));
+$prodiList    = array_values(array_filter(array_unique(array_merge($masterProdis, $dataProdis))));
 sort($prodiList);
 
 // Filter GET
-$filterProdi = $_GET['prodi'] ?? '';
+$filterProdi = trim($_GET['prodi'] ?? '');  // trim: Excel kadang simpan prodi dengan trailing space
 $filterCari  = trim($_GET['cari'] ?? '');
 $step        = $_GET['step'] ?? 'list';
 $selectedIds = isset($_GET['ids']) ? explode(',', $_GET['ids']) : [];
 
 // WIZARD STEPS: Data Dosen → Skor Bobot → Skor → Rata-Rata → Cetak Raport
 $wizardSteps = [
-    'list'       => ['label' => 'Data Dosen',   'icon' => '👨‍🏫', 'sheet' => 'Sheet: Data Dosen',   'no' => 1],
-    'skor_bobot' => ['label' => 'Skor Bobot',    'icon' => '⚖️',  'sheet' => 'Sheet: Skor Bobot',    'no' => 2],
-    'skor'       => ['label' => 'Skor',          'icon' => '📊',  'sheet' => 'Sheet: Skor',           'no' => 3],
-    'rata_rata'  => ['label' => 'Rata-Rata',     'icon' => '📈',  'sheet' => 'Sheet: Rata-Rata',      'no' => 4],
-    'print'      => ['label' => 'Cetak Raport',  'icon' => '🖨️',  'sheet' => 'Sheet: Rapot',          'no' => 5],
+    'list'       => ['label' => 'Data Dosen',   'icon' => '1', 'sheet' => 'Sheet: Data Dosen',   'no' => 1],
+    'skor_bobot' => ['label' => 'Skor Bobot',    'icon' => '2', 'sheet' => 'Sheet: Skor Bobot',    'no' => 2],
+    'skor'       => ['label' => 'Skor',          'icon' => '3', 'sheet' => 'Sheet: Skor',           'no' => 3],
+    'rata_rata'  => ['label' => 'Rata-Rata',     'icon' => '4', 'sheet' => 'Sheet: Rata-Rata',      'no' => 4],
+    'print'      => ['label' => 'Cetak Raport',  'icon' => '5', 'sheet' => 'Sheet: Rapot',          'no' => 5],
 ];
 $validSteps = array_keys($wizardSteps);
 if (!in_array($step, array_merge($validSteps, ['preview','word']))) $step = 'list';
@@ -193,7 +349,7 @@ if (!isset($_SESSION['raport_overrides'])) {
 }
 
 // Handle POST: Simpan Input Manual atau Reset
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     $actNo = trim($_POST['dosen_no'] ?? '');
     if ($actNo !== '') {
         if ($_POST['action'] === 'save_manual') {
@@ -241,10 +397,15 @@ foreach ($allDosen as &$dRef) {
 }
 unset($dRef);
 
-// Filter dosen
+// Filter dosen — mendukung pencocokan nama prodi berformat standar maupun nama mentah
 $filteredDosen = $allDosen;
 if ($filterProdi) {
-    $filteredDosen = array_filter($filteredDosen, fn($d) => trim($d['Prodi']) === $filterProdi);
+    $normFilter = strtolower(trim($filterProdi));
+    $fmtFilter  = formatProdiStandard($filterProdi);
+    $filteredDosen = array_filter($filteredDosen, function($d) use ($filterProdi, $fmtFilter, $normFilter) {
+        $p = trim($d['Prodi'] ?? '');
+        return $p === $filterProdi || $p === $fmtFilter || strtolower($p) === $normFilter;
+    });
 }
 if ($filterCari) {
     $filteredDosen = array_filter($filteredDosen, fn($d) => stripos($d['Nama'], $filterCari) !== false);
@@ -341,6 +502,43 @@ if (!function_exists('getKetKuis')) {
     }
 }
 
+/**
+ * Cari file TTD berdasarkan nama dosen.
+ * Mengembalikan array ['src' => '../TTD Dosen/...'] atau null jika tidak ada.
+ */
+if (!function_exists('getTtdRaportDosen')) {
+    function getTtdRaportDosen(string $namaDosen): ?array {
+        // Normalisasi nama: lowercase, hapus gelar & spasi
+        $norm = strtolower($namaDosen);
+
+        // Mapping keyword => path relatif (dari folder pages/)
+        $mapping = [
+            'pahmi'     => '../TTD Dosen/TTD Pak Pahmi.png',
+            'samsul'    => '../TTD Dosen/TTD Pak Pahmi.png',
+            'dana'      => '../TTD Dosen/TTD Dosen Manajemen/Ttd Dr. Dana.png',
+            'hesri'     => '../TTD Dosen/TTD Dosen Manajemen/Ttd Dr. Hesri.png',
+            'koesmawan' => '../TTD Dosen/TTD Dosen Manajemen/Ttd Dr. Koesmawan.png',
+            'slamet'    => '../TTD Dosen/TTD Dosen Manajemen/Ttd Dr. Slamet.png',
+            'yusuf'     => '../TTD Dosen/TTD Dosen Manajemen/Ttd Dr. Yusuf.png',
+            'gustian'   => '../TTD Dosen/TTD Dosen Manajemen/Ttd. Dr. Gustian.png',
+            'kurniawan' => '../TTD Dosen/TTD Dosen Manajemen/Ttd_Dr_Kurniawan.png',
+            'nurhasan'  => '../TTD Dosen/TTD Dosen Manajemen/Ttd_Dr_Nur_Hasan.png',
+            'nur hasan' => '../TTD Dosen/TTD Dosen Manajemen/Ttd_Dr_Nur_Hasan.png',
+            'hasan'     => '../TTD Dosen/TTD Dosen Manajemen/Ttd_Dr_Nur_Hasan.png',
+        ];
+
+        foreach ($mapping as $keyword => $relPath) {
+            if (strpos($norm, $keyword) !== false) {
+                $absPath = __DIR__ . '/' . $relPath;
+                if (file_exists($absPath)) {
+                    return ['src' => $relPath];
+                }
+            }
+        }
+        return null;
+    }
+}
+
 // Jika preview satu dosen dari GET no
 $previewNo = $_GET['no'] ?? null;
 $previewDosen = null;
@@ -365,20 +563,49 @@ if ($step === 'print') {
 }
 
 // Helper: buat URL wizard dengan IDs terpilih
-function wizardUrl(string $step, string $periode, string $ids = ''): string {
-    $u = 'raport_dosen.php?step=' . urlencode($step) . '&periode=' . urlencode($periode);
-    if ($ids !== '') $u .= '&ids=' . urlencode($ids);
-    return $u;
+if (!function_exists('wizardUrl')) {
+    function wizardUrl(string $step, string $periode, string $ids = ''): string {
+        $u = 'raport_dosen.php?step=' . urlencode($step) . '&periode=' . urlencode($periode);
+        if ($ids !== '') $u .= '&ids=' . urlencode($ids);
+        return $u;
+    }
 }
 ?>
 
 <?php if ($step === 'print'): ?>
 <!-- ====================== PRINT VIEW ====================== -->
+<?php
+$printDosen = $selectedDosen;
+if (empty($printDosen)) {
+    // Saat cetak semua: skip dosen yang semua data numeriknya kosong
+    // (baris placeholder/template di Excel yang belum diisi)
+    $filteredForPrint = array_filter($filteredDosen, function($d) {
+        $hasNumerik = (
+            (float)($d['Nilai Kuesioner']   ?? 0) > 0 ||
+            (float)($d['Jumlah Kehadiran']  ?? 0) > 0 ||
+            (float)($d['Konten']            ?? 0) > 0 ||
+            (int)($d['Jumlah Penelitian']  ?? 0) > 0 ||
+            (int)($d['Jumlah Pengabdian']  ?? 0) > 0
+        );
+        return !empty(trim($d['Nama'] ?? '')) && $hasNumerik;
+    });
+    // Jika ada yang lolos filter, gunakan itu; kalau semuanya kosong, tetap print semua
+    $printDosen = !empty($filteredForPrint) ? array_values($filteredForPrint) : $filteredDosen;
+}
+
+// Set Judul Dokumen (digunakan browser sebagai nama file default saat 'Simpan sebagai PDF' / Save to PDF)
+if (count($printDosen) === 1) {
+    $namaDosenPrint = trim($printDosen[0]['Nama'] ?? 'Dosen');
+    $pagePrintTitle = 'Raport_' . preg_replace('/[^A-Za-z0-9_]+/', '_', $namaDosenPrint) . '_' . preg_replace('/[^A-Za-z0-9_]+/', '_', RAPORT_PERIODE);
+} else {
+    $pagePrintTitle = 'Raport_Dosen_' . preg_replace('/[^A-Za-z0-9_]+/', '_', RAPORT_PERIODE);
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Cetak Raport Laporan Dosen – <?= RAPORT_PERIODE ?></title>
+<title><?= htmlspecialchars($pagePrintTitle) ?></title>
 <style>
   /* ================================================================
      TEMPLATE SURAT RAPORT DOSEN - SESUAI EXCEL SHEET 'Rapot'
@@ -659,40 +886,22 @@ function wizardUrl(string $step, string $periode, string $ids = ''): string {
 <body>
 
 <div class="no-print" style="background:#1e293b;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;font-family:sans-serif;">
-  <button onclick="window.print()" style="background:#8c0c4c;color:#fff;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">&#128424; Cetak / Print PDF</button>
+  <button onclick="window.print()" style="background:#8c0c4c;color:#fff;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">Cetak / Print PDF</button>
   <?php
     // Buat URL word download dengan parameter yang sama
     $wordUrl = 'raport_dosen.php?step=word&periode=' . urlencode(RAPORT_PERIODE_KEY);
     if (!empty($selectedIds)) $wordUrl .= '&ids=' . urlencode(implode(',', $selectedIds));
   ?>
   <a href="<?= htmlspecialchars($wordUrl) ?>" style="background:#1d4ed8;color:#fff;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-    &#128196; Download Word (.docx)
+    Download Word (.docx)
   </a>
-  <span style="font-size:13px;">Raport Laporan Dosen &ndash; <?= RAPORT_PERIODE ?> | <?= count($selectedDosen) ?> dosen</span>
+  <span style="font-size:13px;">Raport Laporan Dosen &ndash; <?= RAPORT_PERIODE ?> | <?= count($printDosen) ?> dosen</span>
   <a href="raport_dosen.php?periode=<?= RAPORT_PERIODE_KEY ?>" style="color:#94a3b8;font-size:13px;text-decoration:none;margin-left:auto;">&larr; Kembali ke Daftar</a>
 </div>
 
 
 <?php
 // Fungsi getKetKuis/getKetHadir/getKetKonten sudah didefinisikan di atas (global scope)
-
-$printDosen = $selectedDosen;
-if (empty($printDosen)) {
-    // Saat cetak semua: skip dosen yang semua data numeriknya kosong
-    // (baris placeholder/template di Excel yang belum diisi)
-    $filteredForPrint = array_filter($filteredDosen, function($d) {
-        $hasNumerik = (
-            (float)($d['Nilai Kuesioner']   ?? 0) > 0 ||
-            (float)($d['Jumlah Kehadiran']  ?? 0) > 0 ||
-            (float)($d['Konten']            ?? 0) > 0 ||
-            (int)($d['Jumlah Penelitian']  ?? 0) > 0 ||
-            (int)($d['Jumlah Pengabdian']  ?? 0) > 0
-        );
-        return !empty(trim($d['Nama'] ?? '')) && $hasNumerik;
-    });
-    // Jika ada yang lolos filter, gunakan itu; kalau semuanya kosong, tetap print semua
-    $printDosen = !empty($filteredForPrint) ? array_values($filteredForPrint) : $filteredDosen;
-}
 
 foreach ($printDosen as $d):
     $nama     = $d['Nama'] ?? '-';
@@ -872,18 +1081,27 @@ foreach ($printDosen as $d):
 
   <!-- ROW 39-46: FOOTER sesuai Excel -->
   <div class="footer-wrap">
-    <!-- Kiri: B39=UPM, B40=UNIVERSITAS, [TTD image], B46=nama BOLD -->
+  <!-- Kiri: B39=UPM, B40=UNIVERSITAS, [TTD image], B46=nama BOLD -->
     <div class="footer-left">
       <div class="ttd-block">
         <div class="upm">UNIT PENJAMINAN MUTU</div>
         <div class="univ">UNIVERSITAS NUSA PUTRA</div>
+        <?php
+          // TTD footer selalu Dr. Samsul Pahmi sebagai Kepala UPM penandatangan
+          $ttdPahmiInfo = getTtdRaportDosen('pahmi');
+        ?>
+        <?php if ($ttdPahmiInfo): ?>
         <div class="ttd-wrap">
-          <img src="../TTD Dosen/ttd_pak_pahmi.png" alt="TTD">
+          <img src="<?= htmlspecialchars($ttdPahmiInfo['src']) ?>" alt="TTD Dr. Samsul Pahmi">
         </div>
+        <?php else: ?>
+        <div class="ttd-wrap" style="height:60px;"></div>
+        <?php endif; ?>
         <!-- Excel B46: BOLD, border-top (garis tanda tangan) -->
-        <div class="ttd-name">Dr. Samsul Pahmi, S.Pd., M.Pd.</div>
+        <div class="ttd-name">Dr. SAMSUL PAHMI, S.Pd, M.Pd</div>
       </div>
     </div>
+
     <!-- Kanan: C40="CATATAN: KRITERIA PENSKORAN", tabel 3 kolom -->
     <!-- Excel: C41:D41 merged="RENTANG SKOR", E41:F41 merged="KRITERIA" -->
     <div class="footer-right">
@@ -920,14 +1138,14 @@ endif;
 <div class="max-w-4xl mx-auto pb-10">
   <div class="mb-6 flex items-center justify-between no-print">
     <div>
-      <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-1">👁️ Preview Raport Dosen</h2>
+      <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-1">Preview Raport Dosen</h2>
       <p class="text-slate-500 dark:text-slate-400 text-sm"><?= htmlspecialchars($previewDosen['Nama']) ?></p>
     </div>
     <div class="flex gap-2">
       <a href="raport_dosen.php" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold text-sm hover:bg-slate-200 transition-colors">← Kembali</a>
       <a href="raport_dosen.php?step=print&ids=<?= $previewDosen['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>" target="_blank"
          class="inline-flex items-center gap-2 px-4 py-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-semibold text-sm transition-all shadow">
-        🖨️ Cetak Raport Ini
+        Cetak Raport Ini
       </a>
     </div>
   </div>
@@ -1041,7 +1259,7 @@ endif;
     <div class="flex justify-end">
       <a href="raport_dosen.php?step=print&ids=<?= $previewDosen['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>" target="_blank"
          class="inline-flex items-center gap-2 px-6 py-2.5 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-semibold shadow hover:shadow-md transition-all">
-        🖨️ Cetak Raport Lengkap
+        Cetak Raport Lengkap
       </a>
     </div>
   </div>
@@ -1060,15 +1278,15 @@ endif;
   <?php if (isset($_GET['msg']) && $_GET['msg'] === 'saved'): ?>
   <div class="mb-4 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-700 flex items-center justify-between text-emerald-800 dark:text-emerald-200">
     <div class="flex items-center gap-3">
-      <span class="text-xl">✅</span>
-      <span class="text-sm font-semibold">Data perubahan manual berhasil disimpan dan diterapkan pada raport dosen ini!</span>
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+      <span class="text-sm font-semibold">Data perubahan manual berhasil disimpan dan diterapkan pada raport dosen ini.</span>
     </div>
     <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700 font-bold">&times;</button>
   </div>
   <?php elseif (isset($_GET['msg']) && $_GET['msg'] === 'reset'): ?>
   <div class="mb-4 p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-700 flex items-center justify-between text-blue-800 dark:text-blue-200">
     <div class="flex items-center gap-3">
-      <span class="text-xl">🔄</span>
+      <span class="w-2 h-2 rounded-full bg-blue-500"></span>
       <span class="text-sm font-semibold">Data telah dikembalikan ke data asli dari file Excel.</span>
     </div>
     <button onclick="this.parentElement.remove()" class="text-blue-500 hover:text-blue-700 font-bold">&times;</button>
@@ -1083,32 +1301,43 @@ endif;
         $isDone    = $sInfo['no'] < $currentStep['no'];
         $isCurrent = ($sKey === $step);
         $isNext    = $sInfo['no'] > $currentStep['no'];
-        $stepColor = $isDone ? 'bg-emerald-500 text-white' : ($isCurrent ? 'bg-[#8c0c4c] text-white shadow-lg ring-4 ring-[#8c0c4c]/20' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500');
+        $stepColor = $isDone ? 'bg-emerald-500 text-white shadow-sm' : ($isCurrent ? 'bg-[#8c0c4c] text-white shadow-lg ring-4 ring-[#8c0c4c]/20' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:bg-slate-200');
         $lineColor = $isDone ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700';
+        $stepUrl   = ($sKey === 'list')
+          ? 'raport_dosen.php?periode=' . urlencode(RAPORT_PERIODE_KEY)
+          : (($sKey === 'print')
+              ? 'raport_dosen.php?step=print&ids=' . urlencode($idsParam) . '&periode=' . urlencode(RAPORT_PERIODE_KEY)
+              : wizardUrl($sKey, RAPORT_PERIODE_KEY, $idsParam));
       ?>
-      <div class="flex flex-col items-center flex-1">
+      <div class="flex flex-col items-center flex-1 relative">
         <?php if ($sKey !== 'list'): ?>
         <div class="w-full h-0.5 <?= $lineColor ?> mb-4 -mt-4 relative top-4"></div>
         <?php endif; ?>
-        <a href="<?= $sKey === 'list' ? 'raport_dosen.php?periode='.RAPORT_PERIODE_KEY : ($sKey === 'print' ? 'raport_dosen.php?step=print&ids='.urlencode($idsParam).'&periode='.RAPORT_PERIODE_KEY : wizardUrl($sKey, RAPORT_PERIODE_KEY, $idsParam)) ?>"
+        <a href="<?= $stepUrl ?>"
            target="<?= $sKey === 'print' ? '_blank' : '_self' ?>"
-           class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold <?= $stepColor ?> z-10 relative transition-all hover:scale-105">
-          <?= $isDone ? '✓' : $sInfo['icon'] ?>
+           class="group flex flex-col items-center z-10 relative cursor-pointer no-underline text-center">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold <?= $stepColor ?> transition-all group-hover:scale-110">
+            <?= $isDone ? '✓' : $sInfo['icon'] ?>
+          </div>
+          <div class="mt-1.5 text-center">
+            <div class="text-[11px] font-bold transition-colors <?= $isCurrent ? 'text-[#8c0c4c] dark:text-pink-400' : ($isDone ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-white') ?>">
+              <?= $sInfo['label'] ?>
+            </div>
+            <div class="text-[9px] text-slate-400 dark:text-slate-500 group-hover:text-slate-600"><?= $sInfo['sheet'] ?></div>
+          </div>
         </a>
-        <div class="mt-1.5 text-center">
-          <div class="text-[10px] font-bold <?= $isCurrent ? 'text-[#8c0c4c] dark:text-pink-400' : ($isDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400') ?>"><?= $sInfo['label'] ?></div>
-          <div class="text-[9px] text-slate-400 dark:text-slate-500"><?= $sInfo['sheet'] ?></div>
-        </div>
       </div>
       <?php endforeach; ?>
     </div>
 
-    <!-- Dosen selector bar (Pilih Dosen Interaktif seperti VLOOKUP Excel) -->
+    <!-- Dosen selector bar (Pilih Dosen Interaktif) -->
     <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div class="flex items-center gap-3 w-full md:w-auto">
-        <div class="w-10 h-10 rounded-2xl bg-[#8c0c4c]/10 text-[#8c0c4c] flex items-center justify-center font-bold text-lg shrink-0">👤</div>
+        <div class="w-8 h-8 rounded-xl bg-[#8c0c4c]/10 text-[#8c0c4c] flex items-center justify-center font-bold text-xs shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </div>
         <div class="flex-1 min-w-[260px]">
-          <label class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Pilih / Ganti Dosen (VLOOKUP Excel)</label>
+          <label class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Pilih / Ganti Dosen</label>
           <select onchange="window.location.href='raport_dosen.php?step=<?= $step ?>&periode=<?= RAPORT_PERIODE_KEY ?>&ids=' + this.value"
             class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#8c0c4c]">
             <?php foreach ($allDosen as $ad): ?>
@@ -1118,14 +1347,14 @@ endif;
               $isMod = isset($_SESSION['raport_overrides'][$adNo]);
             ?>
             <option value="<?= htmlspecialchars($adNo) ?>" <?= $isSel ? 'selected' : '' ?>>
-              <?= htmlspecialchars($ad['No'] . '. ' . $ad['Nama'] . ' (' . ($ad['Prodi'] ?: 'Tanpa Prodi') . ')' . ($isMod ? ' ✏️ [Diedit]' : '')) ?>
+              <?= htmlspecialchars($ad['No'] . '. ' . $ad['Nama'] . ' (' . ($ad['Prodi'] ?: 'Tanpa Prodi') . ')' . ($isMod ? ' [Diedit]' : '')) ?>
             </option>
             <?php endforeach; ?>
           </select>
         </div>
         <?php if (isset($_SESSION['raport_overrides'][(string)($wizardDosen['No'] ?? '')])): ?>
         <span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-[10px] font-bold shrink-0">
-          ✏️ Mode Kustom
+          Mode Kustom
         </span>
         <?php endif; ?>
       </div>
@@ -1135,7 +1364,7 @@ endif;
         <?php if ($nextStep === 'print'): ?>
         <a href="raport_dosen.php?step=print&ids=<?= urlencode($idsParam) ?>&periode=<?= RAPORT_PERIODE_KEY ?>" target="_blank"
            class="px-5 py-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-semibold text-xs transition-all shadow flex items-center gap-1.5">
-          <span>🖨️</span> <span>Cetak Raport A4 →</span>
+          <span>Cetak Raport A4</span> <span>→</span>
         </a>
         <?php else: ?>
         <a href="<?= wizardUrl($nextStep, RAPORT_PERIODE_KEY, $idsParam) ?>" class="px-5 py-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-semibold text-xs transition-all shadow flex items-center gap-1.5">
@@ -1160,12 +1389,9 @@ endif;
   ?>
   <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/60 shadow-sm overflow-hidden mb-6">
     <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-      <div class="flex items-center gap-3">
-        <span class="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-xl">⚖️</span>
-        <div>
-          <h2 class="font-bold text-lg text-slate-800 dark:text-white">Skor Bobot &amp; Input Penilaian Tridharma</h2>
-          <p class="text-xs text-slate-500">Sesuaikan atau input manual data indikator seperti di Excel</p>
-        </div>
+      <div>
+        <h2 class="font-bold text-lg text-slate-800 dark:text-white">Skor Bobot &amp; Input Penilaian Tridharma</h2>
+        <p class="text-xs text-slate-500">Sesuaikan atau input manual data indikator penilaian</p>
       </div>
       <?php if ($isOverridden): ?>
       <form method="POST" onsubmit="return confirm('Kembalikan semua nilai dosen ini ke data asli Excel?')">
@@ -1173,7 +1399,7 @@ endif;
         <input type="hidden" name="dosen_no" value="<?= htmlspecialchars($dNo) ?>">
         <input type="hidden" name="current_step" value="skor_bobot">
         <button type="submit" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-colors">
-          🔄 Reset ke Asli Excel
+          Reset ke Data Excel
         </button>
       </form>
       <?php endif; ?>
@@ -1198,8 +1424,8 @@ endif;
 
       <!-- Section Identitas Mengajar -->
       <div class="mb-6 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
-        <h4 class="text-xs uppercase font-bold text-slate-500 mb-3 flex items-center gap-2">
-          <span>📚</span> <span>Informasi Mengajar &amp; Responden</span>
+        <h4 class="text-xs uppercase font-bold text-slate-500 mb-3">
+          Informasi Mengajar &amp; Responden
         </h4>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
@@ -1222,8 +1448,8 @@ endif;
 
       <!-- Section Input 5 Indikator Tridharma -->
       <h3 class="font-bold text-slate-800 dark:text-white mb-3 flex items-center justify-between">
-        <span>📋 Nilai 5 Indikator Tridharma (Bisa Diedit Manual)</span>
-        <span class="text-xs text-slate-400 font-normal">Formula Excel aktif otomatis saat nilai diubah</span>
+        <span>Nilai 5 Indikator Tridharma</span>
+        <span class="text-xs text-slate-400 font-normal">Formula aktif otomatis saat nilai diubah</span>
       </h3>
 
       <div class="overflow-x-auto mb-6">
@@ -1327,10 +1553,10 @@ endif;
 
       <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
         <p class="text-xs text-slate-500">
-          💡 Klik <strong>Simpan Perubahan</strong> untuk mengaplikasikan nilai ini ke Raport &amp; cetakan PDF.
+          Klik <strong>Simpan Perubahan</strong> untuk mengaplikasikan nilai ini ke Raport dan cetakan PDF.
         </p>
-        <button type="submit" class="px-6 py-2.5 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2">
-          <span>💾</span> <span>Simpan Perubahan Manual</span>
+        <button type="submit" class="px-6 py-2.5 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-bold text-xs shadow-md transition-all">
+          Simpan Perubahan
         </button>
       </div>
     </form>
@@ -1367,12 +1593,9 @@ endif;
   ?>
   <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/60 shadow-sm overflow-hidden mb-6">
     <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-xl">📊</span>
-        <div>
-          <h2 class="font-bold text-lg text-slate-800 dark:text-white">Skor &amp; Pilihan Rekomendasi Kuesioner</h2>
-          <p class="text-xs text-slate-500">Pilih rekomendasi perbaikan (P1–P5) dari 28 aspek kuesioner atau ketik catatan mahasiswa</p>
-        </div>
+      <div>
+        <h2 class="font-bold text-lg text-slate-800 dark:text-white">Skor &amp; Pilihan Rekomendasi Kuesioner</h2>
+        <p class="text-xs text-slate-500">Pilih rekomendasi perbaikan (P1–P5) dari 28 aspek kuesioner atau ketik catatan mahasiswa</p>
       </div>
       <span class="px-3 py-1 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs">
         Skor: <?= $skK > 0 ? number_format($skK, 2) : '–' ?> (<?= $katK['label'] ?>)
@@ -1397,11 +1620,11 @@ endif;
 
       <!-- 5 ASPEK REKOMENDASI PERBAIKAN DENGAN DROPDOWN 28 KRITERIA -->
       <div class="mb-8">
-        <h3 class="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
-          <span>🎯</span> <span>C1. Rekomendasi Perbaikan (P1 – P5)</span>
+        <h3 class="font-bold text-slate-800 dark:text-white mb-2">
+          C1. Rekomendasi Perbaikan (P1 – P5)
         </h3>
         <p class="text-xs text-slate-500 mb-4">
-          Pilih aspek dari <strong>dropdown 28 kriteria kuesioner</strong> (sesuai Sheet Rata-Rata Excel) atau pilih <em>"Ketik Kustom"</em> untuk mengisi sendiri:
+          Pilih aspek dari <strong>dropdown 28 kriteria kuesioner</strong> atau isi manual:
         </p>
 
         <div class="space-y-3">
@@ -1436,8 +1659,8 @@ endif;
 
       <!-- 4 CATATAN / KOMENTAR MAHASISWA (K1 - K4) -->
       <div class="mb-6">
-        <h3 class="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
-          <span>💬</span> <span>D. Catatan &amp; Komentar Mahasiswa (K1 – K4)</span>
+        <h3 class="font-bold text-slate-800 dark:text-white mb-2">
+          D. Catatan &amp; Komentar Mahasiswa (K1 – K4)
         </h3>
         <p class="text-xs text-slate-500 mb-4">
           Tulis atau edit catatan/kesan mahasiswa untuk dosen ini (akan tercetak pada Bagian D Raport):
@@ -1456,10 +1679,10 @@ endif;
 
       <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
         <p class="text-xs text-slate-500">
-          💡 Rekomendasi &amp; catatan yang dipilih akan tercetak pada raport resmi.
+          Rekomendasi &amp; catatan yang dipilih akan tercetak pada raport resmi.
         </p>
-        <button type="submit" class="px-6 py-2.5 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2">
-          <span>💾</span> <span>Simpan Rekomendasi &amp; Catatan</span>
+        <button type="submit" class="px-6 py-2.5 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl font-bold text-xs shadow-md transition-all">
+          Simpan Rekomendasi &amp; Catatan
         </button>
       </div>
     </form>
@@ -1469,12 +1692,9 @@ endif;
   <?php elseif ($step === 'rata_rata'): ?>
   <!-- STEP 4: RATA-RATA -->
   <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/60 shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
-      <span class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-xl">📈</span>
-      <div>
-        <h2 class="font-bold text-lg text-slate-800 dark:text-white">Rata-Rata Kriteria Kuesioner</h2>
-        <p class="text-sm text-slate-500">28 kriteria aspek penilaian kuesioner (dari Sheet Rata-Rata Excel)</p>
-      </div>
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+      <h2 class="font-bold text-lg text-slate-800 dark:text-white">Rata-Rata Kriteria Kuesioner</h2>
+      <p class="text-sm text-slate-500">28 kriteria aspek penilaian kuesioner</p>
     </div>
     <div class="p-6">
       <?php
@@ -1483,12 +1703,9 @@ endif;
         $skorRef = round((float)($wizardDosen['Nilai Kuesioner'] ?? 0), 2);
       ?>
       <!-- Info skor -->
-      <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800 mb-6 flex items-center gap-4">
-        <span class="text-3xl">📈</span>
-        <div>
-          <div class="font-bold text-emerald-800 dark:text-emerald-200">Nilai Kuesioner: <span class="text-2xl"><?= $skorRef > 0 ? number_format($skorRef, 2) : '–' ?></span></div>
-          <div class="text-sm text-emerald-700 dark:text-emerald-400">Nilai ini merupakan rata-rata tertimbang dari 28 kriteria di bawah ini</div>
-        </div>
+      <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800 mb-6">
+        <div class="font-bold text-emerald-800 dark:text-emerald-200">Nilai Kuesioner: <span class="text-2xl font-black"><?= $skorRef > 0 ? number_format($skorRef, 2) : '–' ?></span></div>
+        <div class="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">Nilai ini merupakan rata-rata tertimbang dari 28 kriteria di bawah ini</div>
       </div>
       <!-- Tabel 28 Kriteria -->
       <div class="overflow-x-auto">
@@ -1542,27 +1759,63 @@ endif;
   <!-- Header + Periode Switcher -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
     <div>
-      <h1 class="font-display font-bold text-2xl md:text-3xl text-slate-800 dark:text-white">📋 Raport Laporan Dosen</h1>
-      <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Generate surat raport dosen otomatis dari data kuesioner &amp; evaluasi Tridharma</p>
+      <h1 class="font-display font-bold text-2xl md:text-3xl text-slate-800 dark:text-white">Raport Laporan Dosen</h1>
+      <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Generate surat raport dosen dari data kuesioner &amp; evaluasi Tridharma</p>
     </div>
-    <div class="flex items-center gap-3">
-      <!-- Periode Switcher -->
-      <div class="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
-        <a href="raport_dosen.php?periode=gasal"
-           class="px-4 py-2 rounded-lg text-sm font-semibold transition-all <?= RAPORT_PERIODE_KEY === 'gasal' ? 'bg-[#8c0c4c] text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-700' ?>">
-          🍂 Gasal 2025-2026
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Periode Switcher — dinamis dari DB -->
+      <?php
+        $showAll   = count($allPeriodeDB) <= 6;
+        $displayed = $showAll ? $allPeriodeDB : array_slice($allPeriodeDB, 0, 6);
+      ?>
+      <div class="flex flex-wrap gap-1">
+        <?php foreach ($displayed as $ap):
+          $isActive = ($ap['label'] === RAPORT_PERIODE_KEY);
+          $dosenCnt = (int)(dbQueryOne("SELECT COUNT(*) as c FROM raport_dosen_data WHERE periode=?", [$ap['label']])['c'] ?? 0);
+        ?>
+        <a href="raport_dosen.php?periode=<?= urlencode($ap['label']) ?>"
+           class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all <?= $isActive ? 'bg-[#8c0c4c] text-white shadow' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700' ?>">
+          <?= e($ap['label']) ?>
+          <?php if ($dosenCnt > 0): ?>
+          <span class="px-1 py-0.5 rounded-full text-[10px] font-bold <?= $isActive ? 'bg-white/30 text-white' : 'bg-slate-300 dark:bg-slate-600 text-slate-600 dark:text-slate-200' ?>"><?= $dosenCnt ?></span>
+          <?php endif; ?>
         </a>
-        <a href="raport_dosen.php?periode=genap"
-           class="px-4 py-2 rounded-lg text-sm font-semibold transition-all <?= RAPORT_PERIODE_KEY === 'genap' ? 'bg-[#8c0c4c] text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-700' ?>">
-          🌸 Genap 2025-2026
-        </a>
+        <?php endforeach; ?>
+        <?php if (!$showAll): ?>
+        <div class="relative group">
+          <button class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400">+<?= count($allPeriodeDB)-6 ?> lainnya ▾</button>
+          <div class="absolute top-full right-0 mt-1 hidden group-hover:block bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 py-1 z-20 min-w-40">
+            <?php foreach (array_slice($allPeriodeDB, 6) as $ap2): ?>
+            <a href="raport_dosen.php?periode=<?= urlencode($ap2['label']) ?>"
+               class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 <?= $ap2['label']===RAPORT_PERIODE_KEY?'text-[#8c0c4c] font-bold':'' ?>">
+              <?= e($ap2['label']) ?>
+            </a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+        <a href="input_raport_dosen.php" class="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors">+ Periode</a>
       </div>
-      <!-- Info File -->
-      <div class="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-200 dark:border-emerald-800 text-sm">
-        <span class="text-emerald-700 dark:text-emerald-400 font-bold">📁 <?= RAPORT_EXCEL_NAME ?></span>
-        <br><span class="text-emerald-600 text-xs"><?= count($allDosen) ?> dosen · <?= RAPORT_PERIODE ?></span>
+      <div class="flex items-center gap-2">
+        <a href="input_raport_dosen.php?periode=<?= urlencode(RAPORT_PERIODE_KEY) ?>"
+           class="flex items-center gap-1.5 px-3 py-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          Input Data
+        </a>
+        <?php if ($dataFromDB): ?>
+        <div class="px-3 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-200 dark:border-blue-800 text-sm">
+          <span class="text-blue-700 dark:text-blue-400 font-bold">📊 Database</span>
+          <br><span class="text-blue-600 text-xs"><?= count($allDosen) ?> dosen</span>
+        </div>
+        <?php else: ?>
+        <div class="px-3 py-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-200 dark:border-emerald-800 text-sm">
+          <span class="text-emerald-700 dark:text-emerald-400 font-bold">📁 Excel</span>
+          <br><span class="text-emerald-600 text-xs"><?= count($allDosen) ?> dosen</span>
+        </div>
+        <?php endif; ?>
       </div>
     </div>
+
   </div>
 
   <!-- ======= WIZARD FLOW INDICATOR (Step 1 aktif) ======= -->
@@ -1573,21 +1826,30 @@ endif;
         $isListActive = ($sKey === 'list');
         $circleClass  = $isListActive
           ? 'bg-[#8c0c4c] text-white shadow-lg ring-4 ring-[#8c0c4c]/20'
-          : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500';
+          : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600';
         $lineClass = 'bg-slate-200 dark:bg-slate-700';
-        $lblClass  = $isListActive ? 'text-[#8c0c4c] dark:text-pink-400 font-bold' : 'text-slate-400';
+        $lblClass  = $isListActive ? 'text-[#8c0c4c] dark:text-pink-400 font-bold' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-white';
+        $stepUrl   = ($sKey === 'list')
+          ? 'raport_dosen.php?periode=' . urlencode(RAPORT_PERIODE_KEY)
+          : (($sKey === 'print')
+              ? 'raport_dosen.php?step=print&periode=' . urlencode(RAPORT_PERIODE_KEY)
+              : 'raport_dosen.php?step=' . urlencode($sKey) . '&periode=' . urlencode(RAPORT_PERIODE_KEY));
       ?>
-      <div class="flex flex-col items-center flex-1">
+      <div class="flex flex-col items-center flex-1 relative">
         <?php if ($sKey !== 'list'): ?>
         <div class="w-full h-0.5 <?= $lineClass ?> mb-4 -mt-4 relative top-4"></div>
         <?php endif; ?>
-        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold <?= $circleClass ?> z-10 relative">
-          <?= $sInfo['icon'] ?>
-        </div>
-        <div class="mt-1.5 text-center">
-          <div class="text-[10px] <?= $lblClass ?>"><?= $sInfo['label'] ?></div>
-          <div class="text-[9px] text-slate-400 dark:text-slate-500"><?= $sInfo['sheet'] ?></div>
-        </div>
+        <a href="<?= $stepUrl ?>"
+           target="<?= $sKey === 'print' ? '_blank' : '_self' ?>"
+           class="group flex flex-col items-center z-10 relative cursor-pointer no-underline text-center">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold <?= $circleClass ?> transition-all group-hover:scale-110">
+            <?= $sInfo['icon'] ?>
+          </div>
+          <div class="mt-1.5 text-center">
+            <div class="text-[11px] <?= $lblClass ?> transition-colors"><?= $sInfo['label'] ?></div>
+            <div class="text-[9px] text-slate-400 dark:text-slate-500 group-hover:text-slate-600"><?= $sInfo['sheet'] ?></div>
+          </div>
+        </a>
       </div>
       <?php endforeach; ?>
     </div>
@@ -1598,10 +1860,10 @@ endif;
 
   <?php if ($hasError): ?>
   <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 mb-6">
-    <p class="text-amber-700 dark:text-amber-400 font-semibold">⚠️ <?= htmlspecialchars($excelData['error'] ?? 'Data tidak tersedia') ?></p>
+    <p class="text-amber-700 dark:text-amber-400 font-semibold"><?= $excelData['error'] ?? 'Data tidak tersedia' ?></p>
     <?php if (RAPORT_PERIODE_KEY === 'genap'): ?>
     <p class="text-amber-600 dark:text-amber-500 text-sm mt-2">
-      💡 <strong>Genap:</strong> Letakkan file <code class="bg-amber-100 dark:bg-amber-900 px-1 rounded">Sistem Report Dosen 2025 - 2026 Genap.xlsx</code>
+      <strong>Genap:</strong> Letakkan file <code class="bg-amber-100 dark:bg-amber-900 px-1 rounded">Sistem Report Dosen 2025 - 2026 Genap.xlsx</code>
       di folder <code class="bg-amber-100 dark:bg-amber-900 px-1 rounded">Contoh Lampiran/Laporan Raport/</code> untuk menggunakan data Excel penuh.
       Sistem akan otomatis membaca dari PDF kuesioner sebagai sumber data sementara.
     </p>
@@ -1619,17 +1881,16 @@ endif;
     $dosenCukup   = count(array_filter($allDosen, function($d) { $s=(float)($d['Nilai Kuesioner']??0); return $s >= 3.66 && $s < 4.12; }));
     $dosenKurang  = count(array_filter($allDosen, function($d) { $s=(float)($d['Nilai Kuesioner']??0); return $s > 0 && $s < 3.66; }));
     $stats = [
-      ['label' => 'Total Dosen', 'value' => $totalDosen, 'icon' => '👨‍🏫', 'bg' => 'bg-indigo-50 dark:bg-indigo-900/30', 'text' => 'text-indigo-700 dark:text-indigo-300'],
-      ['label' => 'Sangat Baik', 'value' => $dosenSB, 'icon' => '⭐', 'bg' => 'bg-emerald-50 dark:bg-emerald-900/30', 'text' => 'text-emerald-700 dark:text-emerald-300'],
-      ['label' => 'Baik', 'value' => $dosenBaik, 'icon' => '✅', 'bg' => 'bg-blue-50 dark:bg-blue-900/30', 'text' => 'text-blue-700 dark:text-blue-300'],
-      ['label' => 'Perlu Perhatian', 'value' => $dosenCukup + $dosenKurang, 'icon' => '⚠️', 'bg' => 'bg-amber-50 dark:bg-amber-900/30', 'text' => 'text-amber-700 dark:text-amber-300'],
+      ['label' => 'Total Dosen', 'value' => $totalDosen, 'bg' => 'bg-indigo-50 dark:bg-indigo-900/30', 'text' => 'text-indigo-700 dark:text-indigo-300'],
+      ['label' => 'Sangat Baik', 'value' => $dosenSB, 'bg' => 'bg-emerald-50 dark:bg-emerald-900/30', 'text' => 'text-emerald-700 dark:text-emerald-300'],
+      ['label' => 'Baik', 'value' => $dosenBaik, 'bg' => 'bg-blue-50 dark:bg-blue-900/30', 'text' => 'text-blue-700 dark:text-blue-300'],
+      ['label' => 'Perlu Perhatian', 'value' => $dosenCukup + $dosenKurang, 'bg' => 'bg-amber-50 dark:bg-amber-900/30', 'text' => 'text-amber-700 dark:text-amber-300'],
     ];
     ?>
     <?php foreach ($stats as $s): ?>
     <div class="<?= $s['bg'] ?> rounded-2xl p-4 border border-white/60 dark:border-white/5">
-      <div class="text-2xl mb-1"><?= $s['icon'] ?></div>
       <div class="text-2xl font-bold <?= $s['text'] ?>"><?= $s['value'] ?></div>
-      <div class="text-xs font-semibold <?= $s['text'] ?> opacity-80"><?= $s['label'] ?></div>
+      <div class="text-xs font-semibold <?= $s['text'] ?> opacity-80 mt-1"><?= $s['label'] ?></div>
     </div>
     <?php endforeach; ?>
   </div>
@@ -1649,24 +1910,24 @@ endif;
         </div>
       </div>
 
-      <div class="min-w-[200px]">
+      <div class="min-w-[240px]">
         <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Filter Prodi</label>
         <select name="prodi" onchange="document.getElementById('filter-form').submit()"
           class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#8c0c4c]">
           <option value="">Semua Prodi</option>
           <?php foreach ($prodiList as $p): ?>
-          <option value="<?= htmlspecialchars($p) ?>" <?= $filterProdi === $p ? 'selected' : '' ?>><?= htmlspecialchars($p) ?></option>
+          <option value="<?= htmlspecialchars($p) ?>" <?= ($filterProdi === $p || formatProdiStandard($filterProdi) === $p) ? 'selected' : '' ?>><?= htmlspecialchars($p) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
 
       <button type="submit" class="px-5 py-2.5 bg-slate-800 dark:bg-slate-700 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors">
-        🔍 Cari
+        Cari
       </button>
 
       <?php if ($filterProdi || $filterCari): ?>
       <a href="raport_dosen.php?periode=<?= RAPORT_PERIODE_KEY ?>" class="px-5 py-2.5 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-colors">
-        ✕ Reset
+        Reset
       </a>
       <?php endif; ?>
     </form>
@@ -1675,7 +1936,6 @@ endif;
   <!-- Toolbar Batch -->
   <div class="bg-gradient-to-r from-[#8c0c4c] to-[#6d0039] rounded-2xl p-4 mb-4 flex items-center justify-between" id="batch-toolbar" style="display:none!important">
     <div class="flex items-center gap-3 text-white">
-      <span class="text-2xl">🖨️</span>
       <div>
         <div class="font-bold text-base" id="selected-count-text">0 dosen dipilih</div>
         <div class="text-xs opacity-80">Pilih dosen dari tabel untuk generate raport</div>
@@ -1683,16 +1943,16 @@ endif;
     </div>
     <div class="flex gap-2">
       <button onclick="printSelected()" class="px-5 py-2 bg-white text-[#8c0c4c] rounded-xl text-sm font-bold hover:bg-slate-100 transition-colors shadow">
-        🖨️ Cetak Terpilih
+        Cetak Terpilih
       </button>
       <button onclick="wordSelected()" class="px-5 py-2 bg-blue-600 text-white border border-blue-400 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
-        📄 Word Terpilih
+        Word Terpilih
       </button>
       <button onclick="printAll()" class="px-5 py-2 bg-white/20 text-white border border-white/30 rounded-xl text-sm font-semibold hover:bg-white/30 transition-colors">
-        🖨️ Cetak Semua (<?= count($filteredDosen) ?>)
+        Cetak Semua (<?= count($filteredDosen) ?>)
       </button>
       <button onclick="wordAll()" class="px-5 py-2 bg-blue-800/70 text-white border border-blue-300/30 rounded-xl text-sm font-semibold hover:bg-blue-800 transition-colors">
-        📄 Word Semua
+        Word Semua
       </button>
     </div>
   </div>
@@ -1704,13 +1964,13 @@ endif;
     </p>
     <div class="flex gap-2 flex-wrap">
       <button onclick="selectAll()" id="btn-select-all" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-colors">
-        ☑️ Pilih Semua
+        Pilih Semua
       </button>
       <button onclick="printAll()" class="inline-flex items-center gap-2 px-5 py-2 bg-[#8c0c4c] hover:bg-[#a3155b] text-white rounded-xl text-sm font-semibold transition-all shadow">
-        🖨️ Cetak Semua (<?= count($filteredDosen) ?>)
+        Cetak Semua (<?= count($filteredDosen) ?>)
       </button>
       <button onclick="wordAll()" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all shadow">
-        📄 Word Semua (<?= count($filteredDosen) ?>)
+        Word Semua (<?= count($filteredDosen) ?>)
       </button>
     </div>
   </div>
@@ -1740,8 +2000,7 @@ endif;
           <?php if (empty($filteredDosen)): ?>
           <tr>
             <td colspan="11" class="py-12 text-center text-slate-400">
-              <div class="text-4xl mb-2">🔍</div>
-              <div class="font-medium">Tidak ada data dosen yang ditemukan</div>
+              <div class="font-medium text-sm">Tidak ada data dosen yang ditemukan</div>
             </td>
           </tr>
           <?php else: foreach ($filteredDosen as $idx => $d):
@@ -1777,7 +2036,7 @@ endif;
             <td class="py-3.5 px-4">
               <div class="font-semibold text-slate-800 dark:text-white"><?= htmlspecialchars($d['Nama'] ?? '-') ?></div>
               <?php if (!$dataLengkap): ?>
-              <div class="text-[10px] text-amber-500 font-semibold mt-0.5">⚠️ Data belum lengkap</div>
+              <div class="text-[10px] text-amber-600 font-semibold mt-0.5">Data belum lengkap</div>
               <?php endif; ?>
             </td>
             <td class="py-3.5 px-4">
@@ -1821,16 +2080,16 @@ endif;
                 <!-- Lihat Raport → mulai wizard dari step skor_bobot -->
                 <a href="raport_dosen.php?step=skor_bobot&ids=<?= $d['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>"
                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#8c0c4c] text-white hover:bg-[#a3155b] transition-colors shadow-sm">
-                   📑 Lihat Raport
+                   Lihat Raport
                 </a>
                 <a href="raport_dosen.php?step=print&ids=<?= $d['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>" target="_blank"
                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 transition-colors"
                    title="Langsung cetak tanpa wizard">
-                   🖨️ Cetak
+                   Cetak
                 </a>
                 <a href="raport_dosen.php?step=word&ids=<?= $d['No'] ?>&periode=<?= RAPORT_PERIODE_KEY ?>"
                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600/10 text-blue-700 hover:bg-blue-600/20 dark:bg-blue-600/20 dark:text-blue-300 transition-colors">
-                   📄 Word
+                   Word
                 </a>
               </div>
             </td>

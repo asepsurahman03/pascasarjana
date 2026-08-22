@@ -411,7 +411,7 @@ function parseGenapPDF(string $pdfPath): array {
         $rows[] = [
             'No'               => $no++,
             'Nama'             => $namaFmt,
-            'Prodi'            => $prodi,
+            'Prodi'            => function_exists('formatProdiStandard') ? formatProdiStandard($prodi) : $prodi,
             'Jumlah Matkul'    => $d['mksCount'],
             'Jumlah Kelas'     => $d['mksCount'],
             'Jumlah Responden' => '',

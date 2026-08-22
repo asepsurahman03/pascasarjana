@@ -167,6 +167,11 @@ function parseExcelRaport(string $filePath): array {
                 }
             }
 
+            // Format nama Prodi ke format resmi berjenjang (e.g. S1 - Akuntansi, S2 - Magister Informatika)
+            if (isset($mapped['Prodi'])) {
+                $mapped['Prodi'] = formatProdiStandard($mapped['Prodi']);
+            }
+
             $rows[] = $mapped;
         }
     }
@@ -364,6 +369,95 @@ function parseExcelAllSheets(string $filePath): array {
 
     $zip->close();
     return $result;
+}
+
+/**
+ * Format nama Program Studi ke format resmi berjenjang (e.g. S1 - Akuntansi, S2 - Magister Informatika, S3 - Doktor Ilmu Komputer, D3 - Keperawatan).
+ */
+function formatProdiStandard(?string $prodiRaw): string {
+    $p = trim((string)$prodiRaw);
+    if ($p === '' || $p === '-') return '-';
+
+    // Jika sudah memiliki prefix jenjang (S1 - , S2 - , S3 - , D3 - , D4 - ), return langsung
+    if (preg_match('/^(?:S1|S2|S3|D3|D4)\s*-\s*/i', $p)) {
+        return $p;
+    }
+
+    $map = [
+        // S2 / Magister
+        'magister informatika'            => 'S2 - Magister Informatika',
+        'magister hukum'                  => 'S2 - Magister Hukum',
+        's2 hukum'                        => 'S2 - Magister Hukum',
+        'magister pedagogi'               => 'S2 - Magister Pedagogi',
+        's2 pedagogi'                     => 'S2 - Magister Pedagogi',
+        'pedagogi'                        => 'S2 - Magister Pedagogi',
+        'magister manajemen'              => 'S2 - Magister Manajemen',
+        's2 manajemen'                    => 'S2 - Magister Manajemen',
+        // S3 / Doktor
+        'doktor ilmu komputer'            => 'S3 - Doktor Ilmu Komputer',
+        'ilmu komputer'                   => 'S3 - Doktor Ilmu Komputer',
+        // D3 / Diploma
+        'keperawatan'                     => 'D3 - Keperawatan',
+        // S1 / Sarjana
+        'administrasi kesehatan'          => 'S1 - Administrasi Kesehatan',
+        'teknik informatika'              => 'S1 - Teknik Informatika',
+        'sistem informasi'                => 'S1 - Sistem Informasi',
+        'teknik elektro'                  => 'S1 - Teknik Elektro',
+        'teknik mesin'                    => 'S1 - Teknik Mesin',
+        'teknik sipil'                    => 'S1 - Teknik Sipil',
+        'desain komunikasi visual'        => 'S1 - Desain Komunikasi Visual',
+        'dkv'                             => 'S1 - Desain Komunikasi Visual',
+        'akuntansi'                       => 'S1 - Akuntansi',
+        'manajemen'                       => 'S1 - Manajemen',
+        'hukum'                           => 'S1 - Hukum',
+        'ilmu hukum'                      => 'S1 - Hukum',
+        'pgsd'                            => 'S1 - Pendidikan Guru Sekolah Dasar',
+        'pendidikan guru sekolah dasar'   => 'S1 - Pendidikan Guru Sekolah Dasar',
+        'gizi'                            => 'S1 - Gizi',
+        'bioteknologi'                    => 'S1 - Bioteknologi',
+        'teknologi pangan'                => 'S1 - Teknologi Pangan',
+    ];
+
+    $norm = strtolower($p);
+    foreach ($map as $key => $formatted) {
+        if ($norm === $key || strpos($norm, $key) !== false) {
+            return $formatted;
+        }
+    }
+
+    if (stripos($p, 'universitas') !== false || stripos($p, 'institut') !== false || stripos($p, 'politeknik') !== false) {
+        return $p;
+    }
+
+    return 'S1 - ' . $p;
+}
+
+/**
+ * Master Program Studi lengkap Universitas Nusa Putra (D3, S1, S2, S3).
+ */
+function getAllMasterProgramStudi(): array {
+    return [
+        'D3 - Keperawatan',
+        'S1 - Administrasi Kesehatan',
+        'S1 - Akuntansi',
+        'S1 - Bioteknologi',
+        'S1 - Desain Komunikasi Visual',
+        'S1 - Gizi',
+        'S1 - Hukum',
+        'S1 - Manajemen',
+        'S1 - Pendidikan Guru Sekolah Dasar',
+        'S1 - Sistem Informasi',
+        'S1 - Teknik Elektro',
+        'S1 - Teknik Informatika',
+        'S1 - Teknik Mesin',
+        'S1 - Teknik Sipil',
+        'S1 - Teknologi Pangan',
+        'S2 - Magister Hukum',
+        'S2 - Magister Informatika',
+        'S2 - Magister Manajemen',
+        'S2 - Magister Pedagogi',
+        'S3 - Doktor Ilmu Komputer',
+    ];
 }
 
 /**

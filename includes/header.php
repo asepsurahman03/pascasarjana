@@ -15,7 +15,7 @@ else $activePage = 'index';
 
 // Grouping menu items for horizontal nav
 $navMasterData = ['dosen_pasca', 'mahasiswa', 'prodi'];
-$navAkademik = ['sidang', 'jadwal', 'penelitian_dosen', 'publikasi_mahasiswa', 'tugas', 'analisis_rapot', 'raport_dosen'];
+$navAkademik = ['sidang', 'jadwal', 'penelitian_dosen', 'publikasi_mahasiswa', 'tugas', 'analisis_rapot', 'raport_dosen', 'input_raport_dosen'];
 $navSurat = ['surat', 'surat_keluaran', 'agenda_surat'];
 $navLampiran = ['buat_lampiran_tesis', 'buat_lampiran_proposal', 'buat_lampiran_capstone', 'buat_lampiran_iamp', 'buat_lampiran_kolokium', 'buat_lampiran_kualifikasi'];
 $navPanduan = ['panduan_tesis', 'panduan_kolokium', 'panduan_capstone', 'panduan_iamp', 'panduan_kualifikasi'];
@@ -219,14 +219,15 @@ $navSistem = ['whatsapp', 'laporan', 'settings'];
             Akademik
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
           </button>
-          <div class="absolute top-full left-0 hidden group-hover:block w-48 bg-white dark:bg-slate-800 rounded-b-xl shadow-lg border border-t-0 border-slate-100 dark:border-slate-700 py-2">
+          <div class="absolute top-full left-0 hidden group-hover:block w-52 bg-white dark:bg-slate-800 rounded-b-xl shadow-lg border border-t-0 border-slate-100 dark:border-slate-700 py-2">
             <a href="<?= BASE_URL ?>/pages/sidang" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Sidang & Seminar</a>
             <a href="<?= BASE_URL ?>/pages/jadwal" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Jadwal Agenda</a>
             <a href="<?= BASE_URL ?>/pages/penelitian_dosen" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Penelitian Dosen</a>
             <a href="<?= BASE_URL ?>/pages/publikasi_mahasiswa" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Publikasi Mahasiswa</a>
             <a href="<?= BASE_URL ?>/pages/tugas" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Tugas & Catatan</a>
             <a href="<?= BASE_URL ?>/pages/analisis_rapot" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Analisis Rapot</a>
-            <a href="<?= BASE_URL ?>/pages/raport_dosen" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">📋 Raport Laporan Dosen</a>
+            <a href="<?= BASE_URL ?>/pages/raport_dosen" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Raport Laporan Dosen</a>
+            <a href="<?= BASE_URL ?>/pages/input_raport_dosen" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#8c0c4c]">Input Data Raport</a>
           </div>
         </div>
 
@@ -322,7 +323,8 @@ $navSistem = ['whatsapp', 'laporan', 'settings'];
     <a href="<?= BASE_URL ?>/pages/publikasi_mahasiswa" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Publikasi Mahasiswa</a>
     <a href="<?= BASE_URL ?>/pages/tugas" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Tugas & Catatan</a>
     <a href="<?= BASE_URL ?>/pages/analisis_rapot" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Analisis Rapot</a>
-    <a href="<?= BASE_URL ?>/pages/raport_dosen" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">📋 Raport Laporan Dosen</a>
+    <a href="<?= BASE_URL ?>/pages/raport_dosen" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Raport Laporan Dosen</a>
+    <a href="<?= BASE_URL ?>/pages/input_raport_dosen" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Input Data Raport</a>
     
     <div class="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-2 border-t border-slate-100 dark:border-slate-800 pt-4">Persuratan</div>
     <a href="<?= BASE_URL ?>/pages/surat_buat" class="block px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Buat Surat</a>
